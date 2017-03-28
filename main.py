@@ -3,7 +3,7 @@ import datetime
 
 def iterate():
     chunksize = 10 ** 6
-    for chunk in pd.read_hdf('/data/s1481096/LosAlamos/data/auth_small.h5', 'auth',
+    for chunk in pd.read_hdf('/data/s1481096/LosAlamos/data/auth_small.h5', 'auth_small',
             chunksize=chunksize):
         for name, group in chunk.groupby(
                 [chunk.index, pd.TimeGrouper(freq='Min')]):
