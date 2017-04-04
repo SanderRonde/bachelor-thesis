@@ -15,7 +15,7 @@ def generateTFModel():
     return [lstm, state]
 
 def assertModelInDict(user):
-    if !(user in models):
+    if user not in models:
         models[user] = generateTFModel()
 
 def doIteration(user, data):
