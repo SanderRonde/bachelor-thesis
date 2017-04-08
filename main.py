@@ -10,7 +10,7 @@ def getRowUser(row):
     return row[3]
 
 def generateTFModel():
-    lstm = tf.contrib.rnn.BasicLSTMCell()
+    lstm = tf.contrib.rnn.BasicLSTMCell(lstm_size)
     state = tf.zeros([batch_size, lstm.state_size])
     return [lstm, state]
 
