@@ -22,6 +22,10 @@ def assertModelInDict(user):
         models[user] = [lstm, state]
 
 def doIteration(user, data):
+    print(models)
+    print(models[user])
+    print(models[user][0])
+    print(models[user][1])
     models[user] = models[user][0](data, models[user][1])
 
 def handleRow(row):
