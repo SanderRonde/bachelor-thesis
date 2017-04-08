@@ -26,7 +26,13 @@ def doIteration(user, data):
     print(models[user])
     print(models[user][0])
     print(models[user][1])
-    models[user] = models[user][0](data, models[user][1])
+    lstm = models[user][0]
+    oldState = models[user][1]
+    print(type(lstm))
+    print(type(oldState))
+    output, newState = lstm(oldState)
+    print("Output is", output)
+    models[user] = [lstm, newState]
 
 def handleRow(row):
     user = getRowUser(row)
