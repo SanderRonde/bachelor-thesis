@@ -12,11 +12,13 @@ def getRowUser(row):
 def generateTFModel():
     lstm = tf.contrib.rnn.BasicLSTMCell(lstm_size)
     state = tf.zeros([chunksize, lstm.state_size])
-    return [lstm, state]
+    return lstm, state
 
 def assertModelInDict(user):
     if user not in models:
-        models[user] = generateTFModel()
+        print("Creating another model for user" + user)
+        lstm, state = generateTFModel()
+        models[user] = [lstm, state]
 
 def doIteration(user, data):
     models[user] = models[user][0](data, models[user][1])
