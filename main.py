@@ -13,6 +13,8 @@ def generateTFModel():
     lstm = tf.contrib.rnn.BasicLSTMCell(lstm_size)
     print("Chunk size is", chunksize, "state size is", lstm_size) 
     state = tf.zeros([chunksize, lstm_size])
+    print("Zeros is", state)
+    print("Type of zeros is", type(state))
     return lstm, state
 
 def assertModelInDict(user):
