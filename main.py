@@ -11,7 +11,7 @@ def getRowUser(row):
 
 def generateTFModel():
     lstm = tf.contrib.rnn.BasicLSTMCell(lstm_size)
-    state = tf.zeros([batch_size, lstm.state_size])
+    state = tf.zeros([chunksize, lstm.state_size])
     return [lstm, state]
 
 def assertModelInDict(user):
