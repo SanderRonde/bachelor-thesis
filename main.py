@@ -11,6 +11,7 @@ def getRowUser(row):
 
 def generateTFModel():
     lstm = tf.contrib.rnn.BasicLSTMCell(lstm_size)
+    print("Chunk size is", chunksize, "state size is", lstm.state_size)
     state = tf.zeros([chunksize, lstm.state_size])
     return lstm, state
 
