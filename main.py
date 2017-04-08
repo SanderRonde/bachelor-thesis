@@ -30,7 +30,7 @@ def doIteration(user, data):
     oldState = models[user][1]
     print(type(lstm))
     print(type(oldState))
-    output, newState = lstm(oldState)
+    output, newState = lstm(data, oldState)
     print("Output is", output)
     models[user] = [lstm, newState]
 
