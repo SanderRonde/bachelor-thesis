@@ -32,7 +32,7 @@ def doIteration(user, data):
     oldState = models[user][1]
     print(type(lstm))
     print(type(oldState))
-    output, newState = lstm(data, oldState)
+    output, newState = lstm(data, tf.zeros([chunksize, lstm_size]))
     print("Output is", output)
     models[user] = [lstm, newState]
 
