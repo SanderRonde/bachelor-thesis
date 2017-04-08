@@ -1,7 +1,7 @@
 import pandas as pd
 import tensorflow as tf
 
-lstm_size = 100
+lstm_size = 2 ** 7
 chunksize = 2 ** 8
 
 models = dict()
@@ -11,8 +11,8 @@ def getRowUser(row):
 
 def generateTFModel():
     lstm = tf.contrib.rnn.BasicLSTMCell(lstm_size)
-    print("Chunk size is", chunksize, "state size is", lstm.state_size)
-    state = tf.zeros([chunksize, lstm.state_size])
+    print("Chunk size is", chunksize, "state size is", lstm_size) 
+    state = tf.zeros([chunksize, lstm_size])
     return lstm, state
 
 def assertModelInDict(user):
