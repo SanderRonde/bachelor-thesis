@@ -2,6 +2,7 @@
 import pandas as pd
 import tensorflow as tf
 import features as features
+from datetime import datetime, date, time
 
 LSTM_SIZE = 2 ** 7
 CHUNKSIZE = 2 ** 8
@@ -18,7 +19,7 @@ class Row:
         row_two_split = row[2].split("@")
 
         self.time = row[0]
-        self.source_user = row_one_split[0]
+        self.source_user = self.user = row_one_split[0]
         self.domain = row_one_split[1]
         self.dest_user = row_two_split[0]
         self.src_computer = row[3]
@@ -31,7 +32,7 @@ class Row:
 class Features:
     """All the features fr a model"""
 
-    _last_access = None
+    _last_access = datetime(1970, 1, 1)
     _domains = list()
     _dest_users = list()
     _src_computers = list()
@@ -138,7 +139,7 @@ class Model:
 def assert_model_in_dict(user):
     """Makes sure there is a model for given user in the dictionary"""
     if user not in MODELS:
-        print("Creating another model for user" + user)
+        print("Creating another model for user " + user)
         MODELS[user] = Model(user)
 
 def do_iteration(user, row):
@@ -147,6 +148,9 @@ def do_iteration(user, row):
 
 def handle_row(row):
     """Handles one row of the original data"""
+    if row.user == "ANONYMOUS LOGON":
+        return
+
     assert_model_in_dict(row.user)
     do_iteration(row.user, row)
 
@@ -154,9 +158,10 @@ def iterate():
     """Iterates over the data and feeds it to the RNN"""
     for chunk in pd.read_hdf('/data/s1481096/LosAlamos/data/auth_small.h5', 'auth_small',
                              chunksize=CHUNKSIZE):
-        for group in chunk.groupby(
+        for name, group in chunk.groupby(
                 [chunk.index, pd.TimeGrouper(freq='Min')]):
             for row in group.itertuples():
+                print(row)
                 handle_row(Row(row))
 
 def main():
