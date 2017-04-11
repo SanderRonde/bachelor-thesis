@@ -67,8 +67,8 @@ def extract(row, model):
 	success_failure = str_to_enum(row.status, SUCCESS_FAILURE)
 
 
-	feature_arr = [int(time_since_last_access), domains_amount, dest_users_amount,
+	feature_arr = [time_since_last_access, domains_amount, dest_users_amount,
 				src_computers_amount, dest_computers_amount, auth_type,
 				logon_type, auth_orientation, success_failure]
 	print(feature_arr)
-	return tf.convert_to_tensor(tf.placeholder(tf.int32, shape=[None, len(feature_arr)]), name="Features")
+	return tf.convert_to_tensor(tf.placeholder(tf.float32, shape=[None, len(feature_arr)]), dtype=tf.float32, name="Features")
