@@ -136,7 +136,7 @@ class Model:
         """Runs one instance of the RNN with given data as input"""
         data = features.extract(data, self)
         print(data)
-        self._last_output, self._state = self.model(data, self.state)
+        self._last_output, self._state = self.model(tf.cast(data, tf.int32), self.state)
 
 def assert_model_in_dict(row):
     """Makes sure there is a model for given user in the dictionary"""
