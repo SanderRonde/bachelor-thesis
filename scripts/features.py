@@ -71,4 +71,5 @@ def extract(row, model):
 				src_computers_amount, dest_computers_amount, auth_type,
 				logon_type, auth_orientation, success_failure]
 	print(feature_arr)
-	return tf.convert_to_tensor(feature_arr, name="Features")
+	return tf.convert_to_tensor(tf.placeholder(tf.int32, shape=[None, len(feature_arr)],
+                                              name="encoder{0}".format(feature_arr)), name="Features")
