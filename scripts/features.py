@@ -1,5 +1,4 @@
 import tensorflow as tf
-import time
 
 """The authentication type of the request"""
 AUTH_TYPE = {
@@ -44,17 +43,14 @@ SUCCESS_FAILURE = {
 	'FAIL': 1
 }
 
-TIME_PATTERN = '%d.%m.%Y %H:%M:%S'
-
 def str_to_enum(string, enum):
 	"""Converts a string to a number in given enum"""
 	upper_case = string.upper()
 
-	print(enum, type(enum))
 	if string == "?":
 		return enum['NONE']
 
-	return enum.get(string)
+	return enum.get(upper_case)
 
 def extract(row, model):
 	"""Extracts the features for given row"""
@@ -63,14 +59,16 @@ def extract(row, model):
 	dest_users_amount = len(model.features.dest_users)
 	src_computers_amount = len(model.features.src_computers)
 	dest_computers_amount = len(model.features.dest_computers)
-	time_since_last_access =  int(time.mktime(
-		time.strptime(row.time.to_datetime() - model.features.last_access, TIME_PATTERN)))
+	time_since_last_access = (row.time.to_datetime() - model.features.last_access).total_seconds()
 
 	auth_type = str_to_enum(row.auth_type, AUTH_TYPE)
 	logon_type = str_to_enum(row.logon_type, LOGON_TYPE)
 	auth_orientation = str_to_enum(row.auth_orientation, AUTH_ORIENTATION)
 	success_failure = str_to_enum(row.status, SUCCESS_FAILURE)
 
-	return tf.convert_to_tensor([time_since_last_access, domains_amount, dest_users_amount,
+
+	feature_arr = [int(time_since_last_access), domains_amount, dest_users_amount,
 				src_computers_amount, dest_computers_amount, auth_type,
-				logon_type, auth_orientation, success_failure], name="Features")
+				logon_type, auth_orientation, success_failure]
+	print(feature_arr)
+	return tf.convert_to_tensor(feature_arr, name="Features")

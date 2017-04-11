@@ -32,11 +32,13 @@ class Row:
 class Features:
     """All the features fr a model"""
 
-    _last_access = datetime(1970, 1, 1)
     _domains = list()
     _dest_users = list()
     _src_computers = list()
     _dest_computers = list()
+
+    def __init__(self, row):
+        self._last_access = row.time
 
     def update_dest_users(self, user):
         """Updates the dest_users list"""
@@ -87,20 +89,19 @@ class Features:
 class Model:
     """The class describing a single model and all its corresponding data"""
 
-    _features = Features()
-
-    def __init__(self, name_):
+    def __init__(self, row):
         """Creates a new Model for user with given name"""
-        lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE)
+        lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=False)
         print("Chunk size is", CHUNKSIZE, "state size is", LSTM_SIZE)
         state_ = tf.zeros([CHUNKSIZE, LSTM_SIZE])
         print("Zeros is", state_)
         print("Type of zeros is", type(state_))
 
-        self._name = name_
+        self._name = row.user
         self._model = lstm
         self._state = state_
         self._last_output = None
+        self._features = Features(row)
 
     @property
     def model(self):
@@ -134,13 +135,14 @@ class Model:
     def run(self, data):
         """Runs one instance of the RNN with given data as input"""
         data = features.extract(data, self)
+        print(data)
         self._last_output, self._state = self.model(data, self.state)
 
-def assert_model_in_dict(user):
+def assert_model_in_dict(row):
     """Makes sure there is a model for given user in the dictionary"""
-    if user not in MODELS:
-        print("Creating another model for user " + user)
-        MODELS[user] = Model(user)
+    if row.user not in MODELS:
+        print("Creating another model for user " + row.user)
+        MODELS[row.user] = Model(row)
 
 def do_iteration(user, row):
     """Does one iteration of the RNN with given data as input"""
@@ -151,7 +153,7 @@ def handle_row(row):
     if row.user == "ANONYMOUS LOGON":
         return
 
-    assert_model_in_dict(row.user)
+    assert_model_in_dict(row)
     do_iteration(row.user, row)
 
 def iterate():
