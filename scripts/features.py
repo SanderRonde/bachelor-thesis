@@ -59,7 +59,7 @@ def extract(row, model):
 	dest_users_amount = len(model.features.dest_users)
 	src_computers_amount = len(model.features.src_computers)
 	dest_computers_amount = len(model.features.dest_computers)
-	time_since_last_access = (row.time.to_datetime() - model.features.last_access).total_seconds()
+	time_since_last_access = (row.time.to_pydatetime() - model.features.last_access).total_seconds()
 
 	auth_type = str_to_enum(row.auth_type, AUTH_TYPE)
 	logon_type = str_to_enum(row.logon_type, LOGON_TYPE)
@@ -71,4 +71,4 @@ def extract(row, model):
 				src_computers_amount, dest_computers_amount, auth_type,
 				logon_type, auth_orientation, success_failure]
 	print(feature_arr)
-	return tf.convert_to_tensor([feature_arr], name="Features")
+	return tf.convert_to_tensor([0, feature_arr], name="Features")
