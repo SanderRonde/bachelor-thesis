@@ -4,13 +4,15 @@ import tensorflow as tf
 import features as features
 from datetime import datetime, date, time
 
-LSTM_SIZE = 2 ** 7
+LSTM_SIZE = 16
 CHUNKSIZE = 2 ** 8
 MODELS = dict()
+
 
 def convert_to_tensor(data):
     """Converts given data to a tensor"""
     return tf.convert_to_tensor(data, name="auth_small")
+
 
 class Row:
     """A row of data"""
@@ -28,6 +30,7 @@ class Row:
         self.logon_type = row[6]
         self.auth_orientation = row[7]
         self.status = row[8]
+
 
 class Features:
     """All the features fr a model"""
@@ -91,7 +94,7 @@ class Model:
 
     def __init__(self, row):
         """Creates a new Model for user with given name"""
-        lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=False)
+        lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=True)
         print("Chunk size is", CHUNKSIZE, "state size is", LSTM_SIZE)
         state_ = tf.zeros([CHUNKSIZE, LSTM_SIZE])
         print("Zeros is", state_)
@@ -135,8 +138,9 @@ class Model:
     def run(self, data):
         """Runs one instance of the RNN with given data as input"""
         data = features.extract(data, self)
-        print(data)
-        self._last_output, self._state = self.model(tf.cast(data, tf.int32), self.state)
+        print('hoi')
+        self._last_output, self._state = self.model(data, self.state)
+
 
 def assert_model_in_dict(row):
     """Makes sure there is a model for given user in the dictionary"""
@@ -144,9 +148,11 @@ def assert_model_in_dict(row):
         print("Creating another model for user " + row.user)
         MODELS[row.user] = Model(row)
 
+
 def do_iteration(user, row):
     """Does one iteration of the RNN with given data as input"""
     MODELS[user].run(row)
+
 
 def handle_row(row):
     """Handles one row of the original data"""
@@ -155,6 +161,7 @@ def handle_row(row):
 
     assert_model_in_dict(row)
     do_iteration(row.user, row)
+
 
 def iterate():
     """Iterates over the data and feeds it to the RNN"""
@@ -165,6 +172,7 @@ def iterate():
             for row in group.itertuples():
                 print(row)
                 handle_row(Row(row))
+
 
 def main():
     """The main function"""

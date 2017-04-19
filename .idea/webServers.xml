@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="ddcdebef-1b69-46f1-b481-62d3a23da9d1" name="liacs" url="http://gold.liacs.nl">
+        <fileTransfer host="gold.liacs.nl" port="22" rootFolder="/dshome/s1495674" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
