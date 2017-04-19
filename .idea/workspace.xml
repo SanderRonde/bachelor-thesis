@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="cc64aff1-cd09-452a-9903-b03c3e33bfcd" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scripts/main.py" afterPath="$PROJECT_DIR$/scripts/main.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -28,12 +28,14 @@
     <splitter split-orientation="horizontal" split-proportion="0.5">
       <split-first>
         <leaf>
-          <file leaf-file-name="main.py" pinned="true" current-in-tab="false">
+          <file leaf-file-name="main.py" pinned="true" current-in-tab="true">
             <entry file="remoteDeploymentFS://&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/scripts/scripts/main.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="190">
-                  <caret line="17" column="10" lean-forward="true" selection-start-line="17" selection-start-column="10" selection-end-line="17" selection-end-column="10" />
-                  <folding />
+                <state relative-caret-position="456">
+                  <caret line="190" column="50" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="209" selection-end-column="0" />
+                  <folding>
+                    <element signature="e#27#46#0" expanded="true" />
+                  </folding>
                 </state>
               </provider>
             </entry>
@@ -48,11 +50,11 @@
               </provider>
             </entry>
           </file>
-          <file leaf-file-name="features.py" pinned="true" current-in-tab="true">
+          <file leaf-file-name="features.py" pinned="true" current-in-tab="false">
             <entry file="remoteDeploymentFS://&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/scripts/scripts/features.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="247">
-                  <caret line="49" column="0" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="80" selection-end-column="0" />
+                <state relative-caret-position="652">
+                  <caret line="58" column="0" lean-forward="true" selection-start-line="58" selection-start-column="0" selection-end-line="58" selection-end-column="0" />
                   <folding />
                 </state>
               </provider>
@@ -62,24 +64,24 @@
       </split-first>
       <split-second>
         <leaf>
-          <file leaf-file-name="features.py" pinned="true" current-in-tab="false">
+          <file leaf-file-name="features.py" pinned="true" current-in-tab="true">
             <entry file="remoteDeploymentFS://&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/scripts/scripts/features.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="291">
-                  <caret line="57" column="45" lean-forward="true" selection-start-line="57" selection-start-column="45" selection-end-line="57" selection-end-column="45" />
-                  <folding>
-                    <marker date="0" expanded="true" signature="985:1155" ph="..." />
-                  </folding>
+                <state relative-caret-position="248">
+                  <caret line="51" column="26" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="77" selection-end-column="0" />
+                  <folding />
                 </state>
               </provider>
             </entry>
           </file>
-          <file leaf-file-name="main.py" pinned="true" current-in-tab="true">
+          <file leaf-file-name="main.py" pinned="true" current-in-tab="false">
             <entry file="remoteDeploymentFS://&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/scripts/scripts/main.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="247">
-                  <caret line="148" column="13" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="203" selection-end-column="10" />
-                  <folding />
+                <state relative-caret-position="361">
+                  <caret line="22" column="26" lean-forward="true" selection-start-line="22" selection-start-column="26" selection-end-line="22" selection-end-column="26" />
+                  <folding>
+                    <element signature="e#27#46#0" expanded="true" />
+                  </folding>
                 </state>
               </provider>
             </entry>
@@ -109,7 +111,9 @@
       <find>print(</find>
       <find>Used variable scope</find>
       <find>_features</find>
+      <find>is_tupl</find>
       <find>Row</find>
+      <find>time</find>
     </findStrings>
     <replaceStrings>
       <replace />

@@ -74,7 +74,4 @@ def extract(row, model):
                    tf.constant(0.0), tf.constant(0.0), tf.constant(0.0),
                    tf.constant(0.0), tf.constant(0.0), tf.constant(0.0),
                    tf.constant(0.0)]
-    print([time_since_last_access, domains_amount, dest_users_amount,
-           src_computers_amount, dest_computers_amount, auth_type,
-           logon_type, auth_orientation, success_failure])
     return tf.convert_to_tensor(tf.to_float([tf.to_float(feature_arr)]), dtype=tf.float32, name="Features")

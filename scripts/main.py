@@ -2,7 +2,8 @@
 import pandas as pd
 import tensorflow as tf
 import features as features
-from datetime import datetime, date, time
+from datetime import datetime, date
+import time
 
 LSTM_SIZE = 2 ** 4
 BATCH_SIZE = 1
@@ -17,6 +18,7 @@ def convert_to_tensor(data):
 
 class Row:
     """A row of data"""
+
     def __init__(self, row):
         row_one_split = row[1].split("@")
         row_two_split = row[2].split("@")
@@ -36,13 +38,12 @@ class Row:
 class Features:
     """All the features fr a model"""
 
-    _domains = list()
-    _dest_users = list()
-    _src_computers = list()
-    _dest_computers = list()
-
     def __init__(self, row):
         self._last_access = row.time
+        self._domains = list()
+        self._dest_users = list()
+        self._src_computers = list()
+        self._dest_computers = list()
 
     def update_dest_users(self, user):
         """Updates the dest_users list"""
@@ -111,7 +112,7 @@ class Model:
         with tf.variable_scope(self._scope):
             """Creates a new Model for user with given name"""
 
-            lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=False)
+            lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=True)
             state_ = lstm.zero_state(BATCH_SIZE, tf.float32)
 
             self._name = row.user
@@ -151,10 +152,6 @@ class Model:
         """The amount of times this model has been executed (trained)"""
         return self._runs
 
-    def update_features(self, row):
-        """Updates the features after a run"""
-        self.features.update_dest_users(row)
-        
     def run(self, data):
         """Runs one instance of the RNN with given data as input"""
 
@@ -168,7 +165,6 @@ class Model:
 def assert_model_in_dict(row):
     """Makes sure there is a model for given user in the dictionary"""
     if row.user not in MODELS:
-        print("Creating another model for user " + row.user)
         MODELS[row.user] = Model(row)
 
 
@@ -188,17 +184,26 @@ def handle_row(row):
 
 def iterate():
     """Iterates over the data and feeds it to the RNN"""
+
+    rows = 0
+    start_time = time.time()
     for chunk in pd.read_hdf('/data/s1481096/LosAlamos/data/auth_small.h5', 'auth_small',
                              chunksize=CHUNKSIZE):
         for name, group in chunk.groupby(
                 [chunk.index, pd.TimeGrouper(freq='Min')]):
             for row in group.itertuples():
                 handle_row(Row(row))
+                rows += 1
+
+                if rows % 50 == 0:
+                    print("At row", rows, rows % 50, "total time is", time.time() - start_time,
+                          "so rows per second is", rows / (time.time() - start_time))
 
 
 def main():
     """The main function"""
     iterate()
+
 
 if __name__ == "__main__":
     main()
