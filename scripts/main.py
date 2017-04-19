@@ -4,8 +4,9 @@ import tensorflow as tf
 import features as features
 from datetime import datetime, date, time
 
-LSTM_SIZE = 16
-CHUNKSIZE = 2 ** 8
+LSTM_SIZE = 2 ** 4
+BATCH_SIZE = 1
+CHUNKSIZE = 2 ** 10
 MODELS = dict()
 
 
@@ -63,6 +64,14 @@ class Features:
         if domain != "?" and domain not in self._domains:
             self._domains.append(domain)
 
+    def update(self, row):
+        """Updates all data lists for this feature class"""
+        self.update_dest_users(row.dest_user)
+        self.update_src_computers(row.src_computer)
+        self.update_dest_computers(row.dest_computer)
+        self.update_domains(row.domain)
+        self._last_access = row.time
+
     @property
     def last_access(self):
         """The last time this user has authenticated themselves"""
@@ -89,22 +98,28 @@ class Features:
         return self._domains
 
 
+def get_valid_scope_name(name):
+    """Turns given name string into a valid scope name for tensorflow"""
+    return name.replace('$', '_').lower().replace(' ', '_')
+
+
 class Model:
     """The class describing a single model and all its corresponding data"""
 
     def __init__(self, row):
-        """Creates a new Model for user with given name"""
-        lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=True)
-        print("Chunk size is", CHUNKSIZE, "state size is", LSTM_SIZE)
-        state_ = tf.zeros([CHUNKSIZE, LSTM_SIZE])
-        print("Zeros is", state_)
-        print("Type of zeros is", type(state_))
+        self._scope = get_valid_scope_name(row.user)
+        with tf.variable_scope(self._scope):
+            """Creates a new Model for user with given name"""
 
-        self._name = row.user
-        self._model = lstm
-        self._state = state_
-        self._last_output = None
-        self._features = Features(row)
+            lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=False)
+            state_ = lstm.zero_state(BATCH_SIZE, tf.float32)
+
+            self._name = row.user
+            self._model = lstm
+            self._state = state_
+            self._last_output = None
+            self._features = Features(row)
+            self._runs = 0
 
     @property
     def model(self):
@@ -131,15 +146,23 @@ class Model:
         """The features of this model"""
         return self._features
 
+    @property
+    def runs(self):
+        """The amount of times this model has been executed (trained)"""
+        return self._runs
+
     def update_features(self, row):
         """Updates the features after a run"""
         self.features.update_dest_users(row)
-
+        
     def run(self, data):
         """Runs one instance of the RNN with given data as input"""
-        data = features.extract(data, self)
-        print('hoi')
-        self._last_output, self._state = self.model(data, self.state)
+
+        with tf.variable_scope(self._scope, reuse=(self.runs > 0)):
+            self._features.update(data)
+            data = features.extract(data, self)
+            self._last_output, self._state = self.model(data, self.state)
+        self._runs += 1
 
 
 def assert_model_in_dict(row):
@@ -170,7 +193,6 @@ def iterate():
         for name, group in chunk.groupby(
                 [chunk.index, pd.TimeGrouper(freq='Min')]):
             for row in group.itertuples():
-                print(row)
                 handle_row(Row(row))
 
 

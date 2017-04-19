@@ -2,12 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="cc64aff1-cd09-452a-9903-b03c3e33bfcd" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/deployment.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/webServers.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/Scriptie.iml" afterPath="$PROJECT_DIR$/.idea/Scriptie.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scripts/features.py" afterPath="$PROJECT_DIR$/scripts/features.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scripts/main.py" afterPath="$PROJECT_DIR$/scripts/main.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -34,11 +28,11 @@
     <splitter split-orientation="horizontal" split-proportion="0.5">
       <split-first>
         <leaf>
-          <file leaf-file-name="main.py" pinned="true" current-in-tab="true">
+          <file leaf-file-name="main.py" pinned="true" current-in-tab="false">
             <entry file="remoteDeploymentFS://&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/scripts/scripts/main.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="267">
-                  <caret line="79" column="34" lean-forward="true" selection-start-line="79" selection-start-column="34" selection-end-line="79" selection-end-column="34" />
+                <state relative-caret-position="190">
+                  <caret line="17" column="10" lean-forward="true" selection-start-line="17" selection-start-column="10" selection-end-line="17" selection-end-column="10" />
                   <folding />
                 </state>
               </provider>
@@ -54,11 +48,11 @@
               </provider>
             </entry>
           </file>
-          <file leaf-file-name="features.py" pinned="true" current-in-tab="false">
+          <file leaf-file-name="features.py" pinned="true" current-in-tab="true">
             <entry file="remoteDeploymentFS://&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/scripts/scripts/features.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="690">
-                  <caret line="78" column="58" lean-forward="true" selection-start-line="78" selection-start-column="58" selection-end-line="78" selection-end-column="58" />
+                <state relative-caret-position="247">
+                  <caret line="49" column="0" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="80" selection-end-column="0" />
                   <folding />
                 </state>
               </provider>
@@ -73,7 +67,9 @@
               <provider selected="true" editor-type-id="text-editor">
                 <state relative-caret-position="291">
                   <caret line="57" column="45" lean-forward="true" selection-start-line="57" selection-start-column="45" selection-end-line="57" selection-end-column="45" />
-                  <folding />
+                  <folding>
+                    <marker date="0" expanded="true" signature="985:1155" ph="..." />
+                  </folding>
                 </state>
               </provider>
             </entry>
@@ -81,8 +77,8 @@
           <file leaf-file-name="main.py" pinned="true" current-in-tab="true">
             <entry file="remoteDeploymentFS://&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/scripts/scripts/main.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="609">
-                  <caret line="187" column="0" lean-forward="false" selection-start-line="187" selection-start-column="0" selection-end-line="187" selection-end-column="0" />
+                <state relative-caret-position="247">
+                  <caret line="148" column="13" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="203" selection-end-column="10" />
                   <folding />
                 </state>
               </provider>
@@ -91,8 +87,8 @@
           <file leaf-file-name="variable_scope.py" pinned="true" current-in-tab="false">
             <entry file="remoteDeploymentFS://&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/anaconda2/envs/tensorflow/lib/python2.7/site-packages/tensorflow/python/ops/variable_scope.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="475">
-                  <caret line="197" column="0" lean-forward="true" selection-start-line="197" selection-start-column="0" selection-end-line="197" selection-end-column="0" />
+                <state relative-caret-position="276">
+                  <caret line="185" column="67" lean-forward="false" selection-start-line="185" selection-start-column="48" selection-end-line="185" selection-end-column="67" />
                   <folding />
                 </state>
               </provider>
@@ -111,6 +107,9 @@
       <find>self._lasto</find>
       <find>_VALID_OP_NAME_REGEX</find>
       <find>print(</find>
+      <find>Used variable scope</find>
+      <find>_features</find>
+      <find>Row</find>
     </findStrings>
     <replaceStrings>
       <replace />
@@ -124,8 +123,8 @@
       <list>
         <option value="$PROJECT_DIR$/scripts/features.py" />
         <option value="$PROJECT_DIR$/scripts/main.py" />
-        <option value="&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/anaconda2/envs/tensorflow/lib/python2.7/site-packages/tensorflow/python/ops/variable_scope.py" />
         <option value="&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/anaconda2/envs/tensorflow/lib/python2.7/site-packages/tensorflow/contrib/rnn/python/ops/core_rnn_cell_impl.py" />
+        <option value="&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/anaconda2/envs/tensorflow/lib/python2.7/site-packages/tensorflow/python/ops/variable_scope.py" />
         <option value="&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/scripts/scripts/features.py" />
         <option value="&lt;ddcdebef-1b69-46f1-b481-62d3a23da9d1&gt;/scripts/scripts/main.py" />
       </list>
