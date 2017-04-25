@@ -9,6 +9,10 @@ LSTM_SIZE = 2 ** 4
 BATCH_SIZE = 1
 CHUNKSIZE = 2 ** 10
 MODELS = dict()
+MAX_QUEUE_LENGTH = 1000
+
+queue_length = 0
+queue = dict()
 
 
 def convert_to_tensor(data):
@@ -152,12 +156,16 @@ class Model:
         """The amount of times this model has been executed (trained)"""
         return self._runs
 
+    def prepare_batch(self, data):
+        """Prepares one row of data for feeding into the model"""
+        self._features.update(data)
+        data = features.extract(data, self)
+        return data
+
     def run(self, data):
         """Runs one instance of the RNN with given data as input"""
 
         with tf.variable_scope(self._scope, reuse=(self.runs > 0)):
-            self._features.update(data)
-            data = features.extract(data, self)
             self._last_output, self._state = self.model(data, self.state)
         self._runs += 1
 
@@ -173,13 +181,35 @@ def do_iteration(user, row):
     MODELS[user].run(row)
 
 
+
+def do_batch():
+    """Clears the queue and feeds all the data into the network"""
+    for key in queue:
+        MODELS[key].run(queue.pop(key))
+
+    global queue_length
+    queue_length = 0
+
+
+def append_data_to_queue(row):
+    """Appends the data for this row to the queue"""
+    if row.user not in queue:
+        queue[row.user] = list()
+    queue[row.user].append(MODELS[row.user].prepare_batch(row))
+    global queue_length
+    queue_length += 1
+
+
 def handle_row(row):
     """Handles one row of the original data"""
     if row.user == "ANONYMOUS LOGON":
         return
 
     assert_model_in_dict(row)
-    do_iteration(row.user, row)
+    append_data_to_queue(row)
+
+    if queue_length > MAX_QUEUE_LENGTH:
+        do_batch()
 
 
 def iterate():
