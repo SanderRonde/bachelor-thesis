@@ -5,11 +5,12 @@ import features as features
 import time
 
 LSTM_SIZE = 2 ** 4
-BATCH_SIZE = 1
+inputs = tf.placeholder(tf.float32, [None, 32, 32, 3])
+BATCH_SIZE = tf.shape(inputs[0])[0]
 CHUNKSIZE = 2 ** 10
 MODELS = dict()
-MAX_QUEUE_LENGTH = 1000
-REPORTING_SIZE = 1000
+MAX_QUEUE_LENGTH = 500
+REPORTING_SIZE = 500
 
 queue_length = 0
 queue = dict()
@@ -238,9 +239,9 @@ def do_iteration(user, row):
 def do_batch():
     """Clears the queue and feeds all the data into the network"""
     for key in queue:
-        MODELS[key].run(
-            tf.convert_to_tensor(tf.to_float([tf.to_float(queue.get(key))]), dtype=tf.float32, name="Features")
-        )
+        data = tf.convert_to_tensor(queue.get(key), dtype=tf.float32, name="Features")
+        print("Running model " + key + " with data ", data)
+        MODELS[key].run(data)
 
     queue.clear()
 
