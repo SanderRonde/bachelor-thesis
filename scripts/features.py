@@ -54,19 +54,22 @@ def str_to_enum(string, enum):
     return enum.get(upper_case) or 0
 
 
-def extract(row, model):
+def extract(row, model, time_measurer):
     """Extracts the features for given row"""
 
     domains_amount = len(model.features.domains)
     dest_users_amount = len(model.features.dest_users)
     src_computers_amount = len(model.features.src_computers)
     dest_computers_amount = len(model.features.dest_computers)
+    time_measurer.do_slice("Calculating lengths")
     time_since_last_access = (row.time.to_pydatetime() - model.features.last_access).total_seconds()
+    time_measurer.do_slice("Getting time since last access")
 
     auth_type = str_to_enum(row.auth_type, AUTH_TYPE)
     logon_type = str_to_enum(row.logon_type, LOGON_TYPE)
     auth_orientation = str_to_enum(row.auth_orientation, AUTH_ORIENTATION)
     success_failure = str_to_enum(row.status, SUCCESS_FAILURE)
+    time_measurer.do_slice("Doing str to enum conversion")
 
     feature_arr = [time_since_last_access, domains_amount, dest_users_amount,
                    src_computers_amount, dest_computers_amount, auth_type,
@@ -74,4 +77,5 @@ def extract(row, model):
                    tf.constant(0.0), tf.constant(0.0), tf.constant(0.0),
                    tf.constant(0.0), tf.constant(0.0), tf.constant(0.0),
                    tf.constant(0.0)]
-    return tf.convert_to_tensor(tf.to_float([tf.to_float(feature_arr)]), dtype=tf.float32, name="Features")
+    time_measurer.do_slice("Building simple array")
+    return feature_arr

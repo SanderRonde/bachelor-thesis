@@ -2,7 +2,6 @@
 import pandas as pd
 import tensorflow as tf
 import features as features
-from datetime import datetime, date
 import time
 
 LSTM_SIZE = 2 ** 4
@@ -10,9 +9,62 @@ BATCH_SIZE = 1
 CHUNKSIZE = 2 ** 10
 MODELS = dict()
 MAX_QUEUE_LENGTH = 1000
+REPORTING_SIZE = 1000
 
 queue_length = 0
 queue = dict()
+
+
+class TimeMeasureContainer:
+    def __init__(self):
+        self.parts = list()
+        self.megalist = list()
+
+    def append(self, measurer):
+        self.parts.append(measurer)
+
+    def append_slice_to_megalist(self, index, name, duration):
+        if len(self.megalist) <= index:
+            slice_dict = dict()
+            slice_dict["name"] = name
+            slice_dict["time"] = -1 * duration
+            self.megalist.append(slice_dict)
+
+        self.megalist[index]["time"] = self.megalist[index].get("time") + duration
+
+    def generate_megalist(self):
+        for data_part in self.parts:
+            for label_index in range(len(data_part.time_slices)):
+                self.append_slice_to_megalist(label_index,
+                                              data_part.time_slices[label_index].get("name"),
+                                              data_part.time_slices[label_index].get("time"))
+
+    def generate_report(self):
+        self.generate_megalist()
+        for index in range(len(self.megalist)):
+            duration = self.megalist[index].get("time")
+            avg_time = duration
+            if index is 0:
+                print("Time between slice start and " + self.megalist[index].get("name") + " is %.2f" % avg_time)
+            else:
+                print("Time between slice " + self.megalist[index - 1].get("name") + " and " +
+                      self.megalist[index].get("name") + " is %.2f" % avg_time)
+
+        self.parts.clear()
+
+
+class TimeMeasure:
+    def __init__(self):
+        self.time_slices = list()
+        self.start_time = time.time()
+        self.last_slice_time = self.start_time
+
+    def do_slice(self, label):
+        slice_dict = dict()
+        slice_dict["name"] = label
+        slice_dict["time"] = time.time() - self.last_slice_time
+        self.last_slice_time = time.time()
+        self.time_slices.append(slice_dict)
 
 
 def convert_to_tensor(data):
@@ -156,10 +208,12 @@ class Model:
         """The amount of times this model has been executed (trained)"""
         return self._runs
 
-    def prepare_batch(self, data):
+    def prepare_batch(self, data, time_measurer):
         """Prepares one row of data for feeding into the model"""
         self._features.update(data)
-        data = features.extract(data, self)
+        time_measurer.do_slice("Updating features")
+        data = features.extract(data, self, time_measurer)
+        time_measurer.do_slice("Converting to tensor")
         return data
 
     def run(self, data):
@@ -181,32 +235,38 @@ def do_iteration(user, row):
     MODELS[user].run(row)
 
 
-
 def do_batch():
     """Clears the queue and feeds all the data into the network"""
     for key in queue:
-        MODELS[key].run(queue.pop(key))
+        MODELS[key].run(
+            tf.convert_to_tensor(tf.to_float([tf.to_float(queue.get(key))]), dtype=tf.float32, name="Features")
+        )
+
+    queue.clear()
 
     global queue_length
     queue_length = 0
 
 
-def append_data_to_queue(row):
+def append_data_to_queue(row, time_measurer):
     """Appends the data for this row to the queue"""
     if row.user not in queue:
         queue[row.user] = list()
-    queue[row.user].append(MODELS[row.user].prepare_batch(row))
+    queue[row.user].append(MODELS[row.user].prepare_batch(row, time_measurer))
+    time_measurer.do_slice("Appending")
     global queue_length
     queue_length += 1
 
 
-def handle_row(row):
+def handle_row(row, time_measurer):
     """Handles one row of the original data"""
     if row.user == "ANONYMOUS LOGON":
         return
 
+    time_measurer.do_slice("About to handle row")
     assert_model_in_dict(row)
-    append_data_to_queue(row)
+    time_measurer.do_slice("asserting existence")
+    append_data_to_queue(row, time_measurer)
 
     if queue_length > MAX_QUEUE_LENGTH:
         do_batch()
@@ -217,17 +277,24 @@ def iterate():
 
     rows = 0
     start_time = time.time()
+    time_measurer_container = TimeMeasureContainer()
     for chunk in pd.read_hdf('/data/s1481096/LosAlamos/data/auth_small.h5', 'auth_small',
                              chunksize=CHUNKSIZE):
         for name, group in chunk.groupby(
-                [chunk.index, pd.TimeGrouper(freq='Min')]):
+                ["source_user"]):
             for row in group.itertuples():
-                handle_row(Row(row))
+                time_measurer = TimeMeasure()
+                handle_row(Row(row), time_measurer)
                 rows += 1
+
+                time_measurer_container.append(time_measurer)
 
                 if rows % 50 == 0:
                     print("At row", rows, rows % 50, "total time is", time.time() - start_time,
                           "so rows per second is", rows / (time.time() - start_time))
+
+                if rows % REPORTING_SIZE == 0:
+                    time_measurer_container.generate_report()
 
 
 def main():
