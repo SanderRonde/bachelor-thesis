@@ -8,12 +8,12 @@ LSTM_SIZE = 2 ** 4
 inputs = tf.placeholder(tf.float32, [None, 32, 32, 3])
 BATCH_SIZE = tf.shape(inputs[0])[0]
 CHUNKSIZE = 2 ** 10
-MODELS = dict()
-MAX_QUEUE_LENGTH = 500
-REPORTING_SIZE = 500
+MAX_QUEUE_LENGTH = 2500
+REPORTING_SIZE = 10000
+SPEED_REPORTING_SIZE = 2500
 
-queue_length = 0
-queue = dict()
+rows = 0
+start_time = time.time()
 
 
 class TimeMeasureContainer:
@@ -51,7 +51,7 @@ class TimeMeasureContainer:
                 print("Time between slice " + self.megalist[index - 1].get("name") + " and " +
                       self.megalist[index].get("name") + " is %.2f" % avg_time)
 
-        self.parts.clear()
+        del self.parts[:]
 
 
 class TimeMeasure:
@@ -61,6 +61,7 @@ class TimeMeasure:
         self.last_slice_time = self.start_time
 
     def do_slice(self, label):
+        return
         slice_dict = dict()
         slice_dict["name"] = label
         slice_dict["time"] = time.time() - self.last_slice_time
@@ -73,6 +74,15 @@ def convert_to_tensor(data):
     return tf.convert_to_tensor(data, name="auth_small")
 
 
+class SpecialDict(dict):
+    def lol(self):
+        return 'lol'
+
+class SpecialList(list):
+    def lol(self):
+        return 'lol'
+
+
 class Row:
     """A row of data"""
 
@@ -80,6 +90,7 @@ class Row:
         row_one_split = row[1].split("@")
         row_two_split = row[2].split("@")
 
+        self._row = row
         self.time = row[0]
         self.source_user = self.user = row_one_split[0]
         self.domain = row_one_split[1]
@@ -90,6 +101,9 @@ class Row:
         self.logon_type = row[6]
         self.auth_orientation = row[7]
         self.status = row[8]
+
+    def to_str(self):
+        return self._row
 
 
 class Features:
@@ -156,6 +170,26 @@ class Features:
         return self._domains
 
 
+class User:
+    """A user in the dataset"""
+
+    def __init__(self, row):
+        """Creates a new user"""
+
+        self.name = row.user
+        self.features = Features(row)
+
+    def get_features(self, data, time_measurer):
+        """Prepares one row of data for feeding into the model"""
+
+        self.features.update(data)
+        time_measurer.do_slice("Updating features")
+        data = features.extract(data, self, time_measurer)
+        time_measurer.do_slice("Converting to tensor")
+
+        return data
+
+
 def get_valid_scope_name(name):
     """Turns given name string into a valid scope name for tensorflow"""
     return name.replace('$', '_').lower().replace(' ', '_')
@@ -164,20 +198,17 @@ def get_valid_scope_name(name):
 class Model:
     """The class describing a single model and all its corresponding data"""
 
-    def __init__(self, row):
-        self._scope = get_valid_scope_name(row.user)
-        with tf.variable_scope(self._scope):
-            """Creates a new Model for user with given name"""
+    def __init__(self):
+        """Creates a new Model"""
 
-            lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=True)
-            state_ = lstm.zero_state(BATCH_SIZE, tf.float32)
+        lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=True)
+        state_ = lstm.zero_state(BATCH_SIZE, tf.float32)
 
-            self._name = row.user
-            self._model = lstm
-            self._state = state_
-            self._last_output = None
-            self._features = Features(row)
-            self._runs = 0
+        self._model = lstm
+        self._state = state_
+        self._last_output = None
+        self.queue = list()
+        self.current_user = None
 
     @property
     def model(self):
@@ -190,112 +221,86 @@ class Model:
         return self._state
 
     @property
-    def name(self):
-        """The name of the user"""
-        return self._name
-
-    @property
     def output(self):
         """The last output of the RNN"""
         return self._last_output
 
-    @property
-    def features(self):
-        """The features of this model"""
-        return self._features
+    def update_user(self, user):
+        self.current_user = user
 
-    @property
-    def runs(self):
-        """The amount of times this model has been executed (trained)"""
-        return self._runs
+    def get_current_user_name(self):
+        if self.current_user is not None:
+            return self.current_user.name
+        return "ANONYMOUS LOGON"
 
-    def prepare_batch(self, data, time_measurer):
-        """Prepares one row of data for feeding into the model"""
-        self._features.update(data)
-        time_measurer.do_slice("Updating features")
-        data = features.extract(data, self, time_measurer)
-        time_measurer.do_slice("Converting to tensor")
-        return data
+    def run_if_switching_user(self, row, time_measurer):
+        """Runs the RNN for the previous user when a switch is made to a new one"""
+        if row.user != self.get_current_user_name():
+            time_measurer.do_slice("About to run")
+            if self.current_user is not None:
+                self.run()
+            time_measurer.do_slice("Ran")
+            self.current_user = User(row)
 
-    def run(self, data):
-        """Runs one instance of the RNN with given data as input"""
+    def run(self):
+        """Runs the RNN with its current queue as input"""
+        print("About to run model for user", self.get_current_user_name(),
+              " with a queue size of", len(self.queue))
+        with tf.variable_scope(get_valid_scope_name(self.get_current_user_name())):
+            self._last_output, self._state = self.model(
+                tf.convert_to_tensor(self.queue, dtype=tf.float32, name="Features"), self.state)
 
-        with tf.variable_scope(self._scope, reuse=(self.runs > 0)):
-            self._last_output, self._state = self.model(data, self.state)
-        self._runs += 1
-
-
-def assert_model_in_dict(row):
-    """Makes sure there is a model for given user in the dictionary"""
-    if row.user not in MODELS:
-        MODELS[row.user] = Model(row)
+        del self.queue[:]
+        self._state = self.model.zero_state(BATCH_SIZE, tf.float32)
 
 
-def do_iteration(user, row):
-    """Does one iteration of the RNN with given data as input"""
-    MODELS[user].run(row)
-
-
-def do_batch():
-    """Clears the queue and feeds all the data into the network"""
-    for key in queue:
-        data = tf.convert_to_tensor(queue.get(key), dtype=tf.float32, name="Features")
-        print("Running model " + key + " with data ", data)
-        MODELS[key].run(data)
-
-    queue.clear()
-
-    global queue_length
-    queue_length = 0
-
-
-def append_data_to_queue(row, time_measurer):
+def append_data_to_queue(model, row, time_measurer):
     """Appends the data for this row to the queue"""
-    if row.user not in queue:
-        queue[row.user] = list()
-    queue[row.user].append(MODELS[row.user].prepare_batch(row, time_measurer))
-    time_measurer.do_slice("Appending")
-    global queue_length
-    queue_length += 1
+    model.queue.append(model.current_user.get_features(row, time_measurer))
 
 
-def handle_row(row, time_measurer):
+def handle_row(model, row, time_measurer):
     """Handles one row of the original data"""
     if row.user == "ANONYMOUS LOGON":
         return
 
-    time_measurer.do_slice("About to handle row")
-    assert_model_in_dict(row)
-    time_measurer.do_slice("asserting existence")
-    append_data_to_queue(row, time_measurer)
+    global rows
+    rows += 1
 
-    if queue_length > MAX_QUEUE_LENGTH:
-        do_batch()
+    model.run_if_switching_user(row, time_measurer)
+    time_measurer.do_slice("Appending data to queue")
+    append_data_to_queue(model, row, time_measurer)
+
+
+def init_model():
+    """Initializes the RNN"""
+    return Model()
 
 
 def iterate():
     """Iterates over the data and feeds it to the RNN"""
 
-    rows = 0
-    start_time = time.time()
     time_measurer_container = TimeMeasureContainer()
-    for chunk in pd.read_hdf('/data/s1481096/LosAlamos/data/auth_small.h5', 'auth_small',
-                             chunksize=CHUNKSIZE):
-        for name, group in chunk.groupby(
-                ["source_user"]):
-            for row in group.itertuples():
-                time_measurer = TimeMeasure()
-                handle_row(Row(row), time_measurer)
-                rows += 1
+    global rows
+    rows = 0
 
-                time_measurer_container.append(time_measurer)
+    model = init_model()
 
-                if rows % 50 == 0:
-                    print("At row", rows, rows % 50, "total time is", time.time() - start_time,
-                          "so rows per second is", rows / (time.time() - start_time))
+    for name, group in pd.read_hdf('/data/s1481096/LosAlamos/data/auth_small.h5', 'auth_small')\
+            .groupby(["source_user"]):
+        for row in group.itertuples():
 
-                if rows % REPORTING_SIZE == 0:
-                    time_measurer_container.generate_report()
+            time_measurer = TimeMeasure()
+            handle_row(model, Row(row), time_measurer)
+
+            time_measurer_container.append(time_measurer)
+
+            if rows % SPEED_REPORTING_SIZE == 1:
+                print("At row", rows, "total time is", time.time() - start_time,
+                      "so total rows per second is", rows / (time.time() - start_time))
+
+            if rows % REPORTING_SIZE == 1 and False:
+                time_measurer_container.generate_report()
 
 
 def main():
