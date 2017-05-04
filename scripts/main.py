@@ -1,16 +1,16 @@
 """The main script file"""
+import sys, getopt
 import pandas as pd
 import tensorflow as tf
 import features as features
-import time
 
 LSTM_SIZE = 2 ** 4
 inputs = tf.placeholder(tf.float32, [None, 32, 32, 3])
 BATCH_SIZE = tf.shape(inputs[0])[0]
-CHUNKSIZE = 2 ** 10
-MAX_QUEUE_LENGTH = 2500
-REPORTING_SIZE = 10000
-SPEED_REPORTING_SIZE = 2500
+REPORTING_SIZE = 1000
+SPEED_REPORTING_SIZE = 1000
+ENABLE_REPORTING = False
+MAX_ROWS = 5000
 
 rows = 0
 start_time = time.time()
@@ -55,18 +55,19 @@ class TimeMeasureContainer:
 
 
 class TimeMeasure:
-    def __init__(self):
+    def __init__(self, enable):
         self.time_slices = list()
         self.start_time = time.time()
         self.last_slice_time = self.start_time
+        self.enable = enable
 
     def do_slice(self, label):
-        return
-        slice_dict = dict()
-        slice_dict["name"] = label
-        slice_dict["time"] = time.time() - self.last_slice_time
-        self.last_slice_time = time.time()
-        self.time_slices.append(slice_dict)
+        if self.enable:
+            slice_dict = dict()
+            slice_dict["name"] = label
+            slice_dict["time"] = time.time() - self.last_slice_time
+            self.last_slice_time = time.time()
+            self.time_slices.append(slice_dict)
 
 
 def convert_to_tensor(data):
@@ -74,100 +75,8 @@ def convert_to_tensor(data):
     return tf.convert_to_tensor(data, name="auth_small")
 
 
-class SpecialDict(dict):
-    def lol(self):
-        return 'lol'
-
-class SpecialList(list):
-    def lol(self):
-        return 'lol'
 
 
-class Row:
-    """A row of data"""
-
-    def __init__(self, row):
-        row_one_split = row[1].split("@")
-        row_two_split = row[2].split("@")
-
-        self._row = row
-        self.time = row[0]
-        self.source_user = self.user = row_one_split[0]
-        self.domain = row_one_split[1]
-        self.dest_user = row_two_split[0]
-        self.src_computer = row[3]
-        self.dest_computer = row[4]
-        self.auth_type = row[5]
-        self.logon_type = row[6]
-        self.auth_orientation = row[7]
-        self.status = row[8]
-
-    def to_str(self):
-        return self._row
-
-
-class Features:
-    """All the features fr a model"""
-
-    def __init__(self, row):
-        self._last_access = row.time
-        self._domains = list()
-        self._dest_users = list()
-        self._src_computers = list()
-        self._dest_computers = list()
-
-    def update_dest_users(self, user):
-        """Updates the dest_users list"""
-        if user != "?" and user not in self._dest_users:
-            self._dest_users.append(user)
-
-    def update_src_computers(self, computer):
-        """Updates the src_computers list"""
-        if computer != "?" and computer not in self._src_computers:
-            self._src_computers.append(computer)
-
-    def update_dest_computers(self, computer):
-        """Updates the dest_computers list"""
-        if computer != "?" and computer not in self._dest_computers:
-            self._dest_computers.append(computer)
-
-    def update_domains(self, domain):
-        """Updates the dest_users list"""
-        if domain != "?" and domain not in self._domains:
-            self._domains.append(domain)
-
-    def update(self, row):
-        """Updates all data lists for this feature class"""
-        self.update_dest_users(row.dest_user)
-        self.update_src_computers(row.src_computer)
-        self.update_dest_computers(row.dest_computer)
-        self.update_domains(row.domain)
-        self._last_access = row.time
-
-    @property
-    def last_access(self):
-        """The last time this user has authenticated themselves"""
-        return self._last_access
-
-    @property
-    def dest_users(self):
-        """All destination users"""
-        return self._dest_users
-
-    @property
-    def src_computers(self):
-        """All source computers"""
-        return self._src_computers
-
-    @property
-    def dest_computers(self):
-        """All destination computers"""
-        return self._dest_computers
-
-    @property
-    def domains(self):
-        """All domains accessed"""
-        return self._domains
 
 
 class User:
@@ -247,8 +156,10 @@ class Model:
         print("About to run model for user", self.get_current_user_name(),
               " with a queue size of", len(self.queue))
         with tf.variable_scope(get_valid_scope_name(self.get_current_user_name())):
-            self._last_output, self._state = self.model(
+            output, self._state = self.model(
                 tf.convert_to_tensor(self.queue, dtype=tf.float32, name="Features"), self.state)
+
+            self._last_output = output
 
         del self.queue[:]
         self._state = self.model.zero_state(BATCH_SIZE, tf.float32)
@@ -277,8 +188,32 @@ def init_model():
     return Model()
 
 
-def iterate():
+def get_io_settings(argv):
+    """This gets the input and output files from the command line arguments"""
+    input_file = '/data/s1481096/LosAlamos/data/auth_small.h5'
+    output_file = sys.stdout
+
+    try:
+        opts, args = getopt.getopt(argv, 'i:o:')
+    except getopt.GetoptError:
+        print("Command line arguments invalid")
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt == '-i':
+            input_file = arg
+        elif opt == '-o':
+            output_file = arg
+        else:
+            print("Unrecognized argument passed")
+            sys.exit(2)
+
+    return input_file, output_file
+
+def iterate(argv):
     """Iterates over the data and feeds it to the RNN"""
+
+    input_file, output_file = get_io_settings(argv)
 
     time_measurer_container = TimeMeasureContainer()
     global rows
@@ -287,10 +222,10 @@ def iterate():
     model = init_model()
 
     for name, group in pd.read_hdf('/data/s1481096/LosAlamos/data/auth_small.h5', 'auth_small')\
-            .groupby(["source_user"]):
+            .groupby(["source_user"], start=0, stop=MAX_ROWS):
         for row in group.itertuples():
 
-            time_measurer = TimeMeasure()
+            time_measurer = TimeMeasure(ENABLE_REPORTING)
             handle_row(model, Row(row), time_measurer)
 
             time_measurer_container.append(time_measurer)
@@ -299,8 +234,10 @@ def iterate():
                 print("At row", rows, "total time is", time.time() - start_time,
                       "so total rows per second is", rows / (time.time() - start_time))
 
-            if rows % REPORTING_SIZE == 1 and False:
+            if rows % REPORTING_SIZE == 1:
                 time_measurer_container.generate_report()
+
+    return model
 
 
 def main():
@@ -308,5 +245,6 @@ def main():
     iterate()
 
 
+
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
