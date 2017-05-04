@@ -14,7 +14,9 @@
       <w>newcredentials</w>
       <w>nltm</w>
       <w>remoteinteractive</w>
+      <w>softmax</w>
       <w>tensorflow</w>
+      <w>vals</w>
     </words>
   </dictionary>
 </component>

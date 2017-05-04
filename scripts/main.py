@@ -1,74 +1,14 @@
 """The main script file"""
-import sys, getopt
-import pandas as pd
+import numpy as np
 import tensorflow as tf
 import features as features
+import sys, getopt, json, pickle
 
 LSTM_SIZE = 2 ** 4
 inputs = tf.placeholder(tf.float32, [None, 32, 32, 3])
 BATCH_SIZE = tf.shape(inputs[0])[0]
-REPORTING_SIZE = 1000
 SPEED_REPORTING_SIZE = 1000
-ENABLE_REPORTING = False
-MAX_ROWS = 5000
-
 rows = 0
-start_time = time.time()
-
-
-class TimeMeasureContainer:
-    def __init__(self):
-        self.parts = list()
-        self.megalist = list()
-
-    def append(self, measurer):
-        self.parts.append(measurer)
-
-    def append_slice_to_megalist(self, index, name, duration):
-        if len(self.megalist) <= index:
-            slice_dict = dict()
-            slice_dict["name"] = name
-            slice_dict["time"] = -1 * duration
-            self.megalist.append(slice_dict)
-
-        self.megalist[index]["time"] = self.megalist[index].get("time") + duration
-
-    def generate_megalist(self):
-        for data_part in self.parts:
-            for label_index in range(len(data_part.time_slices)):
-                self.append_slice_to_megalist(label_index,
-                                              data_part.time_slices[label_index].get("name"),
-                                              data_part.time_slices[label_index].get("time"))
-
-    def generate_report(self):
-        self.generate_megalist()
-        for index in range(len(self.megalist)):
-            duration = self.megalist[index].get("time")
-            avg_time = duration
-            if index is 0:
-                print("Time between slice start and " + self.megalist[index].get("name") + " is %.2f" % avg_time)
-            else:
-                print("Time between slice " + self.megalist[index - 1].get("name") + " and " +
-                      self.megalist[index].get("name") + " is %.2f" % avg_time)
-
-        del self.parts[:]
-
-
-class TimeMeasure:
-    def __init__(self, enable):
-        self.time_slices = list()
-        self.start_time = time.time()
-        self.last_slice_time = self.start_time
-        self.enable = enable
-
-    def do_slice(self, label):
-        if self.enable:
-            slice_dict = dict()
-            slice_dict["name"] = label
-            slice_dict["time"] = time.time() - self.last_slice_time
-            self.last_slice_time = time.time()
-            self.time_slices.append(slice_dict)
-
 
 def convert_to_tensor(data):
     """Converts given data to a tensor"""
@@ -105,92 +45,150 @@ def get_valid_scope_name(name):
 
 
 class Model:
-    """The class describing a single model and all its corresponding data"""
+    """An RNN"""
 
-    def __init__(self):
-        """Creates a new Model"""
+    def __init__(self, scope, input_, is_training_model=False, num_steps=20, data_size=None):
+        self.scope = scope
+        with tf.name_scope(scope):
+            lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=True)
+            state = lstm.zero_state(BATCH_SIZE, tf.float32)
 
-        lstm = tf.contrib.rnn.BasicLSTMCell(LSTM_SIZE, state_is_tuple=True)
-        state_ = lstm.zero_state(BATCH_SIZE, tf.float32)
+        self.is_training = is_training_model
 
         self._model = lstm
-        self._state = state_
-        self._last_output = None
-        self.queue = list()
-        self.current_user = None
+        self._final_state = state
+        self._initial_state = state
+        self._input = input_
+
+        outputs = []
+        with tf.variable_scope("RNN"):
+            for time_step in range(num_steps):
+                if time_step > 0: tf.get_variable_scope().reuse_variables()
+                (cell_output, state) = lstm(inputs[:, time_step, :], state)
+                outputs.append(cell_output)
+
+        output = tf.reshape(tf.concat(axis=1, values=outputs), [-1, LSTM_SIZE])
+        # softmax_w = tf.get_variable(
+        #     "softmax_w", [LSTM_SIZE, data_size], dtype=tf.float32)
+        # softmax_b = tf.get_variable("softmax_b", [data_size], dtype=tf.float32)
+        # logits = tf.matmul(output, softmax_w) + softmax_b
+        # loss = tf.contrib.legacy_seq2seq.sequence_loss_by_example(
+        #     [logits],
+        #     [tf.reshape(input_.targets, [-1])],
+        #     [tf.ones([BATCH_SIZE * num_steps], dtype=tf.float32)])
+        # self._cost = cost = tf.reduce_sum(loss) / BATCH_SIZE
+        # self._final_state = state
+        #
+        # if not is_training:
+        #     return
+        #
+        self._lr = tf.Variable(0.0, trainable=False)
+        # tvars = tf.trainable_variables()
+        # grads, _ = tf.clip_by_global_norm(tf.gradients(cost, tvars),
+        #                                   config.max_grad_norm)
+        # optimizer = tf.train.GradientDescentOptimizer(self._lr)
+        # self._train_op = optimizer.apply_gradients(
+        #     zip(grads, tvars),
+        #     global_step=tf.contrib.framework.get_or_create_global_step())
+
+        self._new_lr = tf.placeholder(
+            tf.float32, shape=[], name="new_learning_rate")
+        self._lr_update = tf.assign(self._lr, self._new_lr)
 
     @property
-    def model(self):
-        """The TensorFlow model itself"""
-        return self._model
+    def lr(self):
+        return self._lr
 
-    @property
-    def state(self):
-        """The TensorFlow state"""
-        return self._state
+    def assign_lr(self, session, lr_value):
+        """Assigns the learning rate for this model"""
+        session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
 
-    @property
-    def output(self):
-        """The last output of the RNN"""
-        return self._last_output
+    def run_epoch(self, session, eval_op=None):
+        costs = 0.0
+        iters = 0
+        state = session.run(self._initial_state)
 
-    def update_user(self, user):
-        self.current_user = user
+        fetches = {
+            "final_state": self._final_state,
+        }
+        if eval_op is not None:
+            fetches["eval_op"] = eval_op
 
-    def get_current_user_name(self):
-        if self.current_user is not None:
-            return self.current_user.name
-        return "ANONYMOUS LOGON"
+        for step in range(self._input.epoch_size):
+            feed_dict = {}
+            for i, (c, h) in enumerate(self._initial_state):
+                feed_dict[c] = state[i].c
+                feed_dict[h] = state[i].h
 
-    def run_if_switching_user(self, row, time_measurer):
-        """Runs the RNN for the previous user when a switch is made to a new one"""
-        if row.user != self.get_current_user_name():
-            time_measurer.do_slice("About to run")
-            if self.current_user is not None:
-                self.run()
-            time_measurer.do_slice("Ran")
-            self.current_user = User(row)
+            vals = session.run(fetches, feed_dict)
+            cost = vals["cost"]
+            state = vals["final_state"]
 
-    def run(self):
-        """Runs the RNN with its current queue as input"""
-        print("About to run model for user", self.get_current_user_name(),
-              " with a queue size of", len(self.queue))
-        with tf.variable_scope(get_valid_scope_name(self.get_current_user_name())):
-            output, self._state = self.model(
-                tf.convert_to_tensor(self.queue, dtype=tf.float32, name="Features"), self.state)
+            costs += cost
+            iters += self._input.num_steps
 
-            self._last_output = output
-
-        del self.queue[:]
-        self._state = self.model.zero_state(BATCH_SIZE, tf.float32)
+        return np.exp(costs / iters)
 
 
-def append_data_to_queue(model, row, time_measurer):
-    """Appends the data for this row to the queue"""
-    model.queue.append(model.current_user.get_features(row, time_measurer))
+
+class UserNetwork:
+    """The class describing a single model and all its corresponding data"""
+
+    def __init__(self, data, epochs=10, lr_decay=0.5, learning_rate=1.0):
+        """Creates a new set of networks"""
+
+        self.user_name = data["user_name"]
+        self.dataset = data["datasets"]
+
+        self.models = {
+            "training": Model("training", self.dataset["training"],
+                              is_training_model=True, data_size=len(self.dataset["training"])),
+            "validation": Model("validation", self.dataset["validation"],
+                                data_size=len(self.dataset["validation"])),
+            "test": Model("test", self.dataset["test"],
+                          data_size=len(self.dataset["test"]))
+        }
+
+        self.config = {
+            "epochs": epochs,
+            "lr_decay": lr_decay,
+            "learning_rate": learning_rate
+        }
+
+    def find_anomalies(self):
+        sv = tf.train.SuperVisor()
+        with sv.managed_session() as session:
+            for i in range(self.config["epochs"]):
+                lr_decay = self.config["lr_decay"] ** max(i + 1 - self.config["epochs"], 0.0)
+                self.models["training"].assign_lr(session, self.config["learning_rate"] * lr_decay)
+
+                session.run(self.models["training"].lr)
+                self.models["training"].run_epoch(session)
+                self.models["validation"].run_epoch(session)
+
+            return self.models["test"].run_epoch(session)
 
 
-def handle_row(model, row, time_measurer):
-    """Handles one row of the original data"""
-    if row.user == "ANONYMOUS LOGON":
-        return
-
-    global rows
-    rows += 1
-
-    model.run_if_switching_user(row, time_measurer)
-    time_measurer.do_slice("Appending data to queue")
-    append_data_to_queue(model, row, time_measurer)
-
-
-def init_model():
-    """Initializes the RNN"""
-    return Model()
+def find_anomalies(data):
+    """Finds anomalies in given data
+    
+    data format: {
+        "user_name": str,
+        "datasets": {
+            "training": list(int/float[8]),
+            "validation": list(int/float[8]),
+            "test": list(int/float[8])
+        }
+    }
+    """
+    network = UserNetwork(data)
+    anomalies = network.find_anomalies()
+    return anomalies
 
 
 def get_io_settings(argv):
     """This gets the input and output files from the command line arguments"""
-    input_file = '/data/s1481096/LosAlamos/data/auth_small.h5'
+    input_file = '/data/s1495674/features.p'
     output_file = sys.stdout
 
     try:
@@ -210,39 +208,24 @@ def get_io_settings(argv):
 
     return input_file, output_file
 
-def iterate(argv):
-    """Iterates over the data and feeds it to the RNN"""
+def main(argv):
+    """The main function"""
 
     input_file, output_file = get_io_settings(argv)
 
-    time_measurer_container = TimeMeasureContainer()
-    global rows
-    rows = 0
+    with open(input_file, 'rb') as in_file:
+        users_list = pickle.load(in_file)
 
-    model = init_model()
+    print("Starting training")
 
-    for name, group in pd.read_hdf('/data/s1481096/LosAlamos/data/auth_small.h5', 'auth_small')\
-            .groupby(["source_user"], start=0, stop=MAX_ROWS):
-        for row in group.itertuples():
+    all_anomalies = list()
 
-            time_measurer = TimeMeasure(ENABLE_REPORTING)
-            handle_row(model, Row(row), time_measurer)
+    for user in users_list:
+        anomalies = find_anomalies(user)
+        if len(anomalies) > 0:
+            all_anomalies.append(anomalies)
 
-            time_measurer_container.append(time_measurer)
-
-            if rows % SPEED_REPORTING_SIZE == 1:
-                print("At row", rows, "total time is", time.time() - start_time,
-                      "so total rows per second is", rows / (time.time() - start_time))
-
-            if rows % REPORTING_SIZE == 1:
-                time_measurer_container.generate_report()
-
-    return model
-
-
-def main():
-    """The main function"""
-    iterate()
+    print(all_anomalies)
 
 
 

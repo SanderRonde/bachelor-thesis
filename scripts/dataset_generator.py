@@ -1,7 +1,7 @@
 """The script that generates all 3 datasets and their features"""
 import pandas as pd
 import features as features
-import sys, getopt, math, json, pytz
+import sys, getopt, math, pytz, pickle
 
 MAX_ROWS = None # None = infinite
 MIN_GROUP_SIZE = 10
@@ -155,7 +155,7 @@ def split_dataset(group):
 def get_io_settings(argv):
 	"""This gets the input and output files from the command line arguments"""
 	input_file = '/data/s1481096/LosAlamos/data/auth_small.h5'
-	output_file = '/data/s1495674/features.json'
+	output_file = '/data/s1495674/features.p'
 
 	try:
 		opts, args = getopt.getopt(argv, 'i:o:')
@@ -203,9 +203,8 @@ def main(argv):
 			users_list.append(user)
 
 	print("Done gathering data, outputting to file ", output_file)
-	sys.stdout = open(output_file, "w")
-	print(json.dumps(users_list))
-	sys.stdout.close()
+	output = open(output_file, 'wb')
+	pickle.dump(users_list, output)
 	sys.exit()
 
 
