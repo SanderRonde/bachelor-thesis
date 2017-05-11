@@ -14,6 +14,7 @@
       <w>newcredentials</w>
       <w>nltm</w>
       <w>remoteinteractive</w>
+      <w>rmsprop</w>
       <w>softmax</w>
       <w>tensorflow</w>
       <w>vals</w>

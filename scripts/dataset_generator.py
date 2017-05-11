@@ -6,9 +6,8 @@ import sys, getopt, math, pytz, pickle
 MAX_ROWS = None # None = infinite
 MIN_GROUP_SIZE = 10
 
-TRAINING_SET_PERCENTAGE = 40
-VALIDATION_SET_PERCENTAGE = 33
-TEST_SET_PERCENTAGE = 27
+TRAINING_SET_PERCENTAGE = 70
+TEST_SET_PERCENTAGE = 30
 
 
 class Row:
@@ -138,12 +137,10 @@ def split_list(target):
 	"""This splits given list into a distribution set by the *_SET_PERCENTAGE consts"""
 	target_length = len(target)
 
-	validation_set_start = math.ceil((TRAINING_SET_PERCENTAGE / 100) * target_length)
-	validation_set_end = math.ceil(((TRAINING_SET_PERCENTAGE + VALIDATION_SET_PERCENTAGE) / 100) * target_length)
+	training_set_end = math.ceil((TRAINING_SET_PERCENTAGE / 100) * target_length)
 
-	return target[:validation_set_start], \
-		   target[validation_set_start:validation_set_end], \
-		   target[validation_set_end:len(target)]
+	return target[0:training_set_end], \
+		   target[training_set_end:]
 
 
 def split_dataset(group):
@@ -191,12 +188,11 @@ def main(argv):
 			if user_name == "ANONYMOUS_LOGON":
 				continue
 
-			training_set, validation_set, test_set = split_dataset(group)
+			training_set, test_set = split_dataset(group)
 			user = {
 				"user_name": user_name,
 				"datasets": {
 					"training": training_set,
-					"validation": validation_set,
 					"test": test_set
 				}
 			}
@@ -209,5 +205,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-	assert VALIDATION_SET_PERCENTAGE + TEST_SET_PERCENTAGE + TRAINING_SET_PERCENTAGE == 100
+	assert TEST_SET_PERCENTAGE + TRAINING_SET_PERCENTAGE == 100
 	main(sys.argv[1:])
