@@ -1,4 +1,5 @@
 """The authentication type of the request"""
+
 AUTH_TYPE = {
     'NLTM': 0,
     'NEGOTIATE': 1,
@@ -51,14 +52,16 @@ def str_to_enum(string, enum):
 
     return enum.get(upper_case) or 0
 
-
 def extract(row, features):
     """Extracts the features for given row"""
 
-    domains_amount = len(features.domains)
-    dest_users_amount = len(features.dest_users)
-    src_computers_amount = len(features.src_computers)
-    dest_computers_amount = len(features.dest_computers)
+    unique_domains = features.domains.unique
+    unique_dest_users = features.dest_users.unique
+    unique_src_computers = features.src_computers.unique
+    unique_dest_computers = features.dest_computers.unique
+
+    most_freq_src_computer = features.src_computers.freq
+    most_freq_dest_computer = features.dest_computers.freq
     time_since_last_access = features.get_time_since_last_access()
 
     auth_type = str_to_enum(row.auth_type, AUTH_TYPE)
@@ -66,7 +69,11 @@ def extract(row, features):
     auth_orientation = str_to_enum(row.auth_orientation, AUTH_ORIENTATION)
     success_failure = str_to_enum(row.status, SUCCESS_FAILURE)
 
-    feature_arr = [time_since_last_access, domains_amount, dest_users_amount,
-                   src_computers_amount, dest_computers_amount, auth_type,
-                   logon_type, auth_orientation, success_failure]
+    percentage_failed_logins = features.percentage_failed_logins
+
+
+    feature_arr = [time_since_last_access, unique_domains, unique_dest_users,
+                   unique_src_computers, unique_dest_computers, most_freq_src_computer,
+                   most_freq_dest_computer, auth_type, logon_type, auth_orientation,
+                   success_failure, percentage_failed_logins]
     return feature_arr
