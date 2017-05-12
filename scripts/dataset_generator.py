@@ -15,7 +15,6 @@ BATCH_SIZE = 32
 MIN_GROUP_SIZE = 150
 MIN_GROUP_SIZE = max(MIN_GROUP_SIZE, (BATCH_SIZE * 2) + 2)
 
-
 class Row:
 	"""A row of data"""
 

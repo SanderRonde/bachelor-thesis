@@ -1,4 +1,5 @@
 """The main script file"""
+import os
 import numpy as np
 from keras.models import Sequential
 from keras.layers.recurrent import LSTM
@@ -27,6 +28,7 @@ class FeatureDescriptor:
         self.weight = weight
 
 FEATURE_MAP = [FeatureDescriptor("time_since_last_access", "number", 1.0),
+<<<<<<< HEAD
                FeatureDescriptor("unique_domains", "number", 1.0),
                FeatureDescriptor("unique_dest_users", "number", 1.0),
                FeatureDescriptor("unique_src_computers", "number", 1.0),
@@ -104,7 +106,6 @@ class Anomaly:
 
     def add_context(self, dataset: List[List[float]]):
         self.context = dataset
-
 
 class RNNModel:
     """An RNN"""
