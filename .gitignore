@@ -92,4 +92,4 @@ ENV/
 Tensorflow/
 data/
 runsnake/
-.idea/
+.idea
