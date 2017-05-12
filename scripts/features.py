@@ -52,6 +52,7 @@ def str_to_enum(string, enum):
 
     return enum.get(upper_case) or 0
 
+
 def extract(row, features):
     """Extracts the features for given row"""
 
@@ -70,7 +71,6 @@ def extract(row, features):
     success_failure = str_to_enum(row.status, SUCCESS_FAILURE)
 
     percentage_failed_logins = features.percentage_failed_logins
-
 
     feature_arr = [time_since_last_access, unique_domains, unique_dest_users,
                    unique_src_computers, unique_dest_computers, most_freq_src_computer,

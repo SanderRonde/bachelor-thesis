@@ -1,11 +1,20 @@
 """The main script file"""
+import getopt
 import os
-import numpy as np
-from keras.models import Sequential
-from keras.layers.recurrent import LSTM
-import sys, getopt, pickle, time, math, os
+import pickle
+import sys
+import time
+import math
 from typing import List, Dict, Tuple, Union
-from keras.layers.core import Dense, Activation, Dropout
+
+import numpy as np
+from keras.layers.core import Dense
+from keras.layers.recurrent import LSTM
+from keras.models import Sequential
+
+import matplotlib.pyplot as plt
+plt.switch_backend('agg')
+
 np.random.seed(1234)
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -16,10 +25,13 @@ SPEED_REPORTING_SIZE = 1000
 ANOMALY_THRESHOLD = 1.0
 CONTEXT_LENGTH = 10
 EPOCHS = 25
-GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = True
+GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = False
 VERBOSE = True
 
+LOSSES = list()
+
 Dataset = Dict[str, Union[str, Dict[str, List[List[float]]]]]
+
 
 class FeatureDescriptor:
     def __init__(self, name: str, type_: str, weight: float):
@@ -27,8 +39,8 @@ class FeatureDescriptor:
         self.type = type_
         self.weight = weight
 
+
 FEATURE_MAP = [FeatureDescriptor("time_since_last_access", "number", 1.0),
-<<<<<<< HEAD
                FeatureDescriptor("unique_domains", "number", 1.0),
                FeatureDescriptor("unique_dest_users", "number", 1.0),
                FeatureDescriptor("unique_src_computers", "number", 1.0),
@@ -44,8 +56,10 @@ FEATURE_MAP = [FeatureDescriptor("time_since_last_access", "number", 1.0),
 FEATURE_SIZE = len(FEATURE_MAP)
 LAYERS = [FEATURE_SIZE, 4, 4, FEATURE_SIZE]
 
+
 class Timer:
     """A timer to determine how long the entire operation might take"""
+
     def __init__(self, maximum: int):
         self._max = maximum
         self._current = 0
@@ -54,11 +68,24 @@ class Timer:
     def add_to_current(self, num: int):
         self._current += num
 
-    def get_eta(self) -> int:
+    def get_eta(self) -> str:
         passed_time = time.time() - self.start_time
         amount_done = self._current / self._max
 
-        return math.round(((1 / amount_done) * passed_time) - passed_time)
+        seconds = round(((1 / amount_done) * passed_time) - passed_time)
+        if seconds <= 60:
+            return str(seconds) + 's'
+
+        mins = math.floor(seconds / 60)
+        seconds = seconds % 60
+
+        if mins <= 60:
+            return str(mins) + 'm' + str(seconds) + 's'
+
+        hours = math.floor(mins / 60)
+        mins = mins % 60
+        return str(hours) + 'h' + str(mins) + 'm' + str(seconds) + 's'
+
 
 class FeatureDeviation:
     def __init__(self, deviation: float, name: str, predicted: float, actual: float):
@@ -96,9 +123,8 @@ class Anomaly:
         context_arr = np.array(self.context)
         reshaped = np.reshape(context_arr, (context_arr.shape[1], context_arr.shape[0]))
         for col in range(len(reshaped)):
-            reshaped[col] = [float(i)*maxes[col] for i in reshaped[col]]
+            reshaped[col] = [float(i) * maxes[col] for i in reshaped[col]]
         self.context = np.reshape(reshaped, (context_arr.shape[0], context_arr.shape[1]))
-
 
     @property
     def list(self) -> List[FeatureDeviation]:
@@ -106,6 +132,7 @@ class Anomaly:
 
     def add_context(self, dataset: List[List[float]]):
         self.context = dataset
+
 
 class RNNModel:
     """An RNN"""
@@ -145,14 +172,12 @@ class RNNModel:
 
         return train_x, train_y, test_x, test_y
 
-
     def reset(self):
         for i in range(len(self.model.layers)):
             self.model.layers[i].set_weights(self._starting_weights[i])
         self.model.reset_states()
 
-
-    def fit(self, train_x, train_y, epochs:int=10):
+    def fit(self, train_x, train_y, epochs: int = 10):
         """Fits the model to given training data"""
         for i in range(epochs):
             print("Epoch", i, '/', epochs)
@@ -161,9 +186,14 @@ class RNNModel:
             if not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE or i != epochs - 1:
                 self.model.reset_states()
 
-    def predict(self, data) -> list:
+    def test(self, test_x, test_y) -> List[float]:
         """Predicts the result for given test data"""
-        return self.model.predict(data)
+        losses = list()
+        for i in range(round(len(test_x) / BATCH_SIZE)):
+            losses.append(self.model.evaluate(test_x[i * BATCH_SIZE:(i+1) * BATCH_SIZE],
+                                              test_y[i * BATCH_SIZE:(i+1) * BATCH_SIZE],
+                                              batch_size=BATCH_SIZE, verbose=0))
+        return losses
 
 
 def abs_ratio(a: float, b: float) -> float:
@@ -174,10 +204,11 @@ def abs_ratio(a: float, b: float) -> float:
         return 1 / ratio
     return ratio
 
+
 class UserNetwork:
     """The class describing a single model and all its corresponding data"""
 
-    def __init__(self, model: RNNModel, data: Dataset, epochs:int=10):
+    def __init__(self, model: RNNModel, data: Dataset, epochs: int = 10):
         """Creates a new set of networks"""
 
         self.user_name = data["user_name"]
@@ -188,7 +219,6 @@ class UserNetwork:
 
         self.model = model
         self.model.reset()
-
 
     @staticmethod
     def _get_deviation_for_feature(feature: float, actual: float, descriptor: FeatureDescriptor):
@@ -216,29 +246,32 @@ class UserNetwork:
             # Only if it's an anomaly, attach context in order to avoid memory leaks
             if GIVE_TEST_SET_PREVIOUS_KNOWLEDGE:
                 context = (self.dataset["training"] + self.dataset["test"])[
-                    len(self.dataset["training"]) + (index - CONTEXT_LENGTH):len(self.dataset["train"] + index)
-                ]
+                          len(self.dataset["training"]) + (index - CONTEXT_LENGTH):len(self.dataset["train"]) + index]
             else:
-                context = self.dataset["test"][index-CONTEXT_LENGTH:index]
+                context = self.dataset["test"][index - CONTEXT_LENGTH:index]
             possible_anomaly.add_context(context)
             return possible_anomaly
         return False
-
 
     def find_anomalies(self) -> List[Anomaly]:
         # Train the network first
         train_x, train_y, test_x, test_y = RNNModel.prepare_data(self.dataset["training"], self.dataset["test"])
         self.model.fit(train_x, train_y, epochs=self.config["epochs"])
 
-        # Do prediction on test set
-        predictions = self.model.predict(test_x)
+        print("\mChecking losses on test set...")
+        losses = self.model.test(test_x, test_y)
+        print("Done checking losses on test set\n")
 
         anomalies = list()
 
-        for i in range(len(predictions)):
-            possible_anomaly = self._is_anomaly(predictions[i], test_y[i], i)
-            if possible_anomaly:
-                anomalies.append(possible_anomaly)
+        global LOSSES
+        LOSSES.append(losses)
+
+        # for i in range(len(losses)):
+        #     print(losses[i])
+        #     # possible_anomaly = self._is_anomaly(predictions[i], test_y[i], i)
+        #     # if possible_anomaly:
+        #     #     anomalies.append(possible_anomaly)
         return anomalies
 
 
@@ -304,11 +337,11 @@ def format_anomaly(anomaly: Anomaly, maxes: List[float]) -> str:
 
     if VERBOSE:
         for i in range(len(features)):
-            return_str += "Feature " + features[i].name + " was predicted as " + ("%.5f" % features[i].predicted) +\
+            return_str += "Feature " + features[i].name + " was predicted as " + ("%.5f" % features[i].predicted) + \
                           " and was " + ("%.5f" % features[i].actual) + " giving a total deviation of " + \
                           ("%.5f" % features[i].deviation) + "\n"
         return_str += "\nTotal anomaly score is: " + ("%.5f" % anomaly.get_total()) + " and maximum is " + \
-                          ("%.5f" %ANOMALY_THRESHOLD)
+                      ("%.5f" % ANOMALY_THRESHOLD)
     else:
         return_str += str(list(map(lambda x: x.actual, features)))
 
@@ -328,6 +361,32 @@ def format_anomalies(anomalies: List[Dict[str, Union[Dataset, List[Anomaly]]]]) 
 
         output += "\n\n"
     return output
+
+
+def plot_losses():
+    """Plots all the losses and saves them"""
+
+    # Get biggest sample size to spread out against
+    biggest_sample_size = 0
+    for i in range(len(LOSSES)):
+        if len(LOSSES[i]) > biggest_sample_size:
+            biggest_sample_size = len(LOSSES[i])
+
+    print("Gathering data points")
+    x_values = list()
+    y_values = list()
+    for i in range(len(LOSSES)):
+        sample_size = len(LOSSES[i])
+        scalar = biggest_sample_size / sample_size
+
+        for j in range(len(LOSSES[i])):
+            x_values.append(LOSSES[i][j])
+            y_values.append(scalar * j)
+
+    print("Plotting")
+    plt.plot(x_values, y_values, 'ro')
+    plt.savefig('plot.png')
+    print("Saved plot")
 
 
 def main(argv: sys.argv):
@@ -356,7 +415,8 @@ def main(argv: sys.argv):
     tested_users = 0
     for user in users_list:
 
-        print("\nChecking user", tested_users, "/", total_users, "ETA is" + str(timer.get_eta()) + "s")
+        if tested_users > 0:
+            print("\nChecking user", tested_users, "/", total_users, "ETA is " + timer.get_eta())
 
         try:
             anomalies = find_anomalies(model, user)
@@ -369,10 +429,13 @@ def main(argv: sys.argv):
             timer.add_to_current(len(user["datasets"]["training"]))
         except KeyboardInterrupt:
             # Skip rest of users, report early
-            print("Skipping rest of the users")
+            print("\n\nSkipping rest of the users")
             break
 
     print("Done checking users, outputting results now")
+
+    print("Plotting losses")
+    plot_losses()
 
     if output_file is sys.stdout:
         print("Outputting results to stdout\n\n\n")
