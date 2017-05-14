@@ -383,8 +383,12 @@ def plot_losses():
             x_values.append(LOSSES[i][j])
             y_values.append(scalar * j)
 
+        plt.plot(x_values, y_values)
+
     print("Plotting")
     plt.plot(x_values, y_values, 'ro')
+    plt.ylabel('Loss')
+    plt.xlabel('Batch index')
     plt.savefig('plot.png')
     print("Saved plot")
 
@@ -401,7 +405,11 @@ def main(argv: sys.argv):
     print("There are", total_users, "users")
 
     print("Compiling generic model")
-    model = RNNModel()
+    try:
+        model = RNNModel()
+    except:
+        print(sys.exc_info())
+        raise
 
     print("Starting anomaly detection")
 
