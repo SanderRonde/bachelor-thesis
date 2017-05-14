@@ -5,14 +5,77 @@ import pickle
 import sys
 import time
 import math
-from typing import List, Dict, Tuple, Union
-
+import tensorflow as tf
+from typing import List, Dict, Tuple, Union, TypeVar
+import matplotlib.pyplot as plt
 import numpy as np
+
+
+EPOCHS = 25
+GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = True
+VERBOSE = True
+
+
+def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
+    """This gets the input and output files from the command line arguments"""
+    input_file = '/data/s1495674/features.p'
+    output_file = '/data/s1495674/anomalies.txt'
+    plot_location = None
+    start_distr = 0
+    end_distr = 100
+
+    try:
+        opts, args = getopt.getopt(argv, 'i:o:p:e:d:s:khv')
+    except getopt.GetoptError:
+        print("Command line arguments invalid")
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt == '-i':
+            input_file = arg
+        elif opt == '-o':
+            output_file = arg
+        elif opt == '-p':
+            plot_location = arg
+        elif opt == '-v':
+            global VERBOSE
+            VERBOSE = True
+        elif opt == '-k':
+            global GIVE_TEST_SET_PREVIOUS_KNOWLEDGE
+            GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE
+        elif opt == '-e':
+            global EPOCHS
+            EPOCHS = int(arg)
+        elif opt == '-d':
+            end_distr = int(arg)
+        elif opt == '-s':
+            start_distr = int(arg)
+        elif opt == '-h':
+            print("Options:")
+            print(" -i <input file>     The source file for the users (in pickle format)")
+            print(" -o <output file>    The file to output the anomalies to, specifying 'stdout' prints them to stdout")
+            print(" -p <output file>    The location to store the plot of the losses (not specifying a location skips"
+                  " plotting)")
+            print(" -v                  Enable verbose output mode")
+            print(" -k                  Specifying this disables keeping the training set in the state before trying "
+                  "the test set")
+            print(" -e <epochs>         The amount of epochs to use (default is " + str(EPOCHS) + ")")
+            print(" -s <percentage>     The index at which to start processing")
+            print(" -d <percentage>     The index at which to stop processing")
+            sys.exit()
+        else:
+            print("Unrecognized argument passed, refer to -h for help")
+            sys.exit(2)
+
+    return input_file, output_file, plot_location, start_distr, end_distr
+
+IO = get_io_settings(sys.argv[1:])
+
+
 from keras.layers.core import Dense
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential
 
-import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 
 np.random.seed(1234)
@@ -24,9 +87,6 @@ BATCH_SIZE = 32
 SPEED_REPORTING_SIZE = 1000
 ANOMALY_THRESHOLD = 1.0
 CONTEXT_LENGTH = 10
-EPOCHS = 25
-GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = False
-VERBOSE = True
 
 LOSSES = list()
 
@@ -177,21 +237,26 @@ class RNNModel:
             self.model.layers[i].set_weights(self._starting_weights[i])
         self.model.reset_states()
 
-    def fit(self, train_x, train_y, epochs: int = 10):
+    def fit(self, train_x, train_y, epochs: int = 10) -> list:
         """Fits the model to given training data"""
+
+        train_history = list()
+
         for i in range(epochs):
             print("Epoch", i, '/', epochs)
-            self.model.fit(train_x, train_y, batch_size=BATCH_SIZE,
-                           epochs=1, verbose=1, shuffle=False)
+            train_history.append(self.model.fit(train_x, train_y, batch_size=BATCH_SIZE,
+                                                epochs=1, verbose=1, shuffle=False))
             if not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE or i != epochs - 1:
                 self.model.reset_states()
+
+        return train_history
 
     def test(self, test_x, test_y) -> List[float]:
         """Predicts the result for given test data"""
         losses = list()
         for i in range(round(len(test_x) / BATCH_SIZE)):
-            losses.append(self.model.evaluate(test_x[i * BATCH_SIZE:(i+1) * BATCH_SIZE],
-                                              test_y[i * BATCH_SIZE:(i+1) * BATCH_SIZE],
+            losses.append(self.model.evaluate(test_x[i * BATCH_SIZE:(i + 1) * BATCH_SIZE],
+                                              test_y[i * BATCH_SIZE:(i + 1) * BATCH_SIZE],
                                               batch_size=BATCH_SIZE, verbose=0))
         return losses
 
@@ -256,22 +321,25 @@ class UserNetwork:
     def find_anomalies(self) -> List[Anomaly]:
         # Train the network first
         train_x, train_y, test_x, test_y = RNNModel.prepare_data(self.dataset["training"], self.dataset["test"])
-        self.model.fit(train_x, train_y, epochs=self.config["epochs"])
+        history = self.model.fit(train_x, train_y, epochs=self.config["epochs"])
+        last_loss = history[-1].history["loss"][0]
 
-        print("\mChecking losses on test set...")
+        print("\nChecking losses on test set...")
         losses = self.model.test(test_x, test_y)
         print("Done checking losses on test set\n")
 
         anomalies = list()
 
         global LOSSES
-        LOSSES.append(losses)
+        losses_list = list()
 
-        # for i in range(len(losses)):
-        #     print(losses[i])
-        #     # possible_anomaly = self._is_anomaly(predictions[i], test_y[i], i)
-        #     # if possible_anomaly:
-        #     #     anomalies.append(possible_anomaly)
+        for i in range(len(losses)):
+            losses_list.append(last_loss / losses[i])
+            # possible_anomaly = self._is_anomaly(predictions[i], test_y[i], i)
+            # if possible_anomaly:
+            #     anomalies.append(possible_anomaly)
+
+        LOSSES.append(losses_list)
         return anomalies
 
 
@@ -290,29 +358,6 @@ def find_anomalies(model: RNNModel, data: Dataset) -> List[Anomaly]:
     network = UserNetwork(model, data, epochs=EPOCHS)
     anomalies = network.find_anomalies()
     return anomalies
-
-
-def get_io_settings(argv: sys.argv) -> Tuple[str, str]:
-    """This gets the input and output files from the command line arguments"""
-    input_file = '/data/s1495674/features.p'
-    output_file = '/data/s1495674/anomalies.txt'
-
-    try:
-        opts, args = getopt.getopt(argv, 'i:o:')
-    except getopt.GetoptError:
-        print("Command line arguments invalid")
-        sys.exit(2)
-
-    for opt, arg in opts:
-        if opt == '-i':
-            input_file = arg
-        elif opt == '-o':
-            output_file = arg
-        else:
-            print("Unrecognized argument passed")
-            sys.exit(2)
-
-    return input_file, output_file
 
 
 def format_anomaly(anomaly: Anomaly, maxes: List[float]) -> str:
@@ -363,7 +408,7 @@ def format_anomalies(anomalies: List[Dict[str, Union[Dataset, List[Anomaly]]]]) 
     return output
 
 
-def plot_losses():
+def plot_losses(plot_location: str):
     """Plots all the losses and saves them"""
 
     # Get biggest sample size to spread out against
@@ -372,43 +417,100 @@ def plot_losses():
         if len(LOSSES[i]) > biggest_sample_size:
             biggest_sample_size = len(LOSSES[i])
 
-    print("Gathering data points")
-    x_values = list()
-    y_values = list()
+    print("Gathering data points and plotting")
     for i in range(len(LOSSES)):
         sample_size = len(LOSSES[i])
         scalar = biggest_sample_size / sample_size
 
+        x_values = list()
+        y_values = list()
+
         for j in range(len(LOSSES[i])):
-            x_values.append(LOSSES[i][j])
-            y_values.append(scalar * j)
+            x_values.append(scalar * j)
+            y_values.append(LOSSES[i][j])
 
-        plt.plot(x_values, y_values)
+        plt.plot(x_values, y_values, markersize=1)
 
-    print("Plotting")
-    plt.plot(x_values, y_values, 'ro')
-    plt.ylabel('Loss')
+    # plt.yscale('log')
+    plt.ylabel('Loss ratio')
     plt.xlabel('Batch index')
-    plt.savefig('plot.png')
-    print("Saved plot")
+    plt.savefig(plot_location)
+    print("Saved plot to", plot_location)
 
 
-def main(argv: sys.argv):
+def is_closer(target: int, a: int, b: int) -> bool:
+    return abs(target - a) <= abs(target - b)
+
+
+T = TypeVar('T')
+
+
+def get_user_list(orig_list: List[T], start: int, end: int) -> Tuple[List[T], bool]:
+    if start == 0 and end == 100:
+        return orig_list, False
+
+    total_samples = 0
+    start_indexes = list()
+    for i in range(len(users_list)):
+        user = users_list[i]
+        length = len(user["datasets"]["training"])
+        total_samples += length
+        start_indexes.append({
+            "length": length,
+            "index": i
+        })
+
+    # Get start and end sample lengths
+    start_sample_index = round(float(total_samples) * (start / 100))
+    end_sample_index = round(float(total_samples) * (end / 100))
+
+    final_start_index = -1
+    final_end_index = -1
+
+    # Locate the closest start/end of a sample
+    for i in range(len(start_indexes)):
+        data = start_indexes[i]
+        if final_start_index == -1 and data["length"] > start_sample_index:
+            # Check if the last one may have been closer
+            if i != 0 and is_closer(start_sample_index, start_indexes[i - 1]["length"], data["length"]):
+                final_start_index = start_indexes[i - 1]["index"]
+            else:
+                final_start_index = data["index"]
+        if final_end_index == -1 and data["length"] > end_sample_index:
+            # Check if the last one may have been closer
+            if i != 0 and is_closer(end_sample_index, start_indexes[i - 1]["length"], data["length"]):
+                final_end_index = start_indexes[i - 1]["index"]
+            else:
+                final_end_index = data["index"]
+        if final_end_index != -1 and final_start_index != -1:
+            break
+
+    if final_start_index == -1:
+        final_start_index = 0
+    if final_end_index == -1:
+        final_end_index = len(users_list) - 1
+
+    return orig_list[final_start_index:final_end_index], True
+
+
+def main():
     """The main function"""
 
-    input_file, output_file = get_io_settings(argv)
+    global IO
+    input_file, output_file, plot_location, start_distr, end_distr = IO
 
     with open(input_file, 'rb') as in_file:
-        users_list = pickle.load(in_file)
+        full_list = pickle.load(in_file)
 
-    total_users = len(users_list)
-    print("There are", total_users, "users")
+    total_users = len(full_list)
+    users_list, uses_different_indexes = get_user_list(full_list, start_distr, end_distr)
+    print("There are", total_users, "users, and this process is doing", len(users_list), "of them")
 
     print("Compiling generic model")
     try:
         model = RNNModel()
-    except:
-        print(sys.exc_info())
+    except tf.errors.InternalError:
+        print("No GPU is currently available for you, aborting")
         raise
 
     print("Starting anomaly detection")
@@ -418,6 +520,7 @@ def main(argv: sys.argv):
     total_samples = 0
     for user in users_list:
         total_samples += len(user["datasets"]["training"])
+
     timer = Timer(total_samples)
 
     tested_users = 0
@@ -442,13 +545,16 @@ def main(argv: sys.argv):
 
     print("Done checking users, outputting results now")
 
-    print("Plotting losses")
-    plot_losses()
+    if plot_location is not None:
+        print("Plotting losses")
+        plot_losses(plot_location)
 
-    if output_file is sys.stdout:
+    if output_file == 'stdout':
         print("Outputting results to stdout\n\n\n")
         print(format_anomalies(all_anomalies))
     else:
+        if uses_different_indexes:
+            output_file = output_file[0:-4] + '.part.' + str(start_distr) + '.' + str(end_distr) + '.txt'
         print("Outputting results to", output_file)
         with open(output_file, 'w') as out_file:
             out_file.write(format_anomalies(all_anomalies))
@@ -461,4 +567,4 @@ def main(argv: sys.argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
