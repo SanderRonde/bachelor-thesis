@@ -253,7 +253,7 @@ class RNNModel:
                 print("Epoch", i, '/', epochs)
             verbosity = 0
             if VERBOSE_RUNNING:
-                VERBOSE_RUNNING = 1
+                verbosity = 1
             train_history.append(self.model.fit(train_x, train_y, batch_size=BATCH_SIZE,
                                                 epochs=1, verbose=verbosity, shuffle=False))
             if not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE or i != epochs - 1:
@@ -536,7 +536,7 @@ def main():
     for user in users_list:
 
         if tested_users > 0:
-            print("\nChecking user", tested_users, "/", total_users, "ETA is " + timer.get_eta())
+            print("\nChecking user", tested_users, "/", len(users_list), "ETA is " + timer.get_eta())
 
         try:
             anomalies = find_anomalies(model, user)
@@ -566,7 +566,8 @@ def main():
             output_file = output_file[0:-4] + '.part.' + str(start_distr) + '.' + str(end_distr) + '.txt'
         print("Outputting results to", output_file)
         with open(output_file, 'w') as out_file:
-            out_file.write('Testing for distr ' + str(start_distr) + ' to ' + str(end_distr))
+            # TODO
+            out_file.write('Testing for distr ' + str(start_distr) + ' to ' + str(end_distr) + '\n')
             #out_file.write(format_anomalies(all_anomalies))
 
     print("Done, closing files and stuff")
