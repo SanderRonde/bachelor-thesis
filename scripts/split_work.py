@@ -5,7 +5,7 @@ from typing import Tuple, Dict, Union
 from string import Template
 
 
-COMMAND_TEMPLATE = Template("$command -s $start -d $end")
+COMMAND_TEMPLATE = Template("CUDA_VISIBLE_DEVICES=$cuda_device $command -s $start -d $end")
 SPLIT_WINDOW_TEMPLATE = Template('tmux split-window -t $target -$orientation $command')
 SWAP_PANES_TEMPLATE = Template('tmux swap-pane -d -D')
 SELECT_PANE_TEMPLATE = Template('tmux select-pane -t $pane')
@@ -77,14 +77,15 @@ def get_io() -> Tuple[int, str, str]:
     return gpu_amount, command, name
 
 
-def gen_command_str(command: str, indexes: Tuple[int, int]) -> str:
+def gen_command_str(command: str, indexes: Tuple[int, int, int]) -> str:
     if indexes[0] == -1 and indexes[1] == -1:
         # Empty pane, no command
         return ''
-    return ADD_QUOTES.substitute(str=COMMAND_TEMPLATE.substitute(command=command, start=indexes[0], end=indexes[1]))
+    return ADD_QUOTES.substitute(str=COMMAND_TEMPLATE.substitute(cuda_device= indexes[2],
+                                                                 command=command, start=indexes[0], end=indexes[1]))
 
 
-def split_pane(command: str, indexes: Tuple[int, int], pane_index: int, orientation: str):
+def split_pane(command: str, indexes: Tuple[int, int, int], pane_index: int, orientation: str):
     exit_code = os.system(SPLIT_WINDOW_TEMPLATE.substitute(target=pane_index, orientation=orientation,
                                                            command=gen_command_str(command, indexes)))
     if exit_code == 256:
@@ -113,10 +114,10 @@ def calc_distribution(gpu_amount: int) -> Dict[int, Tuple[int, int]]:
     return distribution
 
 
-def get_indexes_at_new_position(new_position: int, distr: Dict[int, Tuple[int, int]]) -> Tuple[int, int]:
+def get_indexes_at_new_position(new_position: int, distr: Dict[int, Tuple[int, int]]) -> Tuple[int, int, int]:
     if new_position in distr:
-        return distr[new_position]
-    return -1, -1
+        return distr[new_position][0], distr[new_position][1], new_position
+    return -1, -1, new_position
 
 
 def main():
