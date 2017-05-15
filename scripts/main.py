@@ -466,7 +466,7 @@ def get_user_list(orig_list: List[T], start: int, end: int) -> Tuple[List[T], bo
         length = len(user["datasets"]["training"])
         total_samples += length
         start_indexes.append({
-            "length": length,
+            "length": total_samples - length,
             "index": i
         })
 
@@ -516,7 +516,6 @@ def main():
     users_list, uses_different_indexes = get_user_list(full_list, start_distr, end_distr)
     print("There are", total_users, "users, and this process is doing", len(users_list), "of them")
 
-    print("Compiling generic model")
     try:
         model = RNNModel()
     except tf.errors.InternalError:
@@ -567,7 +566,8 @@ def main():
             output_file = output_file[0:-4] + '.part.' + str(start_distr) + '.' + str(end_distr) + '.txt'
         print("Outputting results to", output_file)
         with open(output_file, 'w') as out_file:
-            out_file.write(format_anomalies(all_anomalies))
+            out_file.write('Testing for distr ' + str(start_distr) + ' to ' + str(end_distr))
+            #out_file.write(format_anomalies(all_anomalies))
 
     print("Done, closing files and stuff")
     try:
