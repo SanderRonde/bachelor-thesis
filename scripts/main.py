@@ -52,6 +52,7 @@ def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
         elif opt == '-s':
             start_distr = int(arg)
         elif opt == '-x':
+            global VERBOSE_RUNNING
             VERBOSE_RUNNING = False
         elif opt == '-h':
             print("Options:")
@@ -247,6 +248,7 @@ class RNNModel:
         train_history = list()
 
         for i in range(epochs):
+            global VERBOSE_RUNNING
             if VERBOSE_RUNNING:
                 print("Epoch", i, '/', epochs)
             verbosity = 0
@@ -459,8 +461,8 @@ def get_user_list(orig_list: List[T], start: int, end: int) -> Tuple[List[T], bo
 
     total_samples = 0
     start_indexes = list()
-    for i in range(len(users_list)):
-        user = users_list[i]
+    for i in range(len(orig_list)):
+        user = orig_list[i]
         length = len(user["datasets"]["training"])
         total_samples += length
         start_indexes.append({
@@ -496,7 +498,7 @@ def get_user_list(orig_list: List[T], start: int, end: int) -> Tuple[List[T], bo
     if final_start_index == -1:
         final_start_index = 0
     if final_end_index == -1:
-        final_end_index = len(users_list) - 1
+        final_end_index = len(orig_list) - 1
 
     return orig_list[final_start_index:final_end_index], True
 
