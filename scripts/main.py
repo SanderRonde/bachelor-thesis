@@ -14,6 +14,7 @@ import numpy as np
 EPOCHS = 25
 GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = True
 VERBOSE = True
+VERBOSE_RUNNING = True
 
 
 def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
@@ -25,7 +26,7 @@ def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
     end_distr = 100
 
     try:
-        opts, args = getopt.getopt(argv, 'i:o:p:e:d:s:khv')
+        opts, args = getopt.getopt(argv, 'i:o:p:e:d:s:khvx')
     except getopt.GetoptError:
         print("Command line arguments invalid")
         sys.exit(2)
@@ -50,6 +51,8 @@ def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
             end_distr = int(arg)
         elif opt == '-s':
             start_distr = int(arg)
+        elif opt == '-x':
+            VERBOSE_RUNNING = False
         elif opt == '-h':
             print("Options:")
             print(" -i <input file>     The source file for the users (in pickle format)")
@@ -62,6 +65,7 @@ def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
             print(" -e <epochs>         The amount of epochs to use (default is " + str(EPOCHS) + ")")
             print(" -s <percentage>     The index at which to start processing")
             print(" -d <percentage>     The index at which to stop processing")
+            print(' -x                  Disable verbose output during running')
             sys.exit()
         else:
             print("Unrecognized argument passed, refer to -h for help")
@@ -243,9 +247,13 @@ class RNNModel:
         train_history = list()
 
         for i in range(epochs):
-            print("Epoch", i, '/', epochs)
+            if VERBOSE_RUNNING:
+                print("Epoch", i, '/', epochs)
+            verbosity = 0
+            if VERBOSE_RUNNING:
+                VERBOSE_RUNNING = 1
             train_history.append(self.model.fit(train_x, train_y, batch_size=BATCH_SIZE,
-                                                epochs=1, verbose=1, shuffle=False))
+                                                epochs=1, verbose=verbosity, shuffle=False))
             if not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE or i != epochs - 1:
                 self.model.reset_states()
 
