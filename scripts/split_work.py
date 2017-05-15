@@ -1,5 +1,6 @@
 import os
 import sys
+import glob
 import getopt
 from typing import Tuple, Dict
 from string import Template
@@ -97,6 +98,42 @@ def get_indexes_at_new_position(new_position: int, distr: Dict[int, Tuple[int, i
     return -1, -1, new_position
 
 
+def join_files(command: str):
+    print("Joining output files")
+
+    # Get output file from command input
+    parts = command.split(' ')
+
+    out_file = '/data/s1495674/anomalies.txt'
+    for i in range(len(parts)):
+        if parts[i] == '-o':
+            out_file = parts[i + 1]
+            break
+
+    # Go to out_file directory
+    split_dir = out_file.split('/')
+    os.chdir('/'.join(split_dir[0:-1]))
+
+    file_name = split_dir[-1]
+    glob_pattern = file_name[0:-4] + '.part.*.txt'
+    files = glob.glob(glob_pattern)
+    files.sort(key=lambda name: int(name.split('.')[-3]))
+
+    with open(out_file, 'w') as output:
+        for file in files:
+            with open(file) as infile:
+                for line in infile:
+                    output.write(line)
+
+    print("Combined outputs and wrote them to", out_file)
+
+    # Remove the partial files
+    for file in files:
+        os.remove(file)
+
+    print("Removed partial files")
+
+
 def main():
     gpu_amount, command, name = get_io()
 
@@ -139,6 +176,8 @@ def main():
 
     os.system('tmux new-window ' + ADD_QUOTES.substitute(str=name))
     os.system('tmux -2 attach-session -d')
+
+    join_files(command)
 
 
 if __name__ == '__main__':
