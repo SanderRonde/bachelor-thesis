@@ -1,7 +1,7 @@
 """The main script file"""
 import getopt
 import os
-import pickle
+import _pickle as pickle
 import sys
 import time
 import math
@@ -95,7 +95,28 @@ CONTEXT_LENGTH = 10
 
 LOSSES = list()
 
-Dataset = Dict[str, Union[str, Dict[str, List[List[float]]]]]
+
+def force_str(val: str) -> str:
+    return val
+
+def force_feature(val: List[float]) -> List[float]:
+    return val
+
+def force_feature_set(val: List[List[float]]) -> List[List[float]]:
+    return val
+
+
+class DataDistribution:
+    def __init__(self, data: Dict[str, List[List[float]]]):
+        self.training = force_feature_set(data["training"])
+        self.test = force_feature_set(data["test"])
+
+
+class Dataset:
+    def __init__(self, data: Dict[str, Union[str, List[float], Dict[str, List[List[float]]]]]):
+        self.user_name = force_str(data["user_name"])
+        self.maxes = force_feature(data["maxes"])
+        self.datasets = DataDistribution(data["datasets"])
 
 
 class FeatureDescriptor:
@@ -286,8 +307,8 @@ class UserNetwork:
     def __init__(self, model: RNNModel, data: Dataset, epochs: int = 10):
         """Creates a new set of networks"""
 
-        self.user_name = data["user_name"]
-        self.dataset = data["datasets"]
+        self.user_name = data.user_name
+        self.dataset = data.datasets
         self.config = {
             "epochs": epochs
         }
@@ -320,22 +341,25 @@ class UserNetwork:
         if possible_anomaly.get_total() >= ANOMALY_THRESHOLD:
             # Only if it's an anomaly, attach context in order to avoid memory leaks
             if GIVE_TEST_SET_PREVIOUS_KNOWLEDGE:
-                context = (self.dataset["training"] + self.dataset["test"])[
-                          len(self.dataset["training"]) + (index - CONTEXT_LENGTH):len(self.dataset["train"]) + index]
+                context = (self.dataset.training + self.dataset.test)[
+                          len(self.dataset.training) + (index - CONTEXT_LENGTH):len(self.dataset.training) + index]
             else:
-                context = self.dataset["test"][index - CONTEXT_LENGTH:index]
+                context = self.dataset.test[index - CONTEXT_LENGTH:index]
             possible_anomaly.add_context(context)
             return possible_anomaly
         return False
 
+    def get_losses(self, x: List[List[float]], y: List[List[float]]) -> List[float]:
+        return self.model.test(x, y)
+
     def find_anomalies(self) -> List[Anomaly]:
         # Train the network first
-        train_x, train_y, test_x, test_y = RNNModel.prepare_data(self.dataset["training"], self.dataset["test"])
+        train_x, train_y, test_x, test_y = RNNModel.prepare_data(self.dataset.training, self.dataset.test)
         history = self.model.fit(train_x, train_y, epochs=self.config["epochs"])
         last_loss = history[-1].history["loss"][0]
 
         print("\nChecking losses on test set...")
-        losses = self.model.test(test_x, test_y)
+        test_losses = get_losses(test_x, test_y)
         print("Done checking losses on test set\n")
 
         anomalies = list()
@@ -343,8 +367,8 @@ class UserNetwork:
         global LOSSES
         losses_list = list()
 
-        for i in range(len(losses)):
-            losses_list.append(last_loss / losses[i])
+        for i in range(len(test_losses)):
+            losses_list.append(last_loss / test_losses[i])
             # possible_anomaly = self._is_anomaly(predictions[i], test_y[i], i)
             # if possible_anomaly:
             #     anomalies.append(possible_anomaly)
@@ -354,17 +378,7 @@ class UserNetwork:
 
 
 def find_anomalies(model: RNNModel, data: Dataset) -> List[Anomaly]:
-    """Finds anomalies in given data
-    
-    data format: {
-        "user_name": str,
-        "weights": list(float[12]),
-        "datasets": {
-            "training": list(float[12]),
-            "test": list(float[12])
-        }
-    }
-    """
+    """Finds anomalies in given data"""
     network = UserNetwork(model, data, epochs=EPOCHS)
     anomalies = network.find_anomalies()
     return anomalies
@@ -538,15 +552,17 @@ def main():
         if tested_users > 0:
             print("\nChecking user", tested_users, "/", len(users_list), "ETA is " + timer.get_eta())
 
+        current_user = Dataset(user)
+
         try:
-            anomalies = find_anomalies(model, user)
+            anomalies = find_anomalies(model, current_user)
             if len(anomalies) > 0:
                 all_anomalies.append({
-                    "user": user,
+                    "user": current_user,
                     "anomalies": anomalies
                 })
             tested_users += 1
-            timer.add_to_current(len(user["datasets"]["training"]))
+            timer.add_to_current(len(current_user.datasets.trainig))
         except KeyboardInterrupt:
             # Skip rest of users, report early
             print("\n\nSkipping rest of the users")
