@@ -2,7 +2,7 @@ import os
 import sys
 import glob
 import getopt
-from typing import Tuple, Dict
+from typing import List, Dict, Tuple, Union, TypeVar
 from string import Template
 
 
@@ -22,7 +22,7 @@ def get_io() -> Tuple[int, str, str]:
     argv = sys.argv[1:]
 
     gpu_amount = 16
-    command = 'python3 main.py'
+    command = 'python3 main.py -x'
     name = 'nn'
 
     try:
