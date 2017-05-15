@@ -1,8 +1,11 @@
 import os
 import sys
 import getopt
-from typing import Tuple, Dict, Union
+from typing import Tuple, Dict
 from string import Template
+
+
+GPU_OFFSET = 0
 
 
 COMMAND_TEMPLATE = Template("CUDA_VISIBLE_DEVICES=$cuda_device $command -s $start -d $end")
@@ -64,11 +67,15 @@ def get_io() -> Tuple[int, str, str]:
             command = arg
         elif opt == '-n':
             name = arg
+        elif opt == '-s':
+            global GPU_OFFSET
+            GPU_OFFSET = int(arg)
         elif opt == '-h':
             print('Options:')
             print(' -g <gpu_amount>		The amount of GPUs amongst which to split work')
             print(' -c <command>		The command to run')
             print(' -n <name>           The name of the tmux window')
+            print(' -s <start_index>    The index of the first GPU to use')
             sys.exit()
         else:
             print('Unrecognized argument passed, refer to -h for help')
@@ -81,7 +88,7 @@ def gen_command_str(command: str, indexes: Tuple[int, int, int]) -> str:
     if indexes[0] == -1 and indexes[1] == -1:
         # Empty pane, no command
         return ''
-    return ADD_QUOTES.substitute(str=COMMAND_TEMPLATE.substitute(cuda_device= indexes[2],
+    return ADD_QUOTES.substitute(str=COMMAND_TEMPLATE.substitute(cuda_device= GPU_OFFSET + indexes[2],
                                                                  command=command, start=indexes[0], end=indexes[1]))
 
 
