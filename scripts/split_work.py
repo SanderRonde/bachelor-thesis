@@ -16,36 +16,6 @@ ADD_QUOTES = Template("'$str'")
 VERTICAL = 'v'
 HORIZONTAL = 'h'
 
-PANE_MAP_8 = {
-    0: 0,
-    4: 1,
-    3: 2,
-    7: 3,
-    1: 4,
-    5: 5,
-    2: 6,
-    6: 7
-}
-
-PANE_MAP_16 = {
-    0: 0,
-    1: 1,
-    2: 2,
-    3: 12,
-    4: 3,
-    5: 11,
-    6: 7,
-    7: 15,
-    8: 1,
-    9: 9,
-    10: 5,
-    11: 13,
-    12: 2,
-    13: 10,
-    14: 6,
-    15: 14
-}
-
 
 def get_io() -> Tuple[int, str, str]:
     argv = sys.argv[1:]
