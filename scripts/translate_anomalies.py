@@ -2,15 +2,15 @@ import os
 import sys
 import json
 import getopt
-import numpy as np
 import pandas as pd
 from typing import Tuple, Union, List, Dict
 
 MAX_ROWS = None
 
+
 def get_io_settings(argv: sys.argv) -> Tuple[str, str, str]:
     """This gets the input and output files from the command line arguments"""
-    input_file =  '/data/s1495674/anomalies.encoded.json'
+    input_file = '/data/s1495674/anomalies.encoded.json'
     dataset_file = '/data/s1481096/LosAlamos/data/auth_small.h5'
     output_file = '/data/s1495674/anomalies.txt'
 
@@ -42,9 +42,9 @@ def get_io_settings(argv: sys.argv) -> Tuple[str, str, str]:
 
 UserAnomalies = List[Dict[str, float]]
 
+
 class AnomalySource:
     def __init__(self, data: Union[Dict[str, UserAnomalies], List[Dict[str, UserAnomalies]]]):
-        print(data)
         if type(data) != list:
             data = [data]
         self.data = data
@@ -68,7 +68,7 @@ def main():
 
     anomalies = read_anomalies(input_file)
 
-    f = pd.read_hdf(dataset_file, 'auth_small', start=0, stop=MAX_ROWS)\
+    f = pd.read_hdf(dataset_file, 'auth_small', start=0, stop=MAX_ROWS) \
         .groupby(['source_user'])
 
     anomaly_rows_list = list()
@@ -80,27 +80,21 @@ def main():
 
         anomaly_collection = anomalies.get(user_name)
         if anomaly_collection is not None:
-            print('Found one')
             # Print those rows
-            rows = list()
-            for row in group.itertuples():
-                rows.append(row)
 
             for anomaly in anomaly_collection:
-                anomaly_rows_list.append(rows[anomaly["start"]:anomaly["end"]])
-
-
+                anomaly_rows_list.append(group.iloc[anomaly["start"]:anomaly["end"]])
 
     if output_file == 'stdout':
         print("Outputting results to stdout\n\n\n")
-        print('\n'.join(anomaly_rows_list))
+        print(pd.concat(anomaly_rows_list).to_csv(index=False, header=False))
     else:
         print('Outputting results to', output_file)
         with open(output_file, 'w') as output_file:
-            output_file.write('\n'.join(anomaly_rows_list))
+            output_file.write(pd.concat(anomaly_rows_list).to_csv(index=False, header=False))
 
     print('Removing encoded file')
-    #os.remove(input_file)
+    os.remove(input_file)
 
     print('Done, closing files and stuff')
 
