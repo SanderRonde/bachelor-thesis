@@ -5,6 +5,7 @@ import _pickle as pickle
 import sys
 import time
 import math
+import json
 import tensorflow as tf
 from typing import List, Dict, Tuple, Union, TypeVar
 import matplotlib.pyplot as plt
@@ -20,13 +21,13 @@ VERBOSE_RUNNING = True
 def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
     """This gets the input and output files from the command line arguments"""
     input_file = '/data/s1495674/features.p'
-    output_file = '/data/s1495674/anomalies.txt'
+    output_file = '/data/s1495674/anomalies.encoded.json'
     plot_location = None
     start_distr = 0
     end_distr = 100
 
     try:
-        opts, args = getopt.getopt(argv, 'i:o:p:e:d:s:khvx')
+        opts, args = getopt.getopt(argv, 'i:o:p:e:d:s:m:khvx')
     except getopt.GetoptError:
         print("Command line arguments invalid")
         sys.exit(2)
@@ -49,6 +50,9 @@ def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
             EPOCHS = int(arg)
         elif opt == '-d':
             end_distr = int(arg)
+        elif opt == '-m':
+            global MAGIC_NUMBER
+            MAGIC_NUMBER = float(arg)
         elif opt == '-s':
             start_distr = int(arg)
         elif opt == '-x':
@@ -56,6 +60,7 @@ def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
             VERBOSE_RUNNING = False
         elif opt == '-h':
             print("Options:")
+            print(' -m <magic number>   The magic number at which a test sample becomes an anomaly')
             print(" -i <input file>     The source file for the users (in pickle format)")
             print(" -o <output file>    The file to output the anomalies to, specifying 'stdout' prints them to stdout")
             print(" -p <output file>    The location to store the plot of the losses (not specifying a location skips"
@@ -92,9 +97,10 @@ BATCH_SIZE = 32
 SPEED_REPORTING_SIZE = 1000
 ANOMALY_THRESHOLD = 1.0
 CONTEXT_LENGTH = 10
+MAGIC_NUMBER = 2.5
 
 LOSSES = list()
-
+FEATURE_SET = List[List[float]]
 
 def force_str(val: str) -> str:
     return val
@@ -102,20 +108,19 @@ def force_str(val: str) -> str:
 def force_feature(val: List[float]) -> List[float]:
     return val
 
-def force_feature_set(val: List[List[float]]) -> List[List[float]]:
+def force_feature_set(val: FEATURE_SET) -> FEATURE_SET:
     return val
 
 
 class DataDistribution:
-    def __init__(self, data: Dict[str, List[List[float]]]):
+    def __init__(self, data: Dict[str, FEATURE_SET]):
         self.training = force_feature_set(data["training"])
         self.test = force_feature_set(data["test"])
 
 
 class Dataset:
-    def __init__(self, data: Dict[str, Union[str, List[float], Dict[str, List[List[float]]]]]):
+    def __init__(self, data: Dict[str, Union[str, List[float], Dict[str, FEATURE_SET]]]):
         self.user_name = force_str(data["user_name"])
-        self.maxes = force_feature(data["maxes"])
         self.datasets = DataDistribution(data["datasets"])
 
 
@@ -126,20 +131,7 @@ class FeatureDescriptor:
         self.weight = weight
 
 
-FEATURE_MAP = [FeatureDescriptor("time_since_last_access", "number", 1.0),
-               FeatureDescriptor("unique_domains", "number", 1.0),
-               FeatureDescriptor("unique_dest_users", "number", 1.0),
-               FeatureDescriptor("unique_src_computers", "number", 1.0),
-               FeatureDescriptor("unique_dest_computers", "number", 1.0),
-               FeatureDescriptor("most_freq_src_computer", "number", 1.0),
-               FeatureDescriptor("most_freq_dest_computer", "number", 1.0),
-               FeatureDescriptor("auth_type", "nominal", 1.0),
-               FeatureDescriptor("logon_type", "nominal", 1.0),
-               FeatureDescriptor("auth_orientation", "nominal", 1.0),
-               FeatureDescriptor("success_failure", "binary", 1.0),
-               FeatureDescriptor("percentage_failed_logins", "number", 5.0)]
-
-FEATURE_SIZE = len(FEATURE_MAP)
+FEATURE_SIZE = 34
 LAYERS = [FEATURE_SIZE, 4, 4, FEATURE_SIZE]
 
 
@@ -173,51 +165,11 @@ class Timer:
         return str(hours) + 'h' + str(mins) + 'm' + str(seconds) + 's'
 
 
-class FeatureDeviation:
-    def __init__(self, deviation: float, name: str, predicted: float, actual: float):
-        self.deviation = deviation
-        self.name = name
-        self.predicted = predicted
-        self.actual = actual
-
-    def anti_normalize(self, maxes: float):
-        self.deviation *= maxes
-        self.predicted *= maxes
-        self.actual *= maxes
-
-
-class Anomaly:
-    def __init__(self, index: int):
-        self.context = None
-        self._index = index
-        self._list = list()
-
-    def append(self, deviation: FeatureDeviation):
-        self._list.append(deviation)
-
-    def get_total(self) -> float:
-        anomaly_score = 0.0
-        for i in range(len(self._list)):
-            anomaly_score += self._list[i].deviation
-
-        return anomaly_score
-
-    def anti_normalize(self, maxes: List[float]):
-        for i in range(len(self._list)):
-            self._list[i].anti_normalize(maxes[i])
-
-        context_arr = np.array(self.context)
-        reshaped = np.reshape(context_arr, (context_arr.shape[1], context_arr.shape[0]))
-        for col in range(len(reshaped)):
-            reshaped[col] = [float(i) * maxes[col] for i in reshaped[col]]
-        self.context = np.reshape(reshaped, (context_arr.shape[0], context_arr.shape[1]))
-
-    @property
-    def list(self) -> List[FeatureDeviation]:
-        return self._list
-
-    def add_context(self, dataset: List[List[float]]):
-        self.context = dataset
+def create_anomaly(start: int, end: int) -> Dict[str, int]:
+    return {
+        "start": start,
+        "end": end
+    }
 
 
 class RNNModel:
@@ -238,7 +190,7 @@ class RNNModel:
             self._starting_weights.append(model.layers[i].get_weights())
 
     @staticmethod
-    def prepare_data(training_data: List[List[float]], test_data: List[List[float]]):
+    def prepare_data(training_data: FEATURE_SET, test_data: FEATURE_SET):
         """Prepares given datasets for insertion into the model"""
 
         if len(training_data) == 1:
@@ -263,10 +215,8 @@ class RNNModel:
             self.model.layers[i].set_weights(self._starting_weights[i])
         self.model.reset_states()
 
-    def fit(self, train_x, train_y, epochs: int = 10) -> list:
+    def fit(self, train_x, train_y, epochs: int = 10):
         """Fits the model to given training data"""
-
-        train_history = list()
 
         for i in range(epochs):
             global VERBOSE_RUNNING
@@ -275,12 +225,11 @@ class RNNModel:
             verbosity = 0
             if VERBOSE_RUNNING:
                 verbosity = 1
-            train_history.append(self.model.fit(train_x, train_y, batch_size=BATCH_SIZE,
-                                                epochs=1, verbose=verbosity, shuffle=False))
+            self.model.fit(train_x, train_y, batch_size=BATCH_SIZE,
+                                                epochs=1, verbose=verbosity, shuffle=False)
             if not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE or i != epochs - 1:
                 self.model.reset_states()
 
-        return train_history
 
     def test(self, test_x, test_y) -> List[float]:
         """Predicts the result for given test data"""
@@ -301,6 +250,16 @@ def abs_ratio(a: float, b: float) -> float:
     return ratio
 
 
+def mean(data: List[float]) -> float:
+    data.sort()
+
+    if len(data) % 2 == 0:
+        half = round(math.floor(len(data) / 2))
+        return (data[half] + data[half + 1]) / 2
+    else:
+        return data[round(len(data) / 2)]
+
+
 class UserNetwork:
     """The class describing a single model and all its corresponding data"""
 
@@ -316,120 +275,39 @@ class UserNetwork:
         self.model = model
         self.model.reset()
 
-    @staticmethod
-    def _get_deviation_for_feature(feature: float, actual: float, descriptor: FeatureDescriptor):
-        if descriptor.type == "number":
-            # Simple number relation, use ratio
-            return FeatureDeviation(descriptor.weight * abs_ratio(feature, actual),
-                                    descriptor.name, feature, actual)
-        if descriptor.type == "nominal":
-            # Nominal relationship, if it's not within range of the number, mark as 1,
-            # otherwise mark as the difference
-            diff = abs(actual - feature)
-            return FeatureDeviation(min(diff, 1.0) * descriptor.weight,
-                                    descriptor.name, feature, actual)
-        if descriptor.type == "binary":
-            # Binary relationship,
-            return FeatureDeviation(abs(actual - feature) * descriptor.weight,
-                                    descriptor.name, feature, actual)
-
-    def _is_anomaly(self, predicted: List[float], actual: List[float], index: int) -> Union[bool, Anomaly]:
-        possible_anomaly = Anomaly(index)
-        for i in range(len(predicted)):
-            possible_anomaly.append(UserNetwork._get_deviation_for_feature(predicted[i], actual[i], FEATURE_MAP[i]))
-
-        if possible_anomaly.get_total() >= ANOMALY_THRESHOLD:
-            # Only if it's an anomaly, attach context in order to avoid memory leaks
-            if GIVE_TEST_SET_PREVIOUS_KNOWLEDGE:
-                context = (self.dataset.training + self.dataset.test)[
-                          len(self.dataset.training) + (index - CONTEXT_LENGTH):len(self.dataset.training) + index]
-            else:
-                context = self.dataset.test[index - CONTEXT_LENGTH:index]
-            possible_anomaly.add_context(context)
-            return possible_anomaly
-        return False
-
-    def get_losses(self, x: List[List[float]], y: List[List[float]]) -> List[float]:
+    def get_losses(self, x: np.ndarray, y: np.ndarray) -> List[float]:
         return self.model.test(x, y)
 
-    def find_anomalies(self) -> List[Anomaly]:
+    def find_anomalies(self) -> List[Dict[str, int]]:
         # Train the network first
         train_x, train_y, test_x, test_y = RNNModel.prepare_data(self.dataset.training, self.dataset.test)
-        history = self.model.fit(train_x, train_y, epochs=self.config["epochs"])
-        last_loss = history[-1].history["loss"][0]
+        self.model.fit(train_x, train_y, epochs=self.config["epochs"])
 
         print("\nChecking losses on test set...")
-        test_losses = get_losses(test_x, test_y)
+        test_losses = self.get_losses(test_x, test_y)
         print("Done checking losses on test set\n")
 
         anomalies = list()
 
+        mean_loss = mean(test_losses)
+
         global LOSSES
-        losses_list = list()
+        LOSSES.append(test_losses)
 
         for i in range(len(test_losses)):
-            losses_list.append(last_loss / test_losses[i])
-            # possible_anomaly = self._is_anomaly(predictions[i], test_y[i], i)
-            # if possible_anomaly:
-            #     anomalies.append(possible_anomaly)
+            if test_losses[i] >= MAGIC_NUMBER * mean_loss:
+                anomaly = create_anomaly(len(train_x) +  i * BATCH_SIZE, len(train_x) + (i + 1) * BATCH_SIZE)
+                anomalies.append(anomaly)
 
-        LOSSES.append(losses_list)
+
         return anomalies
 
 
-def find_anomalies(model: RNNModel, data: Dataset) -> List[Anomaly]:
+def find_anomalies(model: RNNModel, data: Dataset) -> List[Dict[str, int]]:
     """Finds anomalies in given data"""
     network = UserNetwork(model, data, epochs=EPOCHS)
     anomalies = network.find_anomalies()
     return anomalies
-
-
-def format_anomaly(anomaly: Anomaly, maxes: List[float]) -> str:
-    # Return all context rows first
-    return_str = ""
-    if VERBOSE:
-        last_str = ""
-        for i in range(len(anomaly.context)):
-            last_str = str(anomaly.context[i]) + "\n"
-            return_str += last_str
-
-        last_line_length = len(last_str) - 1
-        for i in range(last_line_length):
-            return_str += "^"
-
-        return_str += "\n\n"
-    else:
-        return_str += "\n"
-
-    anomaly.anti_normalize(maxes)
-    features = anomaly.list
-
-    if VERBOSE:
-        for i in range(len(features)):
-            return_str += "Feature " + features[i].name + " was predicted as " + ("%.5f" % features[i].predicted) + \
-                          " and was " + ("%.5f" % features[i].actual) + " giving a total deviation of " + \
-                          ("%.5f" % features[i].deviation) + "\n"
-        return_str += "\nTotal anomaly score is: " + ("%.5f" % anomaly.get_total()) + " and maximum is " + \
-                      ("%.5f" % ANOMALY_THRESHOLD)
-    else:
-        return_str += str(list(map(lambda x: x.actual, features)))
-
-    return return_str
-
-
-def format_anomalies(anomalies: List[Dict[str, Union[Dataset, List[Anomaly]]]]) -> str:
-    output = ""
-    for i in range(len(anomalies)):
-        user_anomalies = anomalies[i]
-        maxes = user_anomalies["user"]["maxes"]
-        if VERBOSE:
-            output += "Anomalies for user " + user_anomalies["user"]["user_name"] + "\n"
-        for j in range(len(user_anomalies["anomalies"])):
-            single_anomaly = user_anomalies["anomalies"][j]
-            output += format_anomaly(single_anomaly, maxes)
-
-        output += "\n\n"
-    return output
 
 
 def plot_losses(plot_location: str):
@@ -527,24 +405,27 @@ def main():
         full_list = pickle.load(in_file)
 
     total_users = len(full_list)
+    print("Dividing list...")
     users_list, uses_different_indexes = get_user_list(full_list, start_distr, end_distr)
     print("There are", total_users, "users, and this process is doing", len(users_list), "of them")
 
     try:
+        print("Setting up generic model")
         model = RNNModel()
     except tf.errors.InternalError:
         print("No GPU is currently available for you, aborting")
         raise
 
-    print("Starting anomaly detection")
-
-    all_anomalies = list()
+    all_anomalies = dict()
 
     total_samples = 0
+    print("Calculating total dataset size...")
     for user in users_list:
         total_samples += len(user["datasets"]["training"])
 
     timer = Timer(total_samples)
+
+    print("Starting anomaly detection")
 
     tested_users = 0
     for user in users_list:
@@ -557,12 +438,9 @@ def main():
         try:
             anomalies = find_anomalies(model, current_user)
             if len(anomalies) > 0:
-                all_anomalies.append({
-                    "user": current_user,
-                    "anomalies": anomalies
-                })
+                all_anomalies[current_user] = anomalies
             tested_users += 1
-            timer.add_to_current(len(current_user.datasets.trainig))
+            timer.add_to_current(len(current_user.datasets.training))
         except KeyboardInterrupt:
             # Skip rest of users, report early
             print("\n\nSkipping rest of the users")
@@ -576,15 +454,13 @@ def main():
 
     if output_file == 'stdout':
         print("Outputting results to stdout\n\n\n")
-        print(format_anomalies(all_anomalies))
+        print(json.dumps(all_anomalies))
     else:
         if uses_different_indexes:
-            output_file = output_file[0:-4] + '.part.' + str(start_distr) + '.' + str(end_distr) + '.txt'
+            output_file = output_file[0:-5] + '.part.' + str(start_distr) + '.' + str(end_distr) + '.json'
         print("Outputting results to", output_file)
         with open(output_file, 'w') as out_file:
-            # TODO
-            out_file.write('Testing for distr ' + str(start_distr) + ' to ' + str(end_distr) + '\n')
-            #out_file.write(format_anomalies(all_anomalies))
+            out_file.write(json.dumps(all_anomalies))
 
     print("Done, closing files and stuff")
     try:
