@@ -154,9 +154,10 @@ class RNNModel:
             return train_x, train_y, test_x, test_y
         return train_x, train_y
 
-    def reset(self):
-        for i in range(len(self.model.layers)):
-            self.model.layers[i].set_weights(self._starting_weights[i])
+    def reset(self, reset_weights=True):
+        if reset_weights:
+            for i in range(len(self.model.layers)):
+                self.model.layers[i].set_weights(self._starting_weights[i])
         self.model.reset_states()
 
     def fit(self, train_x, train_y, epochs: int = 10):
@@ -394,6 +395,8 @@ def train_on_batch(model: RNNModel, batch: List[List[float]]):
 
 
 def find_meganet_anomalies(model: RNNModel, batch: List[List[float]]) -> List[Dict[str, int]]:
+    RNNModel.reset(reset_weights=False)
+
     test_x, test_y = RNNModel.prepare_data(batch)
     test_losses = model.test(test_x, test_y)
 
