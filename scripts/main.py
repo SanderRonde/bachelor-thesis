@@ -1,85 +1,54 @@
 """The main script file"""
-import getopt
 import os
 import _pickle as pickle
 import sys
-import time
 import math
 import json
 import tensorflow as tf
 from typing import List, Dict, Tuple, Union, TypeVar
 import matplotlib.pyplot as plt
 import numpy as np
+import features
+from imports.timer import Timer
+from imports.log import logline
+from imports.io import IO, IOInput
 
 
-EPOCHS = 25
-GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = True
-VERBOSE = True
-VERBOSE_RUNNING = True
+io = IO({
+    "i": IOInput('/data/s1495674/features.p', str, arg_name='input_file',
+                 descr='The source file for the users (in pickle format)',
+                 alias='input_file'),
+    "o": IOInput('/data/s1495674/anomalies.encoded.json', str, arg_name='out_file',
+                 descr='The file to output the anomalies to, specifying \'stdout\' prints them to stdout',
+                 alias='output_file'),
+    'v': IOInput(False, bool, has_input=False, descr="Enable verbose output mode", alias='verbose'),
+    'k': IOInput(True, bool, has_input=False, descr="Specifying this disables keeping the training set in the state "
+                                                    "before trying the test set", alias='give_prev_knowledge'),
+    'e': IOInput(25, int, arg_name='epochs', descr="The amount of epochs to use (default is 25)",
+                 alias='epochs'),
+    's': IOInput(0, int, arg_name='percentage', descr='The index at which to start processing',
+                 alias='start'),
+    'd': IOInput(100, int, arg_name='percentage', descr='The index at which to stop processing',
+                 alias='end'),
+    'm': IOInput(1.2, float, arg_name='magic_number',
+                 descr='The magic number at which a test sample becomes an anomaly',
+                 alias='magic_number'),
+    'x': IOInput(True, bool, has_input=False, descr='Disable verbose output during running',
+                 alias='running_verbose'),
+    'p': IOInput(None, str, arg_name='plot_location', descr="The location to store the plot of the losses (not "
+                                                            "specifying a location skips plotting)",
+                 alias='plot_location'),
+    'M': IOInput(False, bool, has_input=False, descr='Enable meganet mode',
+                 alias='meganet')
+})
 
 
-def get_io_settings(argv: sys.argv) -> Tuple[str, str, str, int, int]:
-    """This gets the input and output files from the command line arguments"""
-    input_file = '/data/s1495674/features.p'
-    output_file = '/data/s1495674/anomalies.encoded.json'
-    plot_location = None
-    start_distr = 0
-    end_distr = 100
+EPOCHS = io.get('epochs')
+GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = io.get('give_prev_knowledge')
+VERBOSE = io.get('verbose')
+VERBOSE_RUNNING = io.get('running_verbose')
 
-    try:
-        opts, args = getopt.getopt(argv, 'i:o:p:e:d:s:m:khvx')
-    except getopt.GetoptError:
-        print("Command line arguments invalid")
-        sys.exit(2)
-
-    for opt, arg in opts:
-        if opt == '-i':
-            input_file = arg
-        elif opt == '-o':
-            output_file = arg
-        elif opt == '-p':
-            plot_location = arg
-        elif opt == '-v':
-            global VERBOSE
-            VERBOSE = True
-        elif opt == '-k':
-            global GIVE_TEST_SET_PREVIOUS_KNOWLEDGE
-            GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE
-        elif opt == '-e':
-            global EPOCHS
-            EPOCHS = int(arg)
-        elif opt == '-d':
-            end_distr = int(arg)
-        elif opt == '-m':
-            global MAGIC_NUMBER
-            MAGIC_NUMBER = float(arg)
-        elif opt == '-s':
-            start_distr = int(arg)
-        elif opt == '-x':
-            global VERBOSE_RUNNING
-            VERBOSE_RUNNING = False
-        elif opt == '-h':
-            print("Options:")
-            print(' -m <magic number>   The magic number at which a test sample becomes an anomaly')
-            print(" -i <input file>     The source file for the users (in pickle format)")
-            print(" -o <output file>    The file to output the anomalies to, specifying 'stdout' prints them to stdout")
-            print(" -p <output file>    The location to store the plot of the losses (not specifying a location skips"
-                  " plotting)")
-            print(" -v                  Enable verbose output mode")
-            print(" -k                  Specifying this disables keeping the training set in the state before trying "
-                  "the test set")
-            print(" -e <epochs>         The amount of epochs to use (default is " + str(EPOCHS) + ")")
-            print(" -s <percentage>     The index at which to start processing")
-            print(" -d <percentage>     The index at which to stop processing")
-            print(' -x                  Disable verbose output during running')
-            sys.exit()
-        else:
-            print("Unrecognized argument passed, refer to -h for help")
-            sys.exit(2)
-
-    return input_file, output_file, plot_location, start_distr, end_distr
-
-IO = get_io_settings(sys.argv[1:])
+MAGIC_NUMBER = io.get('magic_number')
 
 
 from keras.layers.core import Dense
@@ -97,16 +66,18 @@ BATCH_SIZE = 32
 SPEED_REPORTING_SIZE = 1000
 ANOMALY_THRESHOLD = 1.0
 CONTEXT_LENGTH = 10
-MAGIC_NUMBER = 1.2
 
 LOSSES = list()
 FEATURE_SET = List[List[float]]
 
+
 def force_str(val: str) -> str:
     return val
 
+
 def force_feature(val: List[float]) -> List[float]:
     return val
+
 
 def force_feature_set(val: FEATURE_SET) -> FEATURE_SET:
     return val
@@ -131,38 +102,8 @@ class FeatureDescriptor:
         self.weight = weight
 
 
-FEATURE_SIZE = 34
+FEATURE_SIZE = features.size()
 LAYERS = [FEATURE_SIZE, 4, 4, FEATURE_SIZE]
-
-
-class Timer:
-    """A timer to determine how long the entire operation might take"""
-
-    def __init__(self, maximum: int):
-        self._max = maximum
-        self._current = 0
-        self.start_time = time.time()
-
-    def add_to_current(self, num: int):
-        self._current += num
-
-    def get_eta(self) -> str:
-        passed_time = time.time() - self.start_time
-        amount_done = self._current / self._max
-
-        seconds = round(((1 / amount_done) * passed_time) - passed_time)
-        if seconds <= 60:
-            return str(seconds) + 's'
-
-        mins = math.floor(seconds / 60)
-        seconds = seconds % 60
-
-        if mins <= 60:
-            return str(mins) + 'm' + str(seconds) + 's'
-
-        hours = math.floor(mins / 60)
-        mins = mins % 60
-        return str(hours) + 'h' + str(mins) + 'm' + str(seconds) + 's'
 
 
 def create_anomaly(start: int, end: int) -> Dict[str, int]:
@@ -190,25 +131,28 @@ class RNNModel:
             self._starting_weights.append(model.layers[i].get_weights())
 
     @staticmethod
-    def prepare_data(training_data: FEATURE_SET, test_data: FEATURE_SET):
+    def prepare_data(training_data: FEATURE_SET, test_data=None):
         """Prepares given datasets for insertion into the model"""
 
         if len(training_data) == 1:
             print(training_data, test_data)
         assert len(training_data) > 1, "Training data is longer than 1, (is %d)" % len(training_data)
-        assert len(test_data) > 1, "Test data is longer than 1, (is %d)" % len(test_data)
+        if test_data is not None:
+            assert len(test_data) > 1, "Test data is longer than 1, (is %d)" % len(test_data)
 
         train_x = np.array(training_data[:-1])
         train_y = np.array(training_data[1:])
 
         train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], 1))
 
-        test_x = np.array(test_data[:-1])
-        test_y = np.array(test_data[1:])
+        if test_data is not None:
+            test_x = np.array(test_data[:-1])
+            test_y = np.array(test_data[1:])
 
-        test_x = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], 1))
+            test_x = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], 1))
 
-        return train_x, train_y, test_x, test_y
+            return train_x, train_y, test_x, test_y
+        return train_x, train_y
 
     def reset(self):
         for i in range(len(self.model.layers)):
@@ -226,10 +170,9 @@ class RNNModel:
             if VERBOSE_RUNNING:
                 verbosity = 1
             self.model.fit(train_x, train_y, batch_size=BATCH_SIZE,
-                                                epochs=1, verbose=verbosity, shuffle=False)
+                           epochs=1, verbose=verbosity, shuffle=False)
             if not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE or i != epochs - 1:
                 self.model.reset_states()
-
 
     def test(self, test_x, test_y) -> List[float]:
         """Predicts the result for given test data"""
@@ -251,13 +194,14 @@ def abs_ratio(a: float, b: float) -> float:
 
 
 def mean(data: List[float]) -> float:
-    data.sort()
+    copy = data[:]
+    copy.sort()
 
-    if len(data) % 2 == 0:
-        half = round(math.floor(len(data) / 2))
-        return (data[half] + data[half + 1]) / 2
+    if len(copy) % 2 == 0:
+        half = round(math.floor(len(copy) / 2))
+        return (copy[half - 1] + copy[half]) / 2
     else:
-        return data[round(len(data) / 2)]
+        return copy[round(len(copy) / 2)]
 
 
 class UserNetwork:
@@ -280,7 +224,7 @@ class UserNetwork:
 
     def find_anomalies(self) -> List[Dict[str, int]]:
         # Train the network first
-        train_x, train_y, test_x, test_y = RNNModel.prepare_data(self.dataset.training, self.dataset.test)
+        train_x, train_y, test_x, test_y = RNNModel.prepare_data(self.dataset.training, test_data=self.dataset.test)
         self.model.fit(train_x, train_y, epochs=self.config["epochs"])
 
         print("\nChecking losses on test set...")
@@ -296,9 +240,8 @@ class UserNetwork:
 
         for i in range(len(test_losses)):
             if test_losses[i] >= MAGIC_NUMBER * mean_loss:
-                anomaly = create_anomaly(len(train_x) +  i * BATCH_SIZE, len(train_x) + (i + 1) * BATCH_SIZE)
+                anomaly = create_anomaly(len(train_x) + i * BATCH_SIZE, len(train_x) + (i + 1) * BATCH_SIZE)
                 anomalies.append(anomaly)
-
 
         return anomalies
 
@@ -395,38 +338,34 @@ def get_user_list(orig_list: List[T], start: int, end: int) -> Tuple[List[T], bo
     return orig_list[final_start_index:final_end_index], True
 
 
-def main():
-    """The main function"""
-
-    global IO
-    input_file, output_file, plot_location, start_distr, end_distr = IO
-
-    with open(input_file, 'rb') as in_file:
+def open_users_list():
+    with open(io.get('input_file'), 'rb') as in_file:
         full_list = pickle.load(in_file)
 
-    total_users = len(full_list)
-    print("Dividing list...")
-    users_list, uses_different_indexes = get_user_list(full_list, start_distr, end_distr)
-    print("There are", total_users, "users, and this process is doing", len(users_list), "of them")
+    if io.get('meganet'):
+        total_users = len(full_list['training'])
+        logline("Dividing list...")
+        divided = get_user_list(full_list, io.get('start'), io.get('end'))
+        logline("There are", total_users, "users, and this process is doing", len(divided[0]), "of them")
+        return divided
+    else:
+        total_rows = len(full_list['training'])
+        logline('There are', total_rows, 'events')
+        return total_rows, False
 
-    try:
-        print("Setting up generic model")
-        model = RNNModel()
-    except tf.errors.InternalError:
-        print("No GPU is currently available for you, aborting")
-        raise
 
-    all_anomalies = dict()
-
+def do_non_megalist_detection(model: RNNModel, users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]
+                              ) -> Dict[str, List[Dict[str, int]]]:
+    logline('Calculating total dataset size')
     total_samples = 0
-    print("Calculating total dataset size...")
     for user in users_list:
         total_samples += len(user["datasets"]["training"])
 
     timer = Timer(total_samples)
 
-    print("Starting anomaly detection")
+    logline("Starting anomaly detection")
 
+    all_anomalies = dict()
     tested_users = 0
     for user in users_list:
 
@@ -438,7 +377,7 @@ def main():
         try:
             anomalies = find_anomalies(model, current_user)
             if len(anomalies) > 0:
-                all_anomalies[current_user] = anomalies
+                all_anomalies[current_user.user_name] = anomalies
             tested_users += 1
             timer.add_to_current(len(current_user.datasets.training))
         except KeyboardInterrupt:
@@ -446,27 +385,122 @@ def main():
             print("\n\nSkipping rest of the users")
             break
 
-    print("Done checking users, outputting results now")
+    return all_anomalies
+
+
+def train_on_batch(model: RNNModel, batch: List[List[float]]):
+    train_x, train_y = RNNModel.prepare_data(batch)
+    model.fit(train_x, train_y, epochs=io.get('epochs'))
+
+
+def find_meganet_anomalies(model: RNNModel, batch: List[List[float]]) -> List[Dict[str, int]]:
+    test_x, test_y = RNNModel.prepare_data(batch)
+    test_losses = model.test(test_x, test_y)
+
+    anomalies = list()
+
+    mean_loss = mean(test_losses)
+
+    global LOSSES
+    LOSSES.append(test_losses)
+
+    for i in range(len(test_losses)):
+        if test_losses[i] >= MAGIC_NUMBER * mean_loss:
+            anomaly = create_anomaly(i * BATCH_SIZE, (i + 1) * BATCH_SIZE)
+            anomalies.append(anomaly)
+
+    return anomalies
+
+
+def do_megalist_detection(model: RNNModel, dataset: Dict[str, Union[List[Union[List[float]], int],
+                                                                    List[Dict[str, Union[str, FEATURE_SET]]]]]
+                          ) -> Dict[str, List[Dict[str, int]]]:
+    logline('Calculating total dataset size')
+    total_samples = len(users_list['training'])
+
+    timer = Timer(total_samples)
+
+    logline("Starting anomaly detection")
+
+    all_anomalies = dict()
+    tested_users = 0
+
+    training_arr = np.array(dataset['training'])
+    split_training_set = np.split(training_arr, np.where(training_arr == 0))
+    for user_list in split_training_set:
+        if tested_users > 0:
+            print("\nTraining on user", tested_users, "/", len(split_training_set), "ETA is " + timer.get_eta())
+        try:
+            train_on_batch(model, user_list)
+            timer.add_to_current(len(user_list))
+            tested_users += 1
+        except KeyboardInterrupt:
+            # Skip rest of users, report early
+            print("\n\nSkipping rest of the users")
+            break
+
+    tested_users = 0
+    test_set_length = len(dataset['test'])
+    for user in dataset['test']:
+        if tested_users > 0:
+            print("\nTesting user", tested_users, "/", test_set_length, "ETA is " + timer.get_eta())
+
+        try:
+            anomalies = find_meganet_anomalies(model, user['dataset'])
+            if len(anomalies) > 0:
+                all_anomalies[user['user_name']] = anomalies
+            tested_users += 1
+            timer.add_to_current(len(user['dataset']))
+        except KeyboardInterrupt:
+            # Skip rest of users, report early
+            print("\n\nSkipping rest of the users")
+            break
+
+    return all_anomalies
+
+
+def main():
+    """The main function"""
+
+    plot_location = io.get('plot_location')
+
+    users_list, uses_different_indexes = open_users_list()
+
+    try:
+        logline("Setting up generic model")
+        model = RNNModel()
+    except tf.errors.InternalError:
+        logline("No GPU is currently available for you, aborting")
+        raise
+
+    is_meganet = io.get('meganet')
+    if is_meganet:
+        all_anomalies = do_megalist_detection(model, users_list)
+    else:
+        all_anomalies = do_non_megalist_detection(model, users_list)
+
+    logline("Done checking users, outputting results now")
 
     if plot_location is not None:
-        print("Plotting losses")
+        logline("Plotting losses")
         plot_losses(plot_location)
 
+    output_file = io.get('output_file')
     if output_file == 'stdout':
-        print("Outputting results to stdout\n\n\n")
-        print(json.dumps(all_anomalies))
+        logline("Outputting results to stdout\n\n\n")
+        logline(json.dumps(all_anomalies))
     else:
         if uses_different_indexes:
-            output_file = output_file[0:-5] + '.part.' + str(start_distr) + '.' + str(end_distr) + '.json'
-        print("Outputting results to", output_file)
+            output_file = output_file[0:-5] + '.part.' + str(io.get('start')) + '.' + str(io.get('end')) + '.json'
+        logline("Outputting results to", output_file)
         with open(output_file, 'w') as out_file:
             out_file.write(json.dumps(all_anomalies))
 
-    print("Done, closing files and stuff")
+    logline("Done, closing files and stuff")
     try:
         sys.exit()
     except AttributeError:
-        print("Tensorflow threw some error while closing, just ignore it")
+        logline("Tensorflow threw some error while closing, just ignore it")
 
 
 if __name__ == "__main__":

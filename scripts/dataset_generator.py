@@ -1,10 +1,13 @@
 """The script that generates all 3 datasets and their features"""
-import getopt
 import math
 import pickle
 import pytz
 import sys
-from typing import List, TypeVar, Tuple, Union
+import json
+from imports.timer import Timer
+from imports.log import logline
+from imports.io import IO, IOInput
+from typing import List, TypeVar, Tuple, Union, Dict
 
 import features as features
 import numpy as np
@@ -19,6 +22,21 @@ REPORT_SIZE = 100
 BATCH_SIZE = 32
 MIN_GROUP_SIZE = 150
 MIN_GROUP_SIZE = max(MIN_GROUP_SIZE, (BATCH_SIZE * 2) + 2)
+
+io = IO({
+    'i': IOInput('/data/s1481096/LosAlamos/data/auth_small.h5', str, arg_name='input_file',
+                 descr='The source file for the users (in h5 format)',
+                 alias='input_file'),
+    'o': IOInput('/data/s1495674/features.p', str, arg_name='output_file',
+                 descr='The file to output the features to',
+                 alias='output_file'),
+    'n': IOInput('auth_small', str, arg_name='name',
+                 descr='The name of the h5 file',
+                 alias='name'),
+    'M': IOInput(False, bool, has_input=False,
+                 descr='Enable mega-net mode',
+                 alias='meganet')
+})
 
 
 class Row:
@@ -164,22 +182,19 @@ class Features:
         return self._current_access - self._last_access
 
 
-def normalize_all(features: List[float]):
-    np_arr = np.array(features)
-    reshaped = np.reshape(features, (np_arr.shape[1], np_arr.shape[0]))
+def normalize_all(feature_list: List[List[float]]) -> np.ndarray:
+    np_arr = np.array(feature_list)
+    reshaped = np.reshape(feature_list, (np_arr.shape[1], np_arr.shape[0]))
 
-    maxes = list()
     for col in range(len(reshaped)):
         col_max = max(reshaped[col])
         reshaped[col] = [float(i) / col_max for i in reshaped[col]]
-        maxes.append(col_max)
 
-    return np.reshape(np.append(maxes,
-                                np.reshape(np.array(reshaped), (np_arr.shape[0], np_arr.shape[1]))),
-                      (np_arr.shape[0] + 1, np_arr.shape[1]))
+    return np.reshape(np.reshape(np.array(reshaped), (np_arr.shape[0], np_arr.shape[1])),
+                      (np_arr.shape[0], np_arr.shape[1]))
 
 
-def convert_to_features(group):
+def convert_to_features(group) -> np.ndarray:
     """This converts a given group to features"""
     current_features = Features()
 
@@ -193,14 +208,14 @@ def convert_to_features(group):
 
 
 def closest_multiple(target: int, base: int) -> int:
-    lower_bound = target - (target % base)
+    lower_bound = target // base
     if float(target - lower_bound) > (base / 2):
         # Round up
         return lower_bound + base
     return lower_bound
 
 
-def split_list(target: List[T], batch_size: int = 1) -> Union[Tuple[List[T], List[T]], bool]:
+def split_list(target: np.ndarray, batch_size: int = 1) -> Union[Tuple[np.ndarray, np.ndarray], None]:
     """This splits given list into a distribution set by the *_SET_PERCENTAGE consts"""
     target_length = len(target)
 
@@ -219,68 +234,134 @@ def split_list(target: List[T], batch_size: int = 1) -> Union[Tuple[List[T], Lis
     test_set_length += 1
 
     if training_set_length <= 1 or test_set_length <= 1:
-        return False
+        return None
 
     return target[0:training_set_length], target[training_set_length:training_set_length + test_set_length]
 
 
-def split_dataset(group) -> Tuple[List[List[float]], Union[Tuple[List[float], List[float]], bool]]:
-    """This converts the dataset to features and splits it into 3 parts
-    :type group: pd.Group
-    """
-    feature_data = convert_to_features(group)
-    return feature_data[0:1], split_list(feature_data[1:], BATCH_SIZE)
+def split_dataset(feature_data: np.ndarray) -> Union[Tuple[List[float], List[float]], None]:
+    """This converts the dataset to features and splits it into 3 parts"""
+    return split_list(feature_data, BATCH_SIZE)
 
 
-def get_io_settings(argv: sys.argv) -> Tuple[str, str]:
-    """This gets the input and output files from the command line arguments"""
-    input_file = '/data/s1481096/LosAlamos/data/auth_small.h5'
-    output_file = '/data/s1495674/features.p'
+def get_pd_file() -> pd.DataFrame:
+    logline('Opening file')
+    return pd.read_hdf(io.get('input_file'), io.get('name'), start=0, stop=MAX_ROWS)
 
-    try:
-        opts, args = getopt.getopt(argv, 'i:o:')
-    except getopt.GetoptError:
-        print("Command line arguments invalid")
-        sys.exit(2)
 
-    for opt, arg in opts:
-        if opt == '-i':
-            input_file = arg
-        elif opt == '-o':
-            output_file = arg
+def group_pd_file(f: pd.DataFrame) -> pd.DataFrame:
+    logline('Grouping users in file')
+    grouped = f.groupby(lambda x: group_df(x, f))
+    logline('Done grouping users')
+    return grouped
+
+
+def split_dataframe(f: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    # Try to get close to the target split
+    training_set = list()
+    test_set = list()
+
+    index = 0
+    for g, dataframe in f.groupby(np.arange(10)):
+        if index * 10 <= TRAINING_SET_PERCENTAGE:
+            training_set.append(dataframe)
         else:
-            print("Unrecognized argument passed")
-            sys.exit(2)
+            test_set.append(dataframe)
+        index += 1
 
-    return input_file, output_file
+    # noinspection PyTypeChecker
+    return pd.concat(training_set), pd.concat(test_set)
 
 
-def main(argv: sys.argv):
-    """The main function"""
-    users_list = list()
+def gen_meganet_features(f: pd.DataFrame) -> Dict[str, List[Dict[str, Union[str, List[List[float]]]]]]:
+    training_set, test_set = split_dataframe(f)
 
-    input_file, output_file = get_io_settings(argv)
+    training_features = list()
+    test_features = list()
 
-    print("Gathering features for", MAX_ROWS if MAX_ROWS is not None else "as many as there are", "rows",
-          "using a batch size of", BATCH_SIZE)
-
-    rows = 0
-    f = pd.read_hdf(input_file, 'auth_small', start=0, stop=MAX_ROWS) \
-        .groupby(["source_user"])
     file_length = len(f)
-    for name, group in f:
+    del f
+
+    timer = Timer(file_length)
+    rows = 0
+
+    user_name_list = list()
+
+    for name, group in training_set.groupby(lambda x: group_df(x, training_set)):
         if len(group.index) > MIN_GROUP_SIZE:
-            user_name = group.iloc[0].get('source_user').split('@')[0]
+            user_name = name
 
             if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
                 continue
 
-            maxes_row, split_dataset_result = split_dataset(group)
+            # Signify a split in user
+            if rows != 0:
+                training_features.append(0)
+
+            group_features = convert_to_features(group)
+            training_features.append(group_features[0:(len(group_features) - 1 // BATCH_SIZE) + 1])
+
+            rows += 1
+
+            user_name_list.append(user_name)
+
+            if rows % REPORT_SIZE == 0:
+                logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
+                        spaces_between=False)
+        timer.add_to_current(1)
+
+    for name, group in test_set.groupby(lambda x: group_df(x, test_set)):
+        if len(group.index) > MIN_GROUP_SIZE:
+            user_name = name
+
+            if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON" or user_name not in user_name_list:
+                continue
+
+            group_features = convert_to_features(group)
+            test_features.append({
+                "user_name": user_name,
+                "dataset": group_features[0:(len(group_features) - 1 // BATCH_SIZE) + 1]
+            })
+            rows += 1
+
+            if rows % REPORT_SIZE == 0:
+                logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
+                        spaces_between=False)
+        timer.add_to_current(1)
+
+    return {
+        "training": [item for sublist in training_features for item in sublist],
+        "test": test_features
+    }
+
+
+def group_df(ind, df) -> str:
+    print(df['source_user'].loc[ind])
+    return df['source_user'].loc[ind].split('@')[0]
+
+
+def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]:
+    logline('Collecting features')
+    users_list = list()
+
+    file_length = len(f)
+    timer = Timer(file_length)
+    print('File length is', file_length)
+    rows = 0
+    for name, group in f:
+        if len(group.index) > MIN_GROUP_SIZE:
+            user_name = name
+
+            if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
+                continue
+
+            print(user_name)
+
+            split_dataset_result = split_dataset(convert_to_features(group))
             if split_dataset_result:
                 training_set, test_set = split_dataset_result
                 user = {
                     "user_name": user_name,
-                    "maxes": maxes_row[0],
                     "datasets": {
                         "training": training_set,
                         "test": test_set
@@ -291,18 +372,50 @@ def main(argv: sys.argv):
             rows += 1
 
             if rows % REPORT_SIZE == 0:
-                sys.stdout.write('At row ')
-                sys.stdout.write(str(rows))
-                sys.stdout.write('/~')
-                sys.stdout.write(str(file_length))
-                sys.stdout.write('\n')
+                logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
+                        spaces_between=False)
+        timer.add_to_current(1)
 
-    print("Did a total of", len(users_list), "users")
-    print("Done gathering data, outputting to file", output_file)
-    output = open(output_file, 'wb')
-    pickle.dump(users_list, output)
+    del f
+
+    logline("Did a total of", len(users_list), "users")
+    logline('Done gathering data')
+    return users_list
+
+
+def get_features() -> Union[Dict[str, List[Dict[str, Union[str, List[List[float]]]]]],
+                            List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]]:
+    f = group_pd_file(get_pd_file())
+    if io.get('meganet'):
+        return gen_meganet_features(f)
+    else:
+        return gen_non_meganet_features(f)
+
+
+def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]):
+    logline('Outputting data to file', io.get('output_file'))
+    output = open(io.get('output_file'), 'wb')
+    try:
+        pickle.dump(users_list, output)
+    except:
+        try:
+            logline("Using JSON instead")
+            output.write(json.dumps(users_list))
+        except:
+            logline('Outputting to console instead')
+            print(json.dumps(users_list))
+            raise
+        raise
+
+
+def main():
+    print('IO is ', io.get('input_file'), io.get('output_file'), io.get('name'))
+    logline("Gathering features for", MAX_ROWS if MAX_ROWS is not None else "as many as there are", "rows",
+            "using a batch size of", BATCH_SIZE)
+
+    output_data(get_features())
     sys.exit()
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

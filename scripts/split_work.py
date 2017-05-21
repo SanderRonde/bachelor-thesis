@@ -2,9 +2,8 @@ import os
 import sys
 import glob
 import getopt
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 from string import Template
-
 
 SPLIT_WINDOW_TEMPLATE = Template('tmux split-window -t $target -$orientation $command')
 SWAP_PANES_TEMPLATE = Template('tmux swap-pane -d -D')
@@ -13,12 +12,15 @@ ADD_QUOTES = Template("'$str'")
 VERTICAL = 'v'
 HORIZONTAL = 'h'
 DEBUG = False
+LOG = False
 
 
 def get_command_template() -> Template:
     if DEBUG:
-        return Template("echo \"cuda=$cuda_device, start=$start, end=$end\" && CUDA_VISIBLE_DEVICES=$cuda_device $command")
-    return Template("CUDA_VISIBLE_DEVICES=$cuda_device $command -s $start -d $end")
+        return Template("echo \"cuda=$cuda_device, start=$start, end=$end\" && CUDA_VISIBLE_DEVICES=$cuda_device "
+                        "$command")
+    return Template("echo Activating source... && source activate nn && CUDA_VISIBLE_DEVICES=$cuda_device $command -s "
+                    "$start -d $end; sleep 10")
 
 
 def recalc_gpus(start: int, amount: int, available: List[int]) -> List[int]:
@@ -26,10 +28,10 @@ def recalc_gpus(start: int, amount: int, available: List[int]) -> List[int]:
     return list(filter(lambda x: x in available, used))
 
 
-def run_cmd(command: str):
-    if DEBUG:
+def run_cmd(command: str) -> int:
+    if DEBUG or LOG:
         print(command)
-    os.system(command)
+    return os.system(command)
 
 
 class GPUSource:
@@ -51,7 +53,7 @@ def get_io() -> Tuple[GPUSource, str, str]:
     argv = sys.argv[1:]
 
     gpu_amount = 16
-    command = 'python3 main.py -x'
+    command = 'python3 main.py'
     name = 'nn'
 
     available_gpus = [x for x in range(gpu_amount)]
@@ -60,7 +62,7 @@ def get_io() -> Tuple[GPUSource, str, str]:
     to_use_gpus = recalc_gpus(gpu_offset, gpu_amount, available_gpus)
 
     try:
-        opts, args = getopt.getopt(argv, 'g:c:n:s:a:hd')
+        opts, args = getopt.getopt(argv, 'g:c:n:s:a:hdl')
     except getopt.GetoptError:
         print('Command line arguments invalid')
         sys.exit(2)
@@ -78,19 +80,22 @@ def get_io() -> Tuple[GPUSource, str, str]:
             to_use_gpus = recalc_gpus(gpu_offset, gpu_amount, available_gpus)
         elif opt == '-a':
             available_gpus = list(map(lambda x: int(x), arg.split(',')))
-            print(available_gpus)
             to_use_gpus = recalc_gpus(gpu_offset, gpu_amount, available_gpus)
         elif opt == '-d':
             global DEBUG
             DEBUG = True
+        elif opt == '-l':
+            global LOG
+            LOG = True
         elif opt == '-h':
             print('Options:')
             print(' -g <gpu_amount>		The amount of GPUs amongst which to split work')
             print(' -c <command>		The command to run')
             print(' -n <name>           The name of the tmux window')
             print(' -s <start_index>    The index of the first GPU to use')
-            print( '-a <available_gpus> All GPUs that are available to use (comma separated)')
+            print(' -a <available_gpus> All GPUs that are available to use (comma separated)')
             print(' -d                  Enable debug mode')
+            print(' -l                  Log executed commands')
             sys.exit()
         else:
             print('Unrecognized argument passed, refer to -h for help')
@@ -99,24 +104,26 @@ def get_io() -> Tuple[GPUSource, str, str]:
     return GPUSource(to_use_gpus), command, name
 
 
-def gen_command_str(command: str, indexes: Tuple[int, int, int]) -> str:
+def gen_command_str(command: str, indexes: Tuple[int, int, int]) -> Union[None, str]:
     if indexes[0] == -1 and indexes[1] == -1:
         # Empty pane, no command
-        return ''
-    return ADD_QUOTES.substitute(str=get_command_template().substitute(cuda_device= indexes[2],
-                                                                 command=command, start=indexes[0], end=indexes[1]))
+        return None
+    return ADD_QUOTES.substitute(str=get_command_template().substitute(cuda_device=indexes[2],
+                                                                       command=command, start=indexes[0],
+                                                                       end=indexes[1]))
 
 
 def split_pane(command: str, indexes: Tuple[int, int, int], pane_index: int, orientation: str):
-    exit_code = run_cmd(SPLIT_WINDOW_TEMPLATE.substitute(target=pane_index, orientation=orientation,
-                                                           command=gen_command_str(command, indexes)))
-    if exit_code == 256:
-        # Pane too small
-        print("Could not create panel")
+    cmd = gen_command_str(command, indexes)
+    if cmd is not None:
+        exit_code = run_cmd(SPLIT_WINDOW_TEMPLATE.substitute(target=pane_index, orientation=orientation,
+                                                             command=cmd))
+        if exit_code == 256:
+            # Pane too small
+            print("Could not create panel")
 
 
 def calc_distribution(gpus: GPUSource) -> Dict[int, Tuple[int, int, int]]:
-    print(gpus._gpus)
     gpu_amount = gpus.length
 
     distribution = dict()
@@ -151,7 +158,7 @@ def join_files(command: str):
     # Get output file from command input
     parts = command.split(' ')
 
-    out_file = '/data/s1495674/anomalies.txt'
+    out_file = '/data/s1495674/anomalies.encoded.json'
     for i in range(len(parts)):
         if parts[i] == '-o':
             out_file = parts[i + 1]
@@ -162,15 +169,21 @@ def join_files(command: str):
     os.chdir('/'.join(split_dir[0:-1]))
 
     file_name = split_dir[-1]
-    glob_pattern = file_name[0:-4] + '.part.*.txt'
+    glob_pattern = file_name[0:-5] + '.part.*.json'
     files = glob.glob(glob_pattern)
     files.sort(key=lambda name: int(name.split('.')[-3]))
 
+    files_length = len(files)
     with open(out_file, 'w') as output:
-        for file in files:
+        output.write('[')
+        for i in range(files_length):
+            file = files[i]
             with open(file) as infile:
                 for line in infile:
                     output.write(line)
+            if i != files_length - 1:
+                output.write(',')
+        output.write(']')
 
     print("Combined outputs and wrote them to", out_file)
 
@@ -188,8 +201,8 @@ def main():
 
     if gpus.length > 8:
         # Do 16
-        os.system('tmux new-session -d ' + gen_command_str(command,
-                                                           get_indexes_at_new_position(0, distribution)))
+        run_cmd('tmux new-session -d ' + gen_command_str(command,
+                                                         get_indexes_at_new_position(0, distribution)))
         split_pane(command, get_indexes_at_new_position(8, distribution), 0, 'v')
         split_pane(command, get_indexes_at_new_position(4, distribution), 0, 'v')
         split_pane(command, get_indexes_at_new_position(12, distribution), 1, 'v')
@@ -209,8 +222,8 @@ def main():
         split_pane(command, get_indexes_at_new_position(15, distribution), 7, 'h')
     else:
         # Do 8 only
-        os.system('tmux new-session -d ' + gen_command_str(command,
-                                                           get_indexes_at_new_position(0, distribution)))
+        run_cmd('tmux new-session -d ' + gen_command_str(command,
+                                                         get_indexes_at_new_position(0, distribution)))
         split_pane(command, get_indexes_at_new_position(4, distribution), 0, 'v')
         split_pane(command, get_indexes_at_new_position(2, distribution), 0, 'v')
         split_pane(command, get_indexes_at_new_position(6, distribution), 1, 'v')
@@ -220,9 +233,8 @@ def main():
         split_pane(command, get_indexes_at_new_position(3, distribution), 2, 'h')
         split_pane(command, get_indexes_at_new_position(7, distribution), 3, 'h')
 
-
-    os.system('tmux new-window ' + ADD_QUOTES.substitute(str=name))
-    os.system('tmux -2 attach-session -d')
+    run_cmd('tmux new-window ' + ADD_QUOTES.substitute(str=name))
+    run_cmd('tmux -2 attach-session -d')
 
     join_files(command)
 

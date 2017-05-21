@@ -5,20 +5,22 @@ from typing import Dict, List
 def zeros(length: int) -> List[float]:
     return [0.0] * length
 
+
 def vectorize(values: Dict[str, int]) -> Dict[str, List[float]]:
     length = len(values)
     result = dict()
-    for key, value in values:
+    for key, value in values.items():
         val_arr = zeros(length)
         val_arr[value - 1] = 1.0
         result[key] = val_arr
 
     return result
 
+
 class Enum:
     def __init__(self, values: Dict[str, int]):
         self._values = vectorize(values)
-        self._none_value = self._values['NONE']
+        self._none_value = self._values.get('NONE')
 
     def get(self, string: str) -> List[float]:
         if string == '?':
@@ -27,9 +29,24 @@ class Enum:
         upper_case = string.upper()
         return self._values.get(upper_case) or self._none_value
 
+    @property
+    def length(self):
+        return len(self._values)
+
+
+ENUMS_LENGTH = 0
+NON_ENUM_FEATURES_LENGTH = 9
+
+
+def register_enum(values: Dict[str, int]) -> Enum:
+    global ENUMS_LENGTH
+    ENUMS_LENGTH += len(values)
+
+    return Enum(values)
+
 
 """The authentication type used"""
-AUTH_TYPE = Enum({
+AUTH_TYPE = register_enum({
     'NLTM': 0,
     'NEGOTIATE': 1,
     'KERBEROS': 2,
@@ -44,7 +61,7 @@ AUTH_TYPE = Enum({
 })
 
 """The logon type of the request"""
-LOGON_TYPE = Enum({
+LOGON_TYPE = register_enum({
     'NETWORK': 0,
     'SERVICE': 1,
     'BATCH': 2,
@@ -57,12 +74,13 @@ LOGON_TYPE = Enum({
 })
 
 """The authentication orientation of the request"""
-AUTH_ORIENTATION = Enum({
+AUTH_ORIENTATION = register_enum({
     'LOGON': 0,
     'LOGOFF': 1,
     'TGS': 2,
     'AUTHMAP': 3,
-    'TGT': 4
+    'TGT': 4,
+    'NONE': 5
 })
 
 
@@ -85,8 +103,16 @@ def extract(row, features) -> List[float]:
 
     percentage_failed_logins = features.percentage_failed_logins
 
-    feature_arr = [time_since_last_access, unique_domains, unique_dest_users,
-                   unique_src_computers, unique_dest_computers, most_freq_src_computer,
-                   most_freq_dest_computer, percentage_failed_logins, success_failure] +\
-                    auth_type + logon_type + auth_orientation
+    non_enum_features = [time_since_last_access, unique_domains, unique_dest_users,
+                         unique_src_computers, unique_dest_computers, most_freq_src_computer,
+                         most_freq_dest_computer, percentage_failed_logins, success_failure]
+    enums = auth_type + logon_type + auth_orientation
+
+    assert len(non_enum_features) == NON_ENUM_FEATURES_LENGTH, "Non enum features have specified length"
+    assert len(enums) == ENUMS_LENGTH, "Enum features have the specified length"
+    feature_arr = non_enum_features + enums
     return feature_arr
+
+
+def size():
+    return NON_ENUM_FEATURES_LENGTH + ENUMS_LENGTH
