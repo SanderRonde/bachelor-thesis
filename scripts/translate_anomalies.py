@@ -1,5 +1,6 @@
 import os
 import json
+import numpy as np
 import pandas as pd
 from typing import Union, List, Dict
 from imports.timer import Timer
@@ -50,6 +51,10 @@ def read_anomalies(input_file: str) -> AnomalySource:
         return AnomalySource(json.loads(in_file.read()))
 
 
+def group_df(df: pd.DataFrame) -> pd.DataFrame:
+    return df.groupby(df['source_user'].map(lambda source_user: source_user.split('@')[0]))
+
+
 def main():
     input_file = io.get('input_file')
     output_file = io.get('output_file')
@@ -61,12 +66,13 @@ def main():
     if io.get('meganet'):
         test_set = list()
         index = 0
-        for g, dataframe in f.groupby(np.arrange(10)):
+        for g, dataframe in f.groupby(np.arange(10)):
             if index * 10 > TRAINING_SET_PERCENTAGE:
                 test_set.append(dataframe)
-        f = pd.concat(test_set).groupby(['source_user'])
+        # noinspection PyTypeChecker
+        f = group_df(pd.concat(test_set))
     else:
-        f = f.groupby(['source_user'])
+        f = group_df(f)
 
     anomaly_rows_list = list()
 

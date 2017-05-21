@@ -249,9 +249,13 @@ def get_pd_file() -> pd.DataFrame:
     return pd.read_hdf(io.get('input_file'), io.get('name'), start=0, stop=MAX_ROWS)
 
 
+def group_df(df: pd.DataFrame) -> pd.DataFrame:
+    return df.groupby(df['source_user'].map(lambda source_user: source_user.split('@')[0]))
+
+
 def group_pd_file(f: pd.DataFrame) -> pd.DataFrame:
     logline('Grouping users in file')
-    grouped = f.groupby(lambda x: group_df(x, f))
+    grouped = group_df(f)
     logline('Done grouping users')
     return grouped
 
@@ -287,7 +291,7 @@ def gen_meganet_features(f: pd.DataFrame) -> Dict[str, List[Dict[str, Union[str,
 
     user_name_list = list()
 
-    for name, group in training_set.groupby(lambda x: group_df(x, training_set)):
+    for name, group in group_df(training_set):
         if len(group.index) > MIN_GROUP_SIZE:
             user_name = name
 
@@ -310,7 +314,7 @@ def gen_meganet_features(f: pd.DataFrame) -> Dict[str, List[Dict[str, Union[str,
                         spaces_between=False)
         timer.add_to_current(1)
 
-    for name, group in test_set.groupby(lambda x: group_df(x, test_set)):
+    for name, group in group_df(test_set):
         if len(group.index) > MIN_GROUP_SIZE:
             user_name = name
 
@@ -335,11 +339,6 @@ def gen_meganet_features(f: pd.DataFrame) -> Dict[str, List[Dict[str, Union[str,
     }
 
 
-def group_df(ind, df) -> str:
-    print(df['source_user'].loc[ind])
-    return df['source_user'].loc[ind].split('@')[0]
-
-
 def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]:
     logline('Collecting features')
     users_list = list()
@@ -354,8 +353,6 @@ def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[
 
             if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
                 continue
-
-            print(user_name)
 
             split_dataset_result = split_dataset(convert_to_features(group))
             if split_dataset_result:
