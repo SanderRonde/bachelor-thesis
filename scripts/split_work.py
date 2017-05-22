@@ -195,9 +195,6 @@ def join_files(command: str):
 
 
 def main():
-    if not io.run:
-        return
-
     gpus, command, name = get_io()
 
     distribution = calc_distribution(gpus)
