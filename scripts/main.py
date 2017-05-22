@@ -462,7 +462,7 @@ def do_megalist_detection(model: RNNModel, dataset: Dict[str, Union[List[Union[L
             if len(anomalies) > 0:
                 all_anomalies[user['user_name']] = anomalies
             tested_users += 1
-            test_set_length.add_to_current(1)
+            testing_timer.add_to_current(1)
         except KeyboardInterrupt:
             # Skip rest of users, report early
             logline("\n\nSkipping rest of the users")
