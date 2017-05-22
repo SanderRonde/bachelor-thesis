@@ -51,9 +51,10 @@ VERBOSE_RUNNING = io.get('running_verbose')
 MAGIC_NUMBER = io.get('magic_number')
 
 
-from keras.layers.core import Dense
-from keras.layers.recurrent import LSTM
-from keras.models import Sequential
+if io.run:
+    from keras.layers.core import Dense
+    from keras.layers.recurrent import LSTM
+    from keras.models import Sequential
 
 plt.switch_backend('agg')
 
@@ -343,7 +344,7 @@ def open_users_list():
     with open(io.get('input_file'), 'rb') as in_file:
         full_list = pickle.load(in_file)
 
-    if io.get('meganet'):
+    if not io.get('meganet'):
         total_users = len(full_list['training'])
         logline("Dividing list...")
         divided = get_user_list(full_list, io.get('start'), io.get('end'))
@@ -352,7 +353,7 @@ def open_users_list():
     else:
         total_rows = len(full_list['training'])
         logline('There are', total_rows, 'events')
-        return total_rows, False
+        return full_list, False
 
 
 def do_non_megalist_detection(model: RNNModel, users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]
@@ -371,7 +372,7 @@ def do_non_megalist_detection(model: RNNModel, users_list: List[Dict[str, Union[
     for user in users_list:
 
         if tested_users > 0:
-            print("\nChecking user", tested_users, "/", len(users_list), "ETA is " + timer.get_eta())
+            print("\nChecking user", tested_users, "/", len(users_list), " - ETA is " + timer.get_eta())
 
         current_user = Dataset(user)
 
@@ -395,7 +396,7 @@ def train_on_batch(model: RNNModel, batch: List[List[float]]):
 
 
 def find_meganet_anomalies(model: RNNModel, batch: List[List[float]]) -> List[Dict[str, int]]:
-    RNNModel.reset(reset_weights=False)
+    model.reset(reset_weights=False)
 
     test_x, test_y = RNNModel.prepare_data(batch)
     test_losses = model.test(test_x, test_y)
@@ -415,48 +416,56 @@ def find_meganet_anomalies(model: RNNModel, batch: List[List[float]]) -> List[Di
     return anomalies
 
 
-def do_megalist_detection(model: RNNModel, dataset: Dict[str, Union[List[Union[List[float]], int],
+def do_megalist_detection(model: RNNModel, dataset: Dict[str, Union[List[Union[List[float], int]],
                                                                     List[Dict[str, Union[str, FEATURE_SET]]]]]
                           ) -> Dict[str, List[Dict[str, int]]]:
-    logline('Calculating total dataset size')
-    total_samples = len(users_list['training'])
-
-    timer = Timer(total_samples)
-
     logline("Starting anomaly detection")
 
     all_anomalies = dict()
     tested_users = 0
 
     training_arr = np.array(dataset['training'])
-    split_training_set = np.split(training_arr, np.where(training_arr == 0))
-    for user_list in split_training_set:
+    training_set_length = len(training_arr)
+    training_timer = Timer(training_set_length)
+
+    #Reduce by one for logging clarity later
+    training_set_length -= 1
+
+    for i in range(5):
+        user_list = training_arr[i]
         if tested_users > 0:
-            print("\nTraining on user", tested_users, "/", len(split_training_set), "ETA is " + timer.get_eta())
+            logline("\nTraining on user", tested_users, "/", training_set_length, "- ETA for training is " +
+                    training_timer.get_eta())
         try:
             train_on_batch(model, user_list)
-            timer.add_to_current(len(user_list))
             tested_users += 1
+            training_timer.add_to_current(1)
         except KeyboardInterrupt:
             # Skip rest of users, report early
-            print("\n\nSkipping rest of the users")
+            logline("\n\nSkipping rest of the users")
             break
 
     tested_users = 0
     test_set_length = len(dataset['test'])
+
+    # Reduce by one for logging clarity later
+    test_set_length -= 1
+
+    testing_timer = Timer(test_set_length)
     for user in dataset['test']:
         if tested_users > 0:
-            print("\nTesting user", tested_users, "/", test_set_length, "ETA is " + timer.get_eta())
+            logline("\nTesting user", tested_users, "/", test_set_length, " - ETA for testing is " +
+                    testing_timer.get_eta())
 
         try:
             anomalies = find_meganet_anomalies(model, user['dataset'])
             if len(anomalies) > 0:
                 all_anomalies[user['user_name']] = anomalies
             tested_users += 1
-            timer.add_to_current(len(user['dataset']))
+            test_set_length.add_to_current(1)
         except KeyboardInterrupt:
             # Skip rest of users, report early
-            print("\n\nSkipping rest of the users")
+            logline("\n\nSkipping rest of the users")
             break
 
     return all_anomalies
@@ -464,6 +473,8 @@ def do_megalist_detection(model: RNNModel, dataset: Dict[str, Union[List[Union[L
 
 def main():
     """The main function"""
+    if not io.run:
+        return
 
     plot_location = io.get('plot_location')
 
