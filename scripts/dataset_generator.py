@@ -18,7 +18,7 @@ T = TypeVar('T')
 MAX_ROWS = None  # None = infinite
 
 TRAINING_SET_PERCENTAGE = 70
-REPORT_SIZE = 100
+REPORT_SIZE = 50
 BATCH_SIZE = 32
 MIN_GROUP_SIZE = 150
 MIN_GROUP_SIZE = max(MIN_GROUP_SIZE, (BATCH_SIZE * 2) + 2)
@@ -250,7 +250,7 @@ def get_pd_file() -> pd.DataFrame:
 
 
 def group_df(df: pd.DataFrame) -> pd.DataFrame:
-    return df.groupby(df['source_user'].map(lambda source_user: source_user.split('@')[0]))
+    return df.groupby(df['source_user'].map(lambda source_user: source_user.split('@')[0]), sort=False)
 
 
 def group_pd_file(f: pd.DataFrame) -> pd.DataFrame:
@@ -265,16 +265,22 @@ def split_dataframe(f: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     training_set = list()
     test_set = list()
 
-    index = 0
-    for g, dataframe in f.groupby(np.arange(10)):
-        if index * 10 <= TRAINING_SET_PERCENTAGE:
+    index = 10
+    logline('Splitting dataframes')
+    grouped = f.groupby(np.arange(len(f)) // (len(f) / 10))
+    for g, dataframe in grouped:
+        if index <= TRAINING_SET_PERCENTAGE:
             training_set.append(dataframe)
         else:
             test_set.append(dataframe)
-        index += 1
+        index += 10
 
     # noinspection PyTypeChecker
     return pd.concat(training_set), pd.concat(test_set)
+
+
+def get_lower_bound(maximum: int, base: int) -> int:
+    return (maximum // base) * base
 
 
 def gen_meganet_features(f: pd.DataFrame) -> Dict[str, List[Dict[str, Union[str, List[List[float]]]]]]:
@@ -283,38 +289,44 @@ def gen_meganet_features(f: pd.DataFrame) -> Dict[str, List[Dict[str, Union[str,
     training_features = list()
     test_features = list()
 
-    file_length = len(f)
     del f
 
-    timer = Timer(file_length)
     rows = 0
 
     user_name_list = list()
 
-    for name, group in group_df(training_set):
+    logline('Grouping datasets')
+    grouped_training = group_df(training_set)
+    grouped_test = group_df(test_set)
+
+    training_timer = Timer(len(grouped_training))
+
+    logline('Starting feature generation')
+    for name, group in grouped_training:
         if len(group.index) > MIN_GROUP_SIZE:
             user_name = name
 
             if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
                 continue
 
-            # Signify a split in user
-            if rows != 0:
-                training_features.append(0)
-
             group_features = convert_to_features(group)
-            training_features.append(group_features[0:(len(group_features) - 1 // BATCH_SIZE) + 1])
+            training_features.append(group_features[0:get_lower_bound(len(group_features) - 1, BATCH_SIZE) + 1])
 
             rows += 1
 
             user_name_list.append(user_name)
 
             if rows % REPORT_SIZE == 0:
-                logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
+                logline('At user ', str(rows), '/~', str(len(grouped_training)), ' - ETA for training set is: ' +
+                        training_timer.get_eta(),
                         spaces_between=False)
-        timer.add_to_current(1)
+        training_timer.add_to_current(1)
 
-    for name, group in group_df(test_set):
+    test_timer = Timer(len(grouped_test))
+
+    rows = 0
+    logline('Generating features for test set')
+    for name, group in grouped_test:
         if len(group.index) > MIN_GROUP_SIZE:
             user_name = name
 
@@ -324,17 +336,21 @@ def gen_meganet_features(f: pd.DataFrame) -> Dict[str, List[Dict[str, Union[str,
             group_features = convert_to_features(group)
             test_features.append({
                 "user_name": user_name,
-                "dataset": group_features[0:(len(group_features) - 1 // BATCH_SIZE) + 1]
+                "dataset": group_features[0:get_lower_bound(len(group_features) - 1, BATCH_SIZE) + 1]
             })
             rows += 1
 
             if rows % REPORT_SIZE == 0:
-                logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
+                logline('At user ', str(rows), '/~', str(len(grouped_test)), ' - ETA for testing set is: ' +
+                        test_timer.get_eta(),
                         spaces_between=False)
-        timer.add_to_current(1)
+        test_timer.add_to_current(1)
+    logline('Done generating features')
+    logline('Generated features for', len(training_features), 'training set items and', len(test_features),
+            'test set items')
 
     return {
-        "training": [item for sublist in training_features for item in sublist],
+        "training": training_features,
         "test": test_features
     }
 
@@ -347,6 +363,7 @@ def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[
     timer = Timer(file_length)
     print('File length is', file_length)
     rows = 0
+    logline('Starting feature generation')
     for name, group in f:
         if len(group.index) > MIN_GROUP_SIZE:
             user_name = name
@@ -382,10 +399,10 @@ def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[
 
 def get_features() -> Union[Dict[str, List[Dict[str, Union[str, List[List[float]]]]]],
                             List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]]:
-    f = group_pd_file(get_pd_file())
     if io.get('meganet'):
-        return gen_meganet_features(f)
+        return gen_meganet_features(get_pd_file())
     else:
+        f = group_pd_file(get_pd_file())
         return gen_non_meganet_features(f)
 
 
@@ -406,7 +423,9 @@ def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]
 
 
 def main():
-    print('IO is ', io.get('input_file'), io.get('output_file'), io.get('name'))
+    if not io.run:
+        return
+
     logline("Gathering features for", MAX_ROWS if MAX_ROWS is not None else "as many as there are", "rows",
             "using a batch size of", BATCH_SIZE)
 
