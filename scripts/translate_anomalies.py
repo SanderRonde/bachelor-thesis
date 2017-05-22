@@ -52,10 +52,13 @@ def read_anomalies(input_file: str) -> AnomalySource:
 
 
 def group_df(df: pd.DataFrame) -> pd.DataFrame:
-    return df.groupby(df['source_user'].map(lambda source_user: source_user.split('@')[0]))
+    return df.groupby(df['source_user'].map(lambda source_user: source_user.split('@')[0]), sort=False)
 
 
 def main():
+    if not io.run:
+        return
+
     input_file = io.get('input_file')
     output_file = io.get('output_file')
     dataset_file = io.get('dataset_file')

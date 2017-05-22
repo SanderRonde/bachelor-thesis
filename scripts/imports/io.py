@@ -1,6 +1,6 @@
-from typing import Dict, Union, Callable, Any, Generic, TypeVar
 import sys
 import getopt
+from typing import Dict, Union, Callable, Any, Generic, TypeVar, Tuple, List
 
 
 T = TypeVar('T')
@@ -30,14 +30,11 @@ class IOInput(Generic[T]):
         else:
             self.value = self.data_type(arg)
 
-    def gen_help(self, key: str) -> str:
+    def gen_help(self, key: str) -> Tuple[str, str]:
         help_str = ' -' + key
         if self._has_input:
             help_str += ' <' + self.arg_name + '>'
-        else:
-            help_str += '       '
-        help_str += '   ' + self.descr
-        return help_str
+        return help_str, self.descr
 
     @property
     def has_input(self) -> bool:
@@ -48,7 +45,7 @@ class IO:
     def get_input_str(self):
         # Construct getopt string
         with_input_str = ''
-        without_input_str = ''
+        without_input_str = 'h'
 
         for key in self.values:
             value = self.values.get(key)
@@ -68,12 +65,42 @@ class IO:
             sys.exit(2)
         return opts
 
+    @staticmethod
+    def align_help_strings(commands: List[str], descriptions: List[str]) -> List[str]:
+        max_len = 0
+        for command in commands:
+            if len(command) > max_len:
+                max_len = len(command)
+
+        # Add padding
+        max_len += 4
+
+        lines = ['', 'Options:']
+        for i in range(len(commands)):
+            lines.append(
+                commands[i] + (' ' * (max_len - len(commands[i]))) + descriptions[i]
+            )
+        lines.append('')
+
+        return lines
+
+    def show_help(self):
+        commands = list()
+        descriptions = list()
+
+        for key in self.values:
+            command, description = self.values[key].gen_help(key)
+            commands.append(command)
+            descriptions.append(description)
+
+        for line in IO.align_help_strings(commands, descriptions):
+            print(line)
+
     def loop_args(self, opts: Dict[str, str]):
         for opt, arg in opts:
             if opt == '-h':
-                print('Options:')
-                for key in self.values:
-                    print(self.values[key].gen_help(key))
+                self.show_help()
+                self._run = False
                 sys.exit(0)
             else:
                 found_value = False
@@ -101,6 +128,11 @@ class IO:
         self.values = values
         self.get_io(sys.argv[1:])
         self.io_val = self.gen_io_val()
+        self._run = True
 
     def get(self, key: str) -> Any:
         return self.io_val.get(key)
+
+    @property
+    def run(self) -> bool:
+        return self._run
