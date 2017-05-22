@@ -7,11 +7,12 @@ import json
 from imports.timer import Timer
 from imports.log import logline
 from imports.io import IO, IOInput
-from typing import List, TypeVar, Tuple, Union, Dict
+from typing import List, TypeVar, Tuple, Union, Dict, Any
 
 import features as features
 import numpy as np
 import pandas as pd
+import multiprocessing
 
 T = TypeVar('T')
 
@@ -35,7 +36,10 @@ io = IO({
                  alias='name'),
     'M': IOInput(False, bool, has_input=False,
                  descr='Enable mega-net mode',
-                 alias='meganet')
+                 alias='meganet'),
+    'c': IOInput(1, int, arg_name='cpus',
+                 descr='The number of CPUs to use',
+                 alias='cpus')
 })
 
 
@@ -355,6 +359,28 @@ def gen_meganet_features(f: pd.DataFrame) -> Dict[str, List[Dict[str, Union[str,
     }
 
 
+def gen_non_meganet_features_for_row(args: Tuple[str, Any]) -> Union[None,
+                                                                      Dict[str, Union[str,
+                                                                                      Dict[str, List[List[float]]]]]]:
+    name = args[0]
+    group = args[1]
+    if len(group.index) > MIN_GROUP_SIZE:
+        user_name = name
+
+        if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
+            return None
+
+        split_dataset_result = split_dataset(convert_to_features(group))
+        if split_dataset_result:
+            training_set, test_set = split_dataset_result
+            return {
+                "user_name": user_name,
+                "datasets": {
+                    "training": training_set,
+                    "test": test_set
+                }
+            }
+
 def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]:
     logline('Collecting features')
     users_list = list()
@@ -364,31 +390,20 @@ def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[
     print('File length is', file_length)
     rows = 0
     logline('Starting feature generation')
-    for name, group in f:
-        if len(group.index) > MIN_GROUP_SIZE:
-            user_name = name
 
-            if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
-                continue
+    with multiprocessing.Pool(io.get('cpus')) as p:
+        for completed_result in p.imap_unordered(gen_non_meganet_features_for_row, f, chunksize=100):
 
-            split_dataset_result = split_dataset(convert_to_features(group))
-            if split_dataset_result:
-                training_set, test_set = split_dataset_result
-                user = {
-                    "user_name": user_name,
-                    "datasets": {
-                        "training": training_set,
-                        "test": test_set
-                    }
-                }
-                users_list.append(user)
+            timer.add_to_current(1)
+            if completed_result is not None:
+                users_list.append(completed_result)
 
-            rows += 1
+                rows += 1
 
-            if rows % REPORT_SIZE == 0:
-                logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
-                        spaces_between=False)
-        timer.add_to_current(1)
+                if rows % REPORT_SIZE == 0:
+                    logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
+                            spaces_between=False)
+
 
     del f
 
