@@ -14,13 +14,13 @@ TRAINING_SET_PERCENTAGE = 70
 
 io = IO({
     'i': IOInput('/data/s1495674/anomalies.encoded.json', str, arg_name='input_file',
-                 descr='The source file for the users (in pickle format)',
+                 descr='The source file for the users (in json format)',
                  alias='input_file'),
-    'o': IOInput('/data/s1495674/anomalies.txt.p', str, arg_name='output_file',
+    'o': IOInput('/data/s1495674/anomalies.json', str, arg_name='output_file',
                  descr='The file to output the anomalies to (specifying stdout outputs to stdout)',
                  alias='output_file'),
     'd': IOInput('/data/s1481096/LosAlamos/data/auth_small.h5', str, arg_name='dataset_file',
-                 descr='The dataset file to use',
+                 descr='The dataset file to use (in h5 format)',
                  alias='dataset_file'),
     'M': IOInput(False, bool, has_input=False,
                  descr='Enable meganet mode',
@@ -28,7 +28,7 @@ io = IO({
 })
 
 
-UserAnomalies = List[Dict[str, float]]
+UserAnomalies = List[Dict[str, Union[int, List[float]]]]
 
 
 class AnomalySource:
@@ -55,6 +55,23 @@ def group_df(df: pd.DataFrame) -> pd.DataFrame:
     return df.groupby(df['source_user'].map(lambda source_user: source_user.split('@')[0]), sort=False)
 
 
+def translate_feature_arr(feature_arr: List[float]) -> Dict[str, float]:
+    return {
+        "time_since_last_access": feature_arr[0],
+        "unique_domains": feature_arr[1],
+        "unique_dest_users": feature_arr[2],
+        "unique_src_computers": feature_arr[3],
+        "unique_dest_computers": feature_arr[4],
+        "most_freq_src_computer": feature_arr[5],
+        "most_freq_dest_computer": feature_arr[6],
+        "percentage_failed_logins": feature_arr[7],
+        "success_failure": feature_arr[8],
+        "auth_type": feature_arr[9],
+        "logon_type": feature_arr[10],
+        "auth_orientation": feature_arr[11]
+    }
+
+
 def main():
     if not io.run:
         return
@@ -65,7 +82,7 @@ def main():
 
     anomalies = read_anomalies(input_file)
 
-    f = pd.read_hdf(dataset_file, 'auth_small', start=0, stop=MAX_ROWS)
+    f = pd.read_hdf(dataset_file, 'auth', start=0, stop=MAX_ROWS)
     if io.get('meganet'):
         test_set = list()
         index = 0
@@ -77,7 +94,7 @@ def main():
     else:
         f = group_df(f)
 
-    anomaly_rows_list = list()
+    anomaly_rows_list = dict()
 
     timer = Timer(len(f))
 
@@ -90,26 +107,33 @@ def main():
         if anomaly_collection is not None:
             # Print those rows
 
+            user_anomalies = list()
             for anomaly in anomaly_collection:
-                anomaly_rows_list.append(group.iloc[anomaly["start"]:anomaly["end"]])
+                user_anomalies.append({
+                    "start": anomaly["start"],
+                    "end": anomaly["end"],
+                    "lines": group.iloc[anomaly["start"]:anomaly["end"]],
+                    "final_features": translate_feature_arr(anomaly["final_row_features"])
+                })
+
+            anomaly_rows_list[user_name] = user_anomalies
 
             timer.add_to_current(1)
 
         if timer.current % REPORT_SIZE == 0:
-            print('ETA is ' + timer.get_eta())
+            logline('ETA is ' + timer.get_eta())
 
     logline('Generating concatenated results')
-    combined_values = pd.concat(anomaly_rows_list)
     if output_file == 'stdout':
         logline("Outputting results to stdout\n\n\n")
-        logline(combined_values.to_csv(index=False, header=False))
+        logline(json.dumps(combined_values))
     else:
         logline('Outputting results to', output_file)
         with open(output_file, 'w') as output_file:
-            output_file.write(combined_values.to_csv(index=False, header=False))
+            output_file.write(json.dumps(combined_values))
 
-    logline('Removing encoded file')
-    os.remove(input_file)
+    logline('Not Removing encoded file')
+    #os.remove(input_file)
 
     logline('Done, closing files and stuff')
 

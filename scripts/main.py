@@ -2,15 +2,15 @@
 import os
 import _pickle as pickle
 import sys
-import math
 import json
+import traceback
 import tensorflow as tf
 from typing import List, Dict, Tuple, Union, TypeVar
 import matplotlib.pyplot as plt
 import numpy as np
 import features
 from imports.timer import Timer
-from imports.log import logline
+from imports.log import logline_to_folder
 from imports.io import IO, IOInput
 
 
@@ -30,16 +30,13 @@ io = IO({
                  alias='start'),
     'd': IOInput(100, int, arg_name='percentage', descr='The index at which to stop processing',
                  alias='end'),
-    'm': IOInput(1.2, float, arg_name='magic_number',
-                 descr='The magic number at which a test sample becomes an anomaly',
-                 alias='magic_number'),
     'x': IOInput(True, bool, has_input=False, descr='Disable verbose output during running',
                  alias='running_verbose'),
-    'p': IOInput(None, str, arg_name='plot_location', descr="The location to store the plot of the losses (not "
-                                                            "specifying a location skips plotting)",
+    'p': IOInput('/data/s1495674/plot_data/', str, arg_name='plot_location', descr="The location to store the plotting data",
                  alias='plot_location'),
-    'M': IOInput(False, bool, has_input=False, descr='Enable meganet mode',
-                 alias='meganet')
+    'l': IOInput(None, str, arg_name='log_folder',
+                 descr='The to output the logs',
+                 alias='log_folder')
 })
 
 
@@ -47,8 +44,10 @@ EPOCHS = io.get('epochs')
 GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = io.get('give_prev_knowledge')
 VERBOSE = io.get('verbose')
 VERBOSE_RUNNING = io.get('running_verbose')
-
-MAGIC_NUMBER = io.get('magic_number')
+USES_DIFFERENT_INDEXES = io.get('start') != 0 or io.get('end') != 100
+logline, log_to_folder_done = logline_to_folder(io.get('log_folder'),
+                                                io.get('start'), io.get('end'))
+T = TypeVar('T')
 
 
 if io.run:
@@ -67,9 +66,24 @@ BATCH_SIZE = 32
 SPEED_REPORTING_SIZE = 1000
 ANOMALY_THRESHOLD = 1.0
 CONTEXT_LENGTH = 10
+MAX_HIGHEST_OFFENDERS = 25
 
-LOSSES = list()
+PLOTS = {
+    "LOSSES": dict(),
+    "TIME_SINCE_LAST_ACCESS": dict(),
+    "UNIQUE_DOMAINS": dict(),
+    "UNIQUE_DEST_USERS": dict(),
+    "PERCENTAGE_FAILED_LOGINS": dict(),
+    "IQRS": dict(),
+    "IQR_MAXES": dict(),
+    'DEVIATIONS': list()
+}
 FEATURE_SET = List[List[float]]
+
+TIME_SINCE_LAST_ACCESS_INDEX = 0
+UNIQUE_DOMAINS_INDEX = 1
+UNIQUE_DEST_USERS_INDEX = 2
+PERCENTAGE_FAILED_LOGINS_INDEX = 7
 
 
 def force_str(val: str) -> str:
@@ -85,15 +99,40 @@ def force_feature_set(val: FEATURE_SET) -> FEATURE_SET:
 
 
 class DataDistribution:
-    def __init__(self, data: Dict[str, FEATURE_SET]):
+    def __init__(self, data: Dict[str, FEATURE_SET], user_name: str):
         self.training = force_feature_set(data["training"])
         self.test = force_feature_set(data["test"])
+
+        PLOTS["TIME_SINCE_LAST_ACCESS"][user_name] = {
+            "max": max(
+                self.training[-1][TIME_SINCE_LAST_ACCESS_INDEX],
+                self.test[-1][TIME_SINCE_LAST_ACCESS_INDEX]),
+            "all": np.array(self.test)[:, TIME_SINCE_LAST_ACCESS_INDEX]
+        }
+        PLOTS["UNIQUE_DOMAINS"][user_name] = {
+            "max": max(
+                self.training[-1][UNIQUE_DOMAINS_INDEX],
+                self.test[-1][UNIQUE_DOMAINS_INDEX]),
+            "all": np.array(self.test)[:, UNIQUE_DOMAINS_INDEX]
+        }
+        PLOTS["UNIQUE_DEST_USERS"][user_name] = {
+            "max": max(
+                self.training[-1][UNIQUE_DEST_USERS_INDEX],
+                self.test[-1][UNIQUE_DEST_USERS_INDEX]),
+            "all": np.array(self.test)[:, UNIQUE_DEST_USERS_INDEX]
+        }
+        PLOTS["PERCENTAGE_FAILED_LOGINS"][user_name] = {
+            "max": max(
+                self.training[-1][PERCENTAGE_FAILED_LOGINS_INDEX],
+                self.test[-1][PERCENTAGE_FAILED_LOGINS_INDEX]),
+            "all": np.array(self.test)[:, PERCENTAGE_FAILED_LOGINS_INDEX]
+        }
 
 
 class Dataset:
     def __init__(self, data: Dict[str, Union[str, List[float], Dict[str, FEATURE_SET]]]):
         self.user_name = force_str(data["user_name"])
-        self.datasets = DataDistribution(data["datasets"])
+        self.datasets = DataDistribution(data["datasets"], self.user_name)
 
 
 class FeatureDescriptor:
@@ -107,10 +146,12 @@ FEATURE_SIZE = features.size()
 LAYERS = [FEATURE_SIZE, 4, 4, FEATURE_SIZE]
 
 
-def create_anomaly(start: int, end: int) -> Dict[str, int]:
+def create_anomaly(start: int, end: int, train_len: int, dataset: FEATURE_SET) -> Dict[str, Union[int, List[float]]]:
+    final_row = dataset[end - 1]
     return {
-        "start": start,
-        "end": end
+        "start": start + train_len,
+        "end": end + train_len,
+        "final_row_features": final_row
     }
 
 
@@ -132,11 +173,11 @@ class RNNModel:
             self._starting_weights.append(model.layers[i].get_weights())
 
     @staticmethod
-    def prepare_data(training_data: FEATURE_SET, test_data=None):
+    def prepare_data(training_data: FEATURE_SET, test_data: FEATURE_SET = None):
         """Prepares given datasets for insertion into the model"""
 
         if len(training_data) == 1:
-            print(training_data, test_data)
+            logline('Training data is not big enough', training_data, test_data)
         assert len(training_data) > 1, "Training data is longer than 1, (is %d)" % len(training_data)
         if test_data is not None:
             assert len(test_data) > 1, "Test data is longer than 1, (is %d)" % len(test_data)
@@ -167,7 +208,7 @@ class RNNModel:
         for i in range(epochs):
             global VERBOSE_RUNNING
             if VERBOSE_RUNNING:
-                print("Epoch", i, '/', epochs)
+                logline("Epoch", i, '/', epochs)
             verbosity = 0
             if VERBOSE_RUNNING:
                 verbosity = 1
@@ -195,15 +236,16 @@ def abs_ratio(a: float, b: float) -> float:
     return ratio
 
 
-def mean(data: List[float]) -> float:
+def iqr(data: List[float]) -> Tuple[float, float]:
     copy = data[:]
     copy.sort()
 
-    if len(copy) % 2 == 0:
-        half = round(math.floor(len(copy) / 2))
-        return (copy[half - 1] + copy[half]) / 2
-    else:
-        return copy[round(len(copy) / 2)]
+    q3, q1 = np.percentile(data, [75, 25])
+    inter_quartile_range = q3 - q1
+
+    max_val = q3 + (1.5 * inter_quartile_range)
+
+    return inter_quartile_range, max_val
 
 
 class UserNetwork:
@@ -224,65 +266,174 @@ class UserNetwork:
     def get_losses(self, x: np.ndarray, y: np.ndarray) -> List[float]:
         return self.model.test(x, y)
 
-    def find_anomalies(self) -> List[Dict[str, int]]:
+    def find_anomalies(self) -> List[Dict[str, Union[int, List[float]]]]:
         # Train the network first
         train_x, train_y, test_x, test_y = RNNModel.prepare_data(self.dataset.training, test_data=self.dataset.test)
         self.model.fit(train_x, train_y, epochs=self.config["epochs"])
 
-        print("\nChecking losses on test set...")
+        logline("\n")
+        logline("Checking losses on test set...")
         test_losses = self.get_losses(test_x, test_y)
-        print("Done checking losses on test set\n")
+        logline("Done checking losses on test set\n")
 
         anomalies = list()
 
-        mean_loss = mean(test_losses)
+        # Interquartile range
+        inter_quartile_range, max_iqr_val = iqr(test_losses)
 
-        global LOSSES
-        LOSSES.append(test_losses)
+        PLOTS["LOSSES"][self.user_name] = test_losses
+        PLOTS["IQRS"][self.user_name] = inter_quartile_range
+        PLOTS["IQR_MAXES"][self.user_name] = max_iqr_val
 
         for i in range(len(test_losses)):
-            if test_losses[i] >= MAGIC_NUMBER * mean_loss:
-                anomaly = create_anomaly(len(train_x) + i * BATCH_SIZE, len(train_x) + (i + 1) * BATCH_SIZE)
+            if test_losses[i] > max_iqr_val:
+                start_index = i * BATCH_SIZE
+                anomaly = create_anomaly(start_index, start_index + BATCH_SIZE, len(train_x),
+                                         test_y)
                 anomalies.append(anomaly)
+
+                PLOTS["DEVIATIONS"].append({
+                    "key": self.user_name,
+                    "val": test_losses[i] / inter_quartile_range
+                })
 
         return anomalies
 
 
-def find_anomalies(model: RNNModel, data: Dataset) -> List[Dict[str, int]]:
+def find_anomalies(model: RNNModel, data: Dataset) -> List[Dict[str, Union[int, List[float]]]]:
     """Finds anomalies in given data"""
     network = UserNetwork(model, data, epochs=EPOCHS)
     anomalies = network.find_anomalies()
     return anomalies
 
 
-def plot_losses(plot_location: str):
-    """Plots all the losses and saves them"""
+def save_plot(plot_location: str, name: str, data: Union[List[Union[float, List[float]]], Dict[str, Union[str, float]]],
+              x_label: str, y_label: str,
+              is_log: bool = False, normalize_x: bool = False, normalize_y: bool = False,
+              multidimensional: bool = False, is_dict=False, is_box_plot=False):
+    plot_data = {
+        "name": name,
+        "x_label": x_label,
+        "y_label": y_label,
+        "is_log": is_log,
+        "normalize_x": normalize_x,
+        "normalize_y": normalize_y,
+        "plot_location": plot_location,
+        "multidimensional": multidimensional,
+        "is_dict": is_dict,
+        "is_box_plot": is_box_plot,
+        "data": data
+    }
 
-    # Get biggest sample size to spread out against
-    biggest_sample_size = 0
-    for i in range(len(LOSSES)):
-        if len(LOSSES[i]) > biggest_sample_size:
-            biggest_sample_size = len(LOSSES[i])
+    if USES_DIFFERENT_INDEXES:
+        plot_location = plot_location + name + '.part.' + str(io.get('start')) + '.' + str(io.get('end')) + '.json'
+    logline("Outputting plot data to", plot_location)
+    with open(plot_location, 'w') as out_file:
+        out_file.write(json.dumps(plot_data))
 
-    print("Gathering data points and plotting")
-    for i in range(len(LOSSES)):
-        sample_size = len(LOSSES[i])
-        scalar = biggest_sample_size / sample_size
 
-        x_values = list()
-        y_values = list()
+def listifydict(data_dict: Dict[str, T], get_max=False, get_all=False) -> List[T]:
+    data_list = list()
+    for key, val in data_dict.items():
+        if get_max:
+            data_list.append(val["max"])
+        elif get_all:
+            data_list.append(val["all"])
+        else:
+            data_list.append(val)
+    return data_list
 
-        for j in range(len(LOSSES[i])):
-            x_values.append(scalar * j)
-            y_values.append(LOSSES[i][j])
 
-        plt.plot(x_values, y_values, markersize=1)
+def get_highest_vals(data_list: List[Dict[str, Union[str, float]]]) -> List[Dict[str, Union[str, float]]]:
+    list_copy = data_list[:]
+    list_copy.sort(key=lambda x: x["val"])
+    return list_copy[-MAX_HIGHEST_OFFENDERS:]
 
-    # plt.yscale('log')
-    plt.ylabel('Loss ratio')
-    plt.xlabel('Batch index')
-    plt.savefig(plot_location)
-    print("Saved plot to", plot_location)
+
+def get_mean(data_list: List[Dict[str, Union[str, float]]]) -> float:
+    total = 0.0
+    for i in range(len(data_list)):
+        total += data_list[i]["val"]
+
+    if len(data_list) == 0:
+        return 0.1
+    return total / len(data_list)
+
+
+def data_points_for_users(users: List[Dict[str, Union[str, float]]],
+                          data: Dict[str, float], key: str = None) -> Dict[str, float]:
+    match_dict = dict()
+    for i in range(len(users)):
+        if key is None:
+            match_dict[users[i]["key"]] = data[users[i]["key"]]
+        else:
+            match_dict[users[i]["key"]] = data[users[i]["key"]][key]
+
+    return match_dict
+
+
+def save_plot_data(plot_location: str):
+    """Plots everything"""
+
+    if not plot_location.endswith('/'):
+        plot_location = plot_location + '/'
+
+    logline('')
+    logline('Finding highest offenders')
+    highest_offenders = get_highest_vals(PLOTS["DEVIATIONS"])
+    highest_offenders_with_mean_dict = {
+        "avg.": get_mean(PLOTS["DEVIATIONS"])
+    }
+    for i in range(len(highest_offenders)):
+        highest_offenders_with_mean_dict[highest_offenders[i]["key"]] = \
+            highest_offenders[i]["val"]
+
+    # Plots of the highest offenders
+    logline('')
+    logline('Plotting highest offenders plots')
+    save_plot(plot_location, 'deviations', list(map(lambda x: x["val"], PLOTS["DEVIATIONS"])),
+              'User index', 'Relative deviation (from mean)')
+    save_plot(plot_location, 'highest_offender_deviations', highest_offenders_with_mean_dict,
+              'User Name', 'Relative deviation (from mean)', is_dict=True, multidimensional=True)
+    save_plot(plot_location, 'highest_offender_time_since_last_access',
+              data_points_for_users(highest_offenders, PLOTS["TIME_SINCE_LAST_ACCESS"], key="all"),
+              'User Name', 'Max time since last access (in seconds)', is_dict=True, is_box_plot=True)
+    save_plot(plot_location, 'highest_offender_unique_domains',
+              data_points_for_users(highest_offenders, PLOTS["UNIQUE_DOMAINS"], key="all"),
+              'User Name', 'Max unique domains', is_dict=True, is_box_plot=True)
+    save_plot(plot_location, 'highest_offender_dest_users',
+              data_points_for_users(highest_offenders, PLOTS["UNIQUE_DEST_USERS"], key="all"),
+              'User Name', 'Max dest users', is_dict=True, is_box_plot=True)
+    save_plot(plot_location, 'highest_offender_failed_logins',
+              data_points_for_users(highest_offenders, PLOTS["PERCENTAGE_FAILED_LOGINS"], key="all"),
+              'User Name', 'Percentage failed logins', is_dict=True, is_box_plot=True)
+
+    # Plots of the losses of all batches
+    logline('')
+    logline('Plotting losses')
+    save_plot(plot_location, 'losses', listifydict(PLOTS["LOSSES"]),
+              'Batch index', 'Loss ratio',
+              multidimensional=True, normalize_x=True)
+    save_plot(plot_location, 'losses_normalized', listifydict(PLOTS["LOSSES"]),
+              'Batch index', 'Loss ratio',
+              multidimensional=True, normalize_x=True, normalize_y=True)
+
+    # Plots of max/only values
+    logline('')
+    logline('Plotting max/only values')
+    save_plot(plot_location, 'time_since_last_access', listifydict(PLOTS["TIME_SINCE_LAST_ACCESS"], get_max=True),
+              'User index', 'Max time since last access (in seconds)')
+    save_plot(plot_location, 'unique_domains', listifydict(PLOTS["UNIQUE_DOMAINS"], get_max=True),
+              'User index', 'Max unique domains')
+    save_plot(plot_location, 'unique_dest_users', listifydict(PLOTS["UNIQUE_DEST_USERS"], get_max=True),
+              'User index', 'Max dest users')
+    save_plot(plot_location, 'percentage_failed_logins', listifydict(PLOTS["PERCENTAGE_FAILED_LOGINS"], get_max=True),
+              'User index', 'Percentage failed logins')
+    save_plot(plot_location, 'iqrs', listifydict(PLOTS["IQRS"]),
+              'Batch index', 'Interquartile range')
+    save_plot(plot_location, 'iqr_maxes', listifydict(PLOTS["IQR_MAXES"]),
+              'Batch index', 'Max interquartile range')
+
 
 
 def is_closer(target: int, a: int, b: int) -> bool:
@@ -292,9 +443,9 @@ def is_closer(target: int, a: int, b: int) -> bool:
 T = TypeVar('T')
 
 
-def get_user_list(orig_list: List[T], start: int, end: int) -> Tuple[List[T], bool]:
-    if start == 0 and end == 100:
-        return orig_list, False
+def get_user_list(orig_list: List[T], start: int, end: int) -> List[T]:
+    if not USES_DIFFERENT_INDEXES:
+        return orig_list
 
     total_samples = 0
     start_indexes = list()
@@ -337,23 +488,18 @@ def get_user_list(orig_list: List[T], start: int, end: int) -> Tuple[List[T], bo
     if final_end_index == -1:
         final_end_index = len(orig_list) - 1
 
-    return orig_list[final_start_index:final_end_index], True
+    return orig_list[final_start_index:final_end_index]
 
 
 def open_users_list():
     with open(io.get('input_file'), 'rb') as in_file:
         full_list = pickle.load(in_file)
 
-    if not io.get('meganet'):
-        total_users = len(full_list['training'])
-        logline("Dividing list...")
-        divided = get_user_list(full_list, io.get('start'), io.get('end'))
-        logline("There are", total_users, "users, and this process is doing", len(divided[0]), "of them")
-        return divided
-    else:
-        total_rows = len(full_list['training'])
-        logline('There are', total_rows, 'events')
-        return full_list, False
+    total_users = len(full_list)
+    logline("Dividing list...")
+    divided = get_user_list(full_list, io.get('start'), io.get('end'))
+    logline("There are", total_users, "users, and this process is doing", len(divided), "of them")
+    return divided
 
 
 def do_non_megalist_detection(model: RNNModel, users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]
@@ -371,8 +517,11 @@ def do_non_megalist_detection(model: RNNModel, users_list: List[Dict[str, Union[
     tested_users = 0
     for user in users_list:
 
-        if tested_users > 0:
-            print("\nChecking user", tested_users, "/", len(users_list), " - ETA is " + timer.get_eta())
+        logline("")
+        percentage = round((tested_users * 100) / len(users_list))
+        logline("Checking user ", tested_users, "/", len(users_list),
+                " (", percentage,  "%)",  " - ETA is " + timer.get_eta(),
+                spaces_between=False)
 
         current_user = Dataset(user)
 
@@ -384,7 +533,7 @@ def do_non_megalist_detection(model: RNNModel, users_list: List[Dict[str, Union[
             timer.add_to_current(len(current_user.datasets.training))
         except KeyboardInterrupt:
             # Skip rest of users, report early
-            print("\n\nSkipping rest of the users")
+            logline("\n\nSkipping rest of the users")
             break
 
     return all_anomalies
@@ -395,82 +544,6 @@ def train_on_batch(model: RNNModel, batch: List[List[float]]):
     model.fit(train_x, train_y, epochs=io.get('epochs'))
 
 
-def find_meganet_anomalies(model: RNNModel, batch: List[List[float]]) -> List[Dict[str, int]]:
-    model.reset(reset_weights=False)
-
-    test_x, test_y = RNNModel.prepare_data(batch)
-    test_losses = model.test(test_x, test_y)
-
-    anomalies = list()
-
-    mean_loss = mean(test_losses)
-
-    global LOSSES
-    LOSSES.append(test_losses)
-
-    for i in range(len(test_losses)):
-        if test_losses[i] >= MAGIC_NUMBER * mean_loss:
-            anomaly = create_anomaly(i * BATCH_SIZE, (i + 1) * BATCH_SIZE)
-            anomalies.append(anomaly)
-
-    return anomalies
-
-
-def do_megalist_detection(model: RNNModel, dataset: Dict[str, Union[List[Union[List[float], int]],
-                                                                    List[Dict[str, Union[str, FEATURE_SET]]]]]
-                          ) -> Dict[str, List[Dict[str, int]]]:
-    logline("Starting anomaly detection")
-
-    all_anomalies = dict()
-    tested_users = 0
-
-    training_arr = np.array(dataset['training'])
-    training_set_length = len(training_arr)
-    training_timer = Timer(training_set_length)
-
-    #Reduce by one for logging clarity later
-    training_set_length -= 1
-
-    for i in range(5):
-        user_list = training_arr[i]
-        if tested_users > 0:
-            logline("\nTraining on user", tested_users, "/", training_set_length, "- ETA for training is " +
-                    training_timer.get_eta())
-        try:
-            train_on_batch(model, user_list)
-            tested_users += 1
-            training_timer.add_to_current(1)
-        except KeyboardInterrupt:
-            # Skip rest of users, report early
-            logline("\n\nSkipping rest of the users")
-            break
-
-    tested_users = 0
-    test_set_length = len(dataset['test'])
-
-    # Reduce by one for logging clarity later
-    test_set_length -= 1
-
-    testing_timer = Timer(test_set_length)
-    for user in dataset['test']:
-        if tested_users > 0:
-            logline("\nTesting user", tested_users, "/", test_set_length, " - ETA for testing is " +
-                    testing_timer.get_eta())
-
-        try:
-            anomalies = find_meganet_anomalies(model, user['dataset'])
-            if len(anomalies) > 0:
-                all_anomalies[user['user_name']] = anomalies
-            tested_users += 1
-            testing_timer.add_to_current(1)
-        except KeyboardInterrupt:
-            # Skip rest of users, report early
-            logline("\n\nSkipping rest of the users")
-            break
-
-    return all_anomalies
-
-
 def main():
     """The main function"""
     if not io.run:
@@ -478,7 +551,7 @@ def main():
 
     plot_location = io.get('plot_location')
 
-    users_list, uses_different_indexes = open_users_list()
+    users_list = open_users_list()
 
     try:
         logline("Setting up generic model")
@@ -487,35 +560,54 @@ def main():
         logline("No GPU is currently available for you, aborting")
         raise
 
-    is_meganet = io.get('meganet')
-    if is_meganet:
-        all_anomalies = do_megalist_detection(model, users_list)
-    else:
-        all_anomalies = do_non_megalist_detection(model, users_list)
+    all_anomalies = do_non_megalist_detection(model, users_list)
 
     logline("Done checking users, outputting results now")
 
     if plot_location is not None:
-        logline("Plotting losses")
-        plot_losses(plot_location)
+        try:
+            if not os.path.exists(plot_location):
+                os.makedirs(plot_location)
+        except OSError as exception:
+            logline("Error", exception)
+
+        logline("Plotting various things in", plot_location)
+        save_plot_data(plot_location)
 
     output_file = io.get('output_file')
     if output_file == 'stdout':
         logline("Outputting results to stdout\n\n\n")
         logline(json.dumps(all_anomalies))
     else:
-        if uses_different_indexes:
+        try:
+            out_file_parts = output_file.split('/')
+            dir_path = '/'.join(out_file_parts[:-1])
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+        except OSError as exception:
+            logline("Error", exception.errno)
+
+        if USES_DIFFERENT_INDEXES:
             output_file = output_file[0:-5] + '.part.' + str(io.get('start')) + '.' + str(io.get('end')) + '.json'
         logline("Outputting results to", output_file)
         with open(output_file, 'w') as out_file:
             out_file.write(json.dumps(all_anomalies))
 
     logline("Done, closing files and stuff")
-    try:
-        sys.exit()
-    except AttributeError:
-        logline("Tensorflow threw some error while closing, just ignore it")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logline("An exception has occurred", "\n",
+                traceback.format_exc())
+        raise e
+    else:
+        logline('Ran successfully')
+    finally:
+        log_to_folder_done()
+        try:
+            sys.exit()
+        except AttributeError:
+            logline("Tensorflow threw some error while closing, just ignore it")

@@ -16,13 +16,14 @@ import multiprocessing
 
 T = TypeVar('T')
 
-MAX_ROWS = None  # None = infinite
+MAX_ROWS = 500000000  # None = infinite
 
 TRAINING_SET_PERCENTAGE = 70
 REPORT_SIZE = 50
 BATCH_SIZE = 32
 MIN_GROUP_SIZE = 150
 MIN_GROUP_SIZE = max(MIN_GROUP_SIZE, (BATCH_SIZE * 2) + 2)
+PROCESSING_GROUP_SIZE = 10000
 
 io = IO({
     'i': IOInput('/data/s1481096/LosAlamos/data/auth_small.h5', str, arg_name='input_file',
@@ -34,9 +35,6 @@ io = IO({
     'n': IOInput('auth_small', str, arg_name='name',
                  descr='The name of the h5 file',
                  alias='name'),
-    'M': IOInput(False, bool, has_input=False,
-                 descr='Enable mega-net mode',
-                 alias='meganet'),
     'c': IOInput(1, int, arg_name='cpus',
                  descr='The number of CPUs to use',
                  alias='cpus')
@@ -212,7 +210,7 @@ def convert_to_features(group) -> np.ndarray:
 
 
 def closest_multiple(target: int, base: int) -> int:
-    lower_bound = target // base
+    lower_bound = (target // base) * base
     if float(target - lower_bound) > (base / 2):
         # Round up
         return lower_bound + base
@@ -287,79 +285,7 @@ def get_lower_bound(maximum: int, base: int) -> int:
     return (maximum // base) * base
 
 
-def gen_meganet_features(f: pd.DataFrame) -> Dict[str, List[Dict[str, Union[str, List[List[float]]]]]]:
-    training_set, test_set = split_dataframe(f)
-
-    training_features = list()
-    test_features = list()
-
-    del f
-
-    rows = 0
-
-    user_name_list = list()
-
-    logline('Grouping datasets')
-    grouped_training = group_df(training_set)
-    grouped_test = group_df(test_set)
-
-    training_timer = Timer(len(grouped_training))
-
-    logline('Starting feature generation')
-    for name, group in grouped_training:
-        if len(group.index) > MIN_GROUP_SIZE:
-            user_name = name
-
-            if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
-                continue
-
-            group_features = convert_to_features(group)
-            training_features.append(group_features[0:get_lower_bound(len(group_features) - 1, BATCH_SIZE) + 1])
-
-            rows += 1
-
-            user_name_list.append(user_name)
-
-            if rows % REPORT_SIZE == 0:
-                logline('At user ', str(rows), '/~', str(len(grouped_training)), ' - ETA for training set is: ' +
-                        training_timer.get_eta(),
-                        spaces_between=False)
-        training_timer.add_to_current(1)
-
-    test_timer = Timer(len(grouped_test))
-
-    rows = 0
-    logline('Generating features for test set')
-    for name, group in grouped_test:
-        if len(group.index) > MIN_GROUP_SIZE:
-            user_name = name
-
-            if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON" or user_name not in user_name_list:
-                continue
-
-            group_features = convert_to_features(group)
-            test_features.append({
-                "user_name": user_name,
-                "dataset": group_features[0:get_lower_bound(len(group_features) - 1, BATCH_SIZE) + 1]
-            })
-            rows += 1
-
-            if rows % REPORT_SIZE == 0:
-                logline('At user ', str(rows), '/~', str(len(grouped_test)), ' - ETA for testing set is: ' +
-                        test_timer.get_eta(),
-                        spaces_between=False)
-        test_timer.add_to_current(1)
-    logline('Done generating features')
-    logline('Generated features for', len(training_features), 'training set items and', len(test_features),
-            'test set items')
-
-    return {
-        "training": training_features,
-        "test": test_features
-    }
-
-
-def gen_non_meganet_features_for_row(args: Tuple[str, Any]) -> Union[None,
+def gen_features_for_row(args: Tuple[str, Any]) -> Union[None,
                                                                       Dict[str, Union[str,
                                                                                       Dict[str, List[List[float]]]]]]:
     name = args[0]
@@ -381,19 +307,44 @@ def gen_non_meganet_features_for_row(args: Tuple[str, Any]) -> Union[None,
                 }
             }
 
-def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]:
+
+class DFIterator:
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+        self.index = 0
+        self.max = 0
+
+        self.df_iterator = df.__iter__()
+
+    def set_max(self, maximum: int):
+        self.max = maximum
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index >= self.max:
+            raise StopIteration
+        else:
+            self.index += 1
+            return self.df_iterator.__next__()
+
+
+def gen_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]:
     logline('Collecting features')
     users_list = list()
 
     file_length = len(f)
     timer = Timer(file_length)
-    print('File length is', file_length)
+    logline('File length is', file_length)
     rows = 0
     logline('Starting feature generation')
 
-    with multiprocessing.Pool(io.get('cpus')) as p:
-        for completed_result in p.imap_unordered(gen_non_meganet_features_for_row, f, chunksize=100):
-
+    dataset_iterator = DFIterator(f)
+    # Create groups of approx 1000 users big
+    if io.get('cpus') == 1:
+        for name, group in f:
+            completed_result = gen_features_for_row((name, group))
             timer.add_to_current(1)
             if completed_result is not None:
                 users_list.append(completed_result)
@@ -403,6 +354,22 @@ def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[
                 if rows % REPORT_SIZE == 0:
                     logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
                             spaces_between=False)
+
+    else:
+        for i in range(round(math.ceil(file_length / PROCESSING_GROUP_SIZE))):
+            dataset_iterator.set_max((i + 1) * PROCESSING_GROUP_SIZE)
+            with multiprocessing.Pool(io.get('cpus')) as p:
+                for completed_result in p.imap_unordered(gen_features_for_row, dataset_iterator, chunksize=100):
+
+                    timer.add_to_current(1)
+                    if completed_result is not None:
+                        users_list.append(completed_result)
+
+                        rows += 1
+
+                        if rows % REPORT_SIZE == 0:
+                            logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
+                                    spaces_between=False)
 
 
     del f
@@ -414,11 +381,8 @@ def gen_non_meganet_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[
 
 def get_features() -> Union[Dict[str, List[Dict[str, Union[str, List[List[float]]]]]],
                             List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]]:
-    if io.get('meganet'):
-        return gen_meganet_features(get_pd_file())
-    else:
-        f = group_pd_file(get_pd_file())
-        return gen_non_meganet_features(f)
+    f = group_pd_file(get_pd_file())
+    return gen_features(f)
 
 
 def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]):

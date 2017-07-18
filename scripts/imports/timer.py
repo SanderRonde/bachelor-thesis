@@ -14,6 +14,9 @@ class Timer:
         self._current += num
 
     def get_eta(self) -> str:
+        if self._current == 0:
+            return 'unknown'
+
         passed_time = time.time() - self.start_time
         amount_done = self._current / self._max
 

@@ -1,9 +1,16 @@
 import os
 import sys
+import time
 import glob
+import json
 import getopt
 from typing import List, Dict, Tuple, Union
+import matplotlib.pyplot as plt
 from string import Template
+import numpy as np
+from imports.log import logline
+
+plt.switch_backend('agg')
 
 SPLIT_WINDOW_TEMPLATE = Template('tmux split-window -t $target -$orientation $command')
 SWAP_PANES_TEMPLATE = Template('tmux swap-pane -d -D')
@@ -19,8 +26,8 @@ def get_command_template() -> Template:
     if DEBUG:
         return Template("echo \"cuda=$cuda_device, start=$start, end=$end\" && CUDA_VISIBLE_DEVICES=$cuda_device "
                         "$command")
-    return Template("echo Activating source... && source activate nn && CUDA_VISIBLE_DEVICES=$cuda_device $command -s "
-                    "$start -d $end; sleep 10")
+    return Template("echo Activating source... && (conda info --envs | grep \"*\" | grep \"nn\" || source activate nn) > /dev/null ;"
+                    " echo \"Starting...\" && CUDA_VISIBLE_DEVICES=$cuda_device $command -s $start -d $end; sleep 10")
 
 
 def recalc_gpus(start: int, amount: int, available: List[int]) -> List[int]:
@@ -30,7 +37,7 @@ def recalc_gpus(start: int, amount: int, available: List[int]) -> List[int]:
 
 def run_cmd(command: str) -> int:
     if DEBUG or LOG:
-        print(command)
+        logline(command)
     return os.system(command)
 
 
@@ -62,9 +69,9 @@ def get_io() -> Tuple[GPUSource, str, str]:
     to_use_gpus = recalc_gpus(gpu_offset, gpu_amount, available_gpus)
 
     try:
-        opts, args = getopt.getopt(argv, 'g:c:n:s:a:hdl')
+        opts, args = getopt.getopt(argv, 'g:c:n:s:a:hdls')
     except getopt.GetoptError:
-        print('Command line arguments invalid')
+        logline('Command line arguments invalid')
         sys.exit(2)
 
     for opt, arg in opts:
@@ -120,7 +127,7 @@ def split_pane(command: str, indexes: Tuple[int, int, int], pane_index: int, ori
                                                              command=cmd))
         if exit_code == 256:
             # Pane too small
-            print("Could not create panel")
+            logline("Could not create panel")
 
 
 def calc_distribution(gpus: GPUSource) -> Dict[int, Tuple[int, int, int]]:
@@ -152,18 +159,7 @@ def get_indexes_at_new_position(new_position: int, distr: Dict[int, Tuple[int, i
     return -1, -1, new_position
 
 
-def join_files(command: str):
-    print("Joining output files")
-
-    # Get output file from command input
-    parts = command.split(' ')
-
-    out_file = '/data/s1495674/anomalies.encoded.json'
-    for i in range(len(parts)):
-        if parts[i] == '-o':
-            out_file = parts[i + 1]
-            break
-
+def join_output(out_file: str):
     # Go to out_file directory
     split_dir = out_file.split('/')
     os.chdir('/'.join(split_dir[0:-1]))
@@ -185,13 +181,192 @@ def join_files(command: str):
                 output.write(',')
         output.write(']')
 
-    print("Combined outputs and wrote them to", out_file)
+    logline("Combined outputs and wrote them to", out_file)
 
+    logline("Skipping removal of partial files")
     # Remove the partial files
-    for file in files:
-        os.remove(file)
+    # for file in files:
+    #     os.remove(file)
 
-    print("Removed partial files")
+    # logline("Removed partial files")
+
+
+def split_plots_by_name(names: List[str]):
+    try:
+        current_name = names[0].split('.')[-5]
+        current_list = list()
+        for i in range(len(names)):
+            if names[i].split('.')[-5] == current_name:
+                current_list.append(names[i])
+            else:
+                yield current_list
+                current_list = list()
+                current_name = names[i].split('.')[-5]
+    except IndexError as err:
+        logline(err)
+        logline("Something crashed the main.py files")
+        #sys.exit(1)
+
+
+def plot_arr(values: List[float], scalar: float = 1.0, normalize=False):
+    x_vals = list()
+    y_vals = list()
+
+    if normalize:
+        values = [float(i)/max(values) for i in values]
+
+    for i in range(len(values)):
+        x_vals.append(i * scalar)
+        y_vals.append(values[i])
+
+    plt.plot(x_vals, y_vals, markersize=1)
+
+
+def do_plot(metadata: Dict[str, Union[str, bool]],
+            data: Union[List[Union[float, List[float]]], Dict[str, Union[str, float]]],
+            fig_idx: int):
+    if metadata is None:
+        logline('Skipping plot because metadata is empty')
+        return
+
+    plt.figure(fig_idx)
+    plt.subplot(111)
+
+    logline("Gathering data points for plot", metadata["name"])
+    if metadata["is_dict"]:
+        fig, axes = plt.subplots()
+
+        has_avg = False
+        x_vals = list()
+        y_vals = list()
+        for key, val in data.items():
+            if key == 'avg.':
+                continue
+            x_vals.append(key)
+            y_vals.append(val)
+
+        if has_avg:
+            x_vals.append('avg.')
+            y_vals.append(data['avg.'])
+
+        if len(y_vals) == 0:
+            logline('Values are empty, plotting empty figure')
+            axes.plot([], markersize=1)
+        else:
+            if metadata["is_box_plot"]:
+                axes.boxplot(y_vals, vert=True, patch_artist=True)
+            else:
+                axes.plot(y_vals, 'ro')
+
+            plt.setp(axes, xticks=[y + 1 for y in range(len(x_vals))],
+                     xticklabels=x_vals)
+
+    elif metadata['normalize_x']:
+        biggest_sample_size = 0
+        for i in range(len(data)):
+            if len(data[i]) > biggest_sample_size:
+                biggest_sample_size = len(data[i])
+
+        for i in range(len(data)):
+            sample_size = len(data[i])
+            scalar = biggest_sample_size / max(sample_size - 1, 1)
+
+            plot_arr(data[i], scalar=scalar, normalize=metadata['normalize_y'])
+    else:
+        if metadata['multidimensional']:
+            for i in range(len(data)):
+                plot_arr(data[i], normalize=metadata['normalize_y'])
+        else:
+            plt.plot(np.arange(0,len(data), 1.0), data, markersize=1)
+
+    if metadata['is_log']:
+        plt.yscale('log')
+    plt.ylabel(metadata['y_label'])
+    plt.xlabel(metadata['x_label'])
+    plt.savefig(metadata['plot_location'] + metadata['name'] + '.png', dpi=1500)
+    logline("Saved plot to", metadata['plot_location'] + metadata['name'] + '.png')
+
+    with open(metadata['plot_location'] + metadata['name'] + '.json', 'w') as json_out:
+        json_out.write(json.dumps(data))
+
+    logline('Saved JSON output to', metadata['plot_location'] + metadata['name'] + '.json')
+
+    logline("")
+
+
+def join_plots(plot_dir: str):
+    os.chdir(plot_dir)
+
+    plt.rc('xtick', labelsize=8)
+    plt.rc('ytick', labelsize=8)
+
+    glob_pattern = '*.part.*.json'
+    files = glob.glob(glob_pattern)
+    files.sort(key=lambda name: name.split('.')[-5])
+
+    figs = 1
+    if len(files) == 0:
+        logline('No partial files were written')
+        sys.exit(1)
+        
+    for plots_for_name in split_plots_by_name(files):
+        plots_for_name.sort(key=lambda name: int(name.split('.')[-3]))
+
+        files_length = len(plots_for_name)
+        plotting_metadata = None
+        data_parts = None
+        for i in range(files_length):
+            file = plots_for_name[i]
+            with open(file) as plot_data_part:
+                try:
+                    data_part = json.loads(plot_data_part.read())
+                except json.decoder.JSONDecodeError:
+                    logline("File contents of", file, "are empty, skipping it")
+                    continue
+                if plotting_metadata is None:
+                    plotting_metadata = {
+                        "name": data_part['name'],
+                        "x_label": data_part['x_label'],
+                        "y_label": data_part['y_label'],
+                        "is_log": data_part['is_log'],
+                        "is_dict": data_part["is_dict"],
+                        "is_box_plot": data_part["is_box_plot"],
+                        "normalize_x": data_part['normalize_x'],
+                        "normalize_y": data_part['normalize_y'],
+                        "plot_location": data_part['plot_location'],
+                        "multidimensional": data_part['multidimensional']
+                    }
+                if data_parts is None:
+                    if plotting_metadata["is_dict"]:
+                        data_parts = dict()
+                    else:
+                        data_parts = list()
+
+                if plotting_metadata["is_dict"]:
+                    data_parts.update(data_part['data'])
+                else:
+                    data_parts = data_parts + data_part['data']
+
+        do_plot(plotting_metadata, data_parts, figs)
+        figs = figs + 1
+
+    logline("Done with plots")
+
+
+def join_files(command: str):
+    # Get output file from command input
+    parts = command.split(' ')
+
+    out_file = '/data/s1495674/anomalies.encoded.json'
+    plot_dir = '/data/s1495674/plot_data/'
+    for i in range(len(parts)):
+        if parts[i] == '-o':
+            out_file = parts[i + 1]
+        if parts[i] == '-p':
+            plot_dir = parts[i + 1]
+
+    join_output(out_file)
+    join_plots(plot_dir)
 
 
 def main():
@@ -234,9 +409,26 @@ def main():
         split_pane(command, get_indexes_at_new_position(7, distribution), 3, 'h')
 
     run_cmd('tmux new-window ' + ADD_QUOTES.substitute(str=name))
+    get_eta_cmd = "tmux capture-pane -pS -150 | tac | grep -e 'ETA is' | head -1 |" \
+                  " egrep -o 'ETA is \([0-9]+h\)?\([0-9]+m\)?[0-9]+s' || echo 'ETA is unknown'"
+    get_percentage_cmd = "tmux capture-pane -pS -150 | tac | grep -e 'ETA is' | head -1 |"\
+                  " egrep -o '[0-9]+%' || echo '0%'"
+    run_cmd(Template('tmux set-option status-left "#[fg=#00ba00]#($GET_ETA_CMD) - #($GET_PERCENTAGE_CMD)"').substitute(
+        GET_ETA_CMD=get_eta_cmd,
+        GET_PERCENTAGE_CMD=get_percentage_cmd
+    ))
     run_cmd('tmux -2 attach-session -d')
 
-    join_files(command)
+    try:
+        logline('About to join files, press CTRL+C to cancel')
+        time.sleep(20)
+        logline('Last chance...')
+        time.sleep(20)
+        logline('Joining files...')
+        join_files(command)
+        logline("Done joining all files")
+    except KeyboardInterrupt as _:
+        logline('Cancelled joining of files')
 
 
 if __name__ == '__main__':
