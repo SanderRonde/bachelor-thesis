@@ -93,3 +93,7 @@ Tensorflow/
 data/
 runsnake/
 .idea
+
+**/**.pdf
+**/**.gz
+**/**.fdb_latexmk
