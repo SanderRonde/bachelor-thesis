@@ -98,3 +98,6 @@ runsnake/
 *.gz
 *.fdb_latexmk
 *.fls
+*.aux
+*.log
+*.toc
