@@ -411,7 +411,7 @@ def main():
     run_cmd('tmux new-window ' + ADD_QUOTES.substitute(str=name))
     get_eta_cmd = "tmux capture-pane -pS -150 | tac | grep -e 'ETA is' | head -1 |" \
                   " egrep -o 'ETA is \([0-9]+h\)?\([0-9]+m\)?[0-9]+s' || echo 'ETA is unknown'"
-    get_percentage_cmd = "tmux capture-pane -pS -150 | tac | grep -e 'ETA is' | head -1 |"\
+    get_percentage_cmd = "tmux capture-pane -pS -150 | tac | grep -e 'Checking user' | head -1 |"\
                   " egrep -o '[0-9]+%' || echo '0%'"
     run_cmd(Template('tmux set-option status-left "#[fg=#00ba00]#($GET_ETA_CMD) - #($GET_PERCENTAGE_CMD)"').substitute(
         GET_ETA_CMD=get_eta_cmd,

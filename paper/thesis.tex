@@ -1,0 +1,45 @@
+\documentclass[a4paper,10pt]{report}
+
+\include{preamble}
+
+\begin{document}
+
+\input{titlepage/titlepage}
+
+%\preface
+\input{abstract}
+\thispagestyle{empty}
+%\input{acknowledgements/acknowledgements}
+
+\tableofcontents
+\thispagestyle{empty}
+%Some (very few) people like a list of tables:
+%\listoftables
+%And some (even fewer) like a list of figures:
+%\listoffigures
+
+
+\clearpage
+\setcounter{page}{1}
+
+\input{introduction/introduction}
+
+\input{definitions/definitions}
+
+\input{relatedwork/relatedwork}
+
+%\input{contributions/contributions}
+
+\input{evaluation/evaluation}
+
+\input{conclusions/conclusions}
+
+\cleardoublepage
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{alpha}
+\bibliography{bibliography/bibliography}
+
+%\appendix
+%appendices here --- if any
+
+\end{document}

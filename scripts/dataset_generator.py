@@ -5,7 +5,7 @@ import pytz
 import sys
 import json
 from imports.timer import Timer
-from imports.log import logline
+from imports.log import logline, debug, error
 from imports.io import IO, IOInput
 from typing import List, TypeVar, Tuple, Union, Dict, Any
 
@@ -16,7 +16,7 @@ import multiprocessing
 
 T = TypeVar('T')
 
-MAX_ROWS = 500000000  # None = infinite
+MAX_ROWS = 120000  # None = infinite
 
 TRAINING_SET_PERCENTAGE = 70
 REPORT_SIZE = 50
@@ -66,28 +66,42 @@ class Row:
 
 
 class PropertyDescription:
-    def __init__(self):
+    def __init__(self, max_length: int):
         self._list = list()
         self._counts = dict()
-        self._unique = 0
-        self._freq = 0
+        self._max_length = max_length
+
+        self._reported_length = 0
+        self._actual_length = 0
 
     def append(self, item: str):
         """Appends given item to the list of the property"""
-        if item not in self._list:
-            self._list.append(item)
-            self._unique += 1
+        self._list.append(item)
 
-        self._counts[item] = self._counts.get(item, 0) + 1
+    def last_batch(self) -> List[Any]:
+        return self._list[-self._max_length:]
 
     @property
     def unique(self) -> int:
-        return len(self._list)
+        # Get the length of the unique items of the last X items
+        last_batch = self.last_batch()
+        unique_items = list()
+        for i in range(len(last_batch)):
+            if last_batch[i] not in unique_items:
+                unique_items.append(last_batch[i])
+
+        return len(unique_items)
 
     @property
     def freq(self) -> int:
+        last_batch = self.last_batch()
+
+        counts = {}
+        for i in range(len(last_batch)):
+            counts[last_batch[i]] = counts.get(last_batch[i], 0) + 1
+
         highest_index = 0
-        for key, value in self._counts.items():
+        for key, value in counts.items():
             if value > highest_index:
                 highest_index = value
 
@@ -104,10 +118,10 @@ class Features:
     def __init__(self):
         self._current_access = 0
         self._last_access = 0
-        self._domains = PropertyDescription()
-        self._dest_users = PropertyDescription()
-        self._src_computers = PropertyDescription()
-        self._dest_computers = PropertyDescription()
+        self._domains = PropertyDescription(max_length=BATCH_SIZE)
+        self._dest_users = PropertyDescription(max_length=BATCH_SIZE)
+        self._src_computers = PropertyDescription(max_length=BATCH_SIZE)
+        self._dest_computers = PropertyDescription(max_length=BATCH_SIZE)
         self._failed_logins = 0
         self._login_attempts = 0
 
@@ -371,7 +385,6 @@ def gen_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[str, List[Li
                             logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
                                     spaces_between=False)
 
-
     del f
 
     logline("Did a total of", len(users_list), "users")
@@ -395,7 +408,7 @@ def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]
             logline("Using JSON instead")
             output.write(json.dumps(users_list))
         except:
-            logline('Outputting to console instead')
+            error('Outputting to console instead')
             print(json.dumps(users_list))
             raise
         raise
