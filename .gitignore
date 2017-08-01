@@ -101,3 +101,5 @@ runsnake/
 *.aux
 *.log
 *.toc
+*.bbl
+*.blg
