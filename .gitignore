@@ -103,3 +103,5 @@ runsnake/
 *.toc
 *.bbl
 *.blg
+
+scripts/send_notification.sh
