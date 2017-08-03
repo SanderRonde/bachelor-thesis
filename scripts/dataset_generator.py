@@ -4,6 +4,7 @@ import pickle
 import pytz
 import sys
 import json
+import time
 from imports.timer import Timer
 from imports.log import logline, debug, error
 from imports.io import IO, IOInput
@@ -16,28 +17,31 @@ import multiprocessing
 
 T = TypeVar('T')
 
-MAX_ROWS = 120000  # None = infinite
+MAX_ROWS_PERCENTAGE = 1
+ALL_ROWS = 1051430459
 
 TRAINING_SET_PERCENTAGE = 70
-REPORT_SIZE = 50
+REPORT_SIZE = 1000
 BATCH_SIZE = 32
 MIN_GROUP_SIZE = 150
 MIN_GROUP_SIZE = max(MIN_GROUP_SIZE, (BATCH_SIZE * 2) + 2)
 PROCESSING_GROUP_SIZE = 10000
+SKIP_COMPUTERS = False
+SKIP_MAIN = False
 
 io = IO({
-    'i': IOInput('/data/s1481096/LosAlamos/data/auth_small.h5', str, arg_name='input_file',
+    'i': IOInput('/data/s1481096/LosAlamos/data/auth.h5', str, arg_name='input_file',
                  descr='The source file for the users (in h5 format)',
                  alias='input_file'),
     'o': IOInput('/data/s1495674/features.p', str, arg_name='output_file',
                  descr='The file to output the features to',
                  alias='output_file'),
-    'n': IOInput('auth_small', str, arg_name='name',
-                 descr='The name of the h5 file',
-                 alias='name'),
     'c': IOInput(1, int, arg_name='cpus',
                  descr='The number of CPUs to use',
-                 alias='cpus')
+                 alias='cpus'),
+    'n': IOInput(None, str, arg_name='dataset_name',
+                 descr='The name of the pandas object in the dataset file',
+                 alias='dataset_name')
 })
 
 
@@ -66,10 +70,9 @@ class Row:
 
 
 class PropertyDescription:
-    def __init__(self, max_length: int):
+    def __init__(self):
         self._list = list()
         self._counts = dict()
-        self._max_length = max_length
 
         self._reported_length = 0
         self._actual_length = 0
@@ -78,27 +81,21 @@ class PropertyDescription:
         """Appends given item to the list of the property"""
         self._list.append(item)
 
-    def last_batch(self) -> List[Any]:
-        return self._list[-self._max_length:]
-
     @property
     def unique(self) -> int:
         # Get the length of the unique items of the last X items
-        last_batch = self.last_batch()
         unique_items = list()
-        for i in range(len(last_batch)):
-            if last_batch[i] not in unique_items:
-                unique_items.append(last_batch[i])
+        for i in range(len(self._list)):
+            if self._list[i] not in unique_items:
+                unique_items.append(self._list[i])
 
         return len(unique_items)
 
     @property
     def freq(self) -> int:
-        last_batch = self.last_batch()
-
         counts = {}
-        for i in range(len(last_batch)):
-            counts[last_batch[i]] = counts.get(last_batch[i], 0) + 1
+        for i in range(len(self._list)):
+            counts[self._list[i]] = counts.get(self._list[i], 0) + 1
 
         highest_index = 0
         for key, value in counts.items():
@@ -118,10 +115,10 @@ class Features:
     def __init__(self):
         self._current_access = 0
         self._last_access = 0
-        self._domains = PropertyDescription(max_length=BATCH_SIZE)
-        self._dest_users = PropertyDescription(max_length=BATCH_SIZE)
-        self._src_computers = PropertyDescription(max_length=BATCH_SIZE)
-        self._dest_computers = PropertyDescription(max_length=BATCH_SIZE)
+        self._domains = PropertyDescription()
+        self._dest_users = PropertyDescription()
+        self._src_computers = PropertyDescription()
+        self._dest_computers = PropertyDescription()
         self._failed_logins = 0
         self._login_attempts = 0
 
@@ -210,17 +207,17 @@ def normalize_all(feature_list: List[List[float]]) -> np.ndarray:
                       (np_arr.shape[0], np_arr.shape[1]))
 
 
-def convert_to_features(group) -> np.ndarray:
+def convert_to_features(data_part) -> np.ndarray:
     """This converts a given group to features"""
     current_features = Features()
 
     feature_list = list()
-    for row in group.itertuples():
-        row = Row(row)
-        current_features.update(row)
-        feature_list.append(features.extract(row, current_features))
+    for row in data_part.itertuples():
+        row_data = Row(row)
+        current_features.update(row_data)
+        feature_list.append(features.extract(row_data, current_features))
 
-    return normalize_all(feature_list)
+    return np.array(feature_list)
 
 
 def closest_multiple(target: int, base: int) -> int:
@@ -255,14 +252,23 @@ def split_list(target: np.ndarray, batch_size: int = 1) -> Union[Tuple[np.ndarra
     return target[0:training_set_length], target[training_set_length:training_set_length + test_set_length]
 
 
-def split_dataset(feature_data: np.ndarray) -> Union[Tuple[List[float], List[float]], None]:
+def split_dataset(feature_data: np.ndarray) -> Tuple[Union[np.ndarray, None], Union[np.ndarray, None]]:
     """This converts the dataset to features and splits it into 3 parts"""
-    return split_list(feature_data, BATCH_SIZE)
+    result = split_list(feature_data, BATCH_SIZE)
+    if result:
+        return result[0], result[1]
+    return None, None
+
+
+def calc_rows_percentage() -> int:
+    return round((ALL_ROWS / 100) * MAX_ROWS_PERCENTAGE)
 
 
 def get_pd_file() -> pd.DataFrame:
     logline('Opening file')
-    return pd.read_hdf(io.get('input_file'), io.get('name'), start=0, stop=MAX_ROWS)
+    dataset_name = io.get('dataset_name') or io.get('input_file').split('/')[-1].split('.')[0]
+
+    return pd.read_hdf(io.get('input_file'), dataset_name, start=0, stop=calc_rows_percentage())
 
 
 def group_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -299,15 +305,17 @@ def get_lower_bound(maximum: int, base: int) -> int:
     return (maximum // base) * base
 
 
-def gen_features_for_row(args: Tuple[str, Any]) -> Union[None,
-                                                                      Dict[str, Union[str,
-                                                                                      Dict[str, List[List[float]]]]]]:
+def gen_features_for_user(args: Tuple[str, Any]) -> Union[None,
+                                                               Dict[str, Union[str,
+                                                                               Dict[str, List[List[float]]]]]]:
     name = args[0]
     group = args[1]
     if len(group.index) > MIN_GROUP_SIZE:
         user_name = name
 
         if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
+            return None
+        if SKIP_COMPUTERS and user_name.startswith('C') and user_name.endswith('$'):
             return None
 
         split_dataset_result = split_dataset(convert_to_features(group))
@@ -318,7 +326,8 @@ def gen_features_for_row(args: Tuple[str, Any]) -> Union[None,
                 "datasets": {
                     "training": training_set,
                     "test": test_set
-                }
+                },
+                "group_len": len(group)
             }
 
 
@@ -344,58 +353,105 @@ class DFIterator:
             return self.df_iterator.__next__()
 
 
-def gen_features(f: pd.DataFrame) -> List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]:
-    logline('Collecting features')
+def strip_group_length(data) -> Union[Tuple[Any, int], None]:
+    if data is None:
+        return None
+
+    group_length = data['group_len']
+    return {
+        "user_name": data['user_name'],
+        "datasets": data['datasets']
+    }, group_length
+
+
+def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]:
     users_list = list()
 
-    file_length = len(f)
-    timer = Timer(file_length)
-    logline('File length is', file_length)
+    logline('Calculating amount of groups...')
+    users = len(f)
+    logline('There are', users, 'users and', row_amount, 'rows')
+    timer = Timer(row_amount)
     rows = 0
-    logline('Starting feature generation')
 
+    logline('Creating iterator')
     dataset_iterator = DFIterator(f)
-    # Create groups of approx 1000 users big
-    if io.get('cpus') == 1:
-        for name, group in f:
-            completed_result = gen_features_for_row((name, group))
-            timer.add_to_current(1)
-            if completed_result is not None:
-                users_list.append(completed_result)
 
-                rows += 1
+    if not SKIP_MAIN:
+        try:
+            # Create groups of approx 1000 users big
+            if io.get('cpus') == 1:
+                logline('Only using a single CPU')
+                first_line = True
+                logline('Generating iterator')
+                if SKIP_COMPUTERS:
+                    debug('Skipping all computer users')
+                for name, group in f:
+                    if first_line:
+                        logline('Starting feature generation')
+                        first_line = False
+                    completed_result, group_len = strip_group_length(gen_features_for_user((name, group)))
+                    timer.add_to_current(group_len)
+                    rows += group_len
 
-                if rows % REPORT_SIZE == 0:
-                    logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
-                            spaces_between=False)
-
-    else:
-        for i in range(round(math.ceil(file_length / PROCESSING_GROUP_SIZE))):
-            dataset_iterator.set_max((i + 1) * PROCESSING_GROUP_SIZE)
-            with multiprocessing.Pool(io.get('cpus')) as p:
-                for completed_result in p.imap_unordered(gen_features_for_row, dataset_iterator, chunksize=100):
-
-                    timer.add_to_current(1)
                     if completed_result is not None:
                         users_list.append(completed_result)
 
-                        rows += 1
-
                         if rows % REPORT_SIZE == 0:
-                            logline('At row ', str(rows), '/~', str(file_length), ' - ETA is: ' + timer.get_eta(),
+                            logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta(),
                                     spaces_between=False)
 
-    del f
+            else:
+                logline('Using', io.get('cpus'), 'cpus')
+                first_line = False
+                for i in range(round(math.ceil(users / PROCESSING_GROUP_SIZE))):
+                    dataset_iterator.set_max((i + 1) * PROCESSING_GROUP_SIZE)
+                    if i == 0:
+                        logline('Generating iterator')
 
-    logline("Did a total of", len(users_list), "users")
-    logline('Done gathering data')
-    return users_list
+                    if SKIP_COMPUTERS:
+                        debug('Skipping all computer users')
+                    if i == 0:
+                        first_line = True
+                    with multiprocessing.Pool(io.get('cpus')) as p:
+                        for completed_result in p.imap_unordered(gen_features_for_user, dataset_iterator, chunksize=100):
+                            if first_line:
+                                logline('Starting feature generation')
+                                first_line = False
+
+                            completed_result, group_len = strip_group_length(completed_result)
+                            timer.add_to_current(group_len)
+                            rows += group_len
+
+                            if completed_result is not None:
+                                users_list.append(completed_result)
+
+                                if rows % REPORT_SIZE == 0:
+                                    logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta(),
+                                            spaces_between=False)
+        except KeyboardInterrupt:
+            logline('User cancelled execution, wrapping up')
+            debug('Cancelled early at', len(users_list), 'instead of', users)
+            debug('You skipped a total of', users - len(users_list), 'users, or',
+                  100 - ((len(users_list) / users) * 100), '%')
+        finally:
+            debug('Runtime is', timer.report_total_time())
+
+            logline("Did a total of", len(users_list), "users")
+            logline('Done gathering data')
+            logline('Closing file...')
+            return users_list
+    else:
+        debug('SKIPPING MAIN, DO NOT ENABLE IN PRODUCTION')
+        logline('Closing file')
+        return []
 
 
 def get_features() -> Union[Dict[str, List[Dict[str, Union[str, List[List[float]]]]]],
                             List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]]:
-    f = group_pd_file(get_pd_file())
-    return gen_features(f)
+    file = get_pd_file()
+    row_amount = len(file)
+    f = group_pd_file(file)
+    return gen_features(f, row_amount)
 
 
 def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]):
@@ -418,10 +474,12 @@ def main():
     if not io.run:
         return
 
-    logline("Gathering features for", MAX_ROWS if MAX_ROWS is not None else "as many as there are", "rows",
+    start_time = time.time()
+    logline("Gathering features for", str(MAX_ROWS_PERCENTAGE) + "% rows",
             "using a batch size of", BATCH_SIZE)
 
     output_data(get_features())
+    logline('Total runtime is', Timer.stringify_time(Timer.format_time(time.time() - start_time)))
     sys.exit()
 
 
