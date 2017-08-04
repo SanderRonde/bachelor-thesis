@@ -94,7 +94,7 @@ data/
 runsnake/
 .idea
 
-*.pdf
+thesis.pdf
 *.gz
 *.fdb_latexmk
 *.fls
