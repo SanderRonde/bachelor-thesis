@@ -2,40 +2,17 @@
 In this chapter we give an introduction to the problem addressed in this thesis.
 
 
-\section{Applications}
-Chapters may include sections.
+\section{Motivations}
+Due to the constantly increasing threat of digital attacks on networks, and the constantly increasing presence of networks in our day-to-day lives, defending against these attacks is becoming a more and more pressing issue. Network administrators attempt to log any activity going on on their networks, hoping to be able to pick out any possible intrusions in the network. However the amount of data is simply too big for humans to process, all while needing an expert's opinion on this data in order to spot any events that look a bit weird (also called anomalies). This calls for a system to analyze this log data in order to find any intrusions, also known as an Intrusion Detection System (IDS). This IDS needs to be both fast and accurate, while at the same time being able to adapt to any changes the attackers might make to avoid it. The system should preferably also be able to run in real-time, being able to pick out any anomalies as they happen, instead of finding out weeks after the fact as finding out when an intrusion happens can be very helpful knowledge when it comes to confidential data. The upcoming field of artificial neural networks (ANN) seems like a perfect fit for this problem, as it combines both the speed of computers, and attempts to mimic the ability of our brains to learn very quickly, allowing it to make good choices.
 
-To make sure that this document renders correctly, execute these commands:
-\begin{quote}
-\begin{verbatim}
-pdflatex thesis
-bibtex thesis
-pdflatex thesis
-pdflatex thesis
-\end{verbatim}
-\end{quote}
-Here, the \verb|pdflatex| command may need to be executed three times in order to generate the table of contents and so on. 
+\section{Method}
+%cSpell:words akent anonymised
+In 2015,~\cite{akent-2015-enterprise-data} published a data set of around 100GB representing 58 consecutive days of de-identified event data collected from the US based Los Alamos National Laboratory's internal network. This data set consists of a number of different types of data. These types are authentication data, process data, network flow data, DNS data and red team data, where the authentication data is by far the biggest at 1,648,275,307 events. Here the red team data represents a set of simulated intrusions. The idea of that data is that you can train your IDS to recognize anomalies like in the red team data, but the problem is that there are only 750 rows which is just too little to actually matter. Seeing as the rest of the data set is unlabeled (not flagged as being or not being an anomaly), we must learn based on the data itself, hoping that there being more non-anomalies than anomalies allows the IDS to function well.
+Because this is about the actions of lots of different users, where each user has a lot of actions, a recurrent neural network is a perfect fit as it remembers the previous actions of the user, which is what we will use in this paper.
 
-\begin{figure}
-\begin{center}
-\end{center}
-\end{figure}
-
-\begin{table}
-\begin{center}
-\begin{tabular}{ll}
-Column A & Column B\\
-\hline
-Point 1 & Good\\
-Point 2 & Bad\\
-\end{tabular}
-\end{center}
-\end{table}
-
-Final reminder: this template is just an example, if you want you can make adjustments; also discuss with your supervisor which layout he or she likes. But the front page should be as it is now.
-
+%cSpell:words LIACS
 \section{Thesis Overview}
-It is recommended to end the introduction with an overview of the thesis. This chapter contains the introduction; Chapter~\ref{ch:relatedwork} discusses related work; Chapter~\ref{ch:conclusions} concludes.
+It is recommended to end the introduction with an overview of the thesis. This chapter contains the introduction; Chapter~\ref{ch:related_work} discusses related work; Chapter~\ref{ch:conclusions} concludes.
 
 Also make a nice sentence with ``bachelor thesis'', LIACS and the names of the supervisors.
-
+%TODO:
