@@ -24,7 +24,7 @@ As can be seen in~\ref{fig:rnn_cell} RNNs only have a single value that acts as 
 $$ h_t = \sigma(Wx + Uh_\text{t-1}) $$
 
 %cSpell:words bengio hochreiter
-In theory the RNN has the ability to \enquote{remember} things from the past, however in practice standard RNNs seem to be not that amazing at learning. Among others~\cite{bengio1994learning} investigated this problem and found some reasons for this happening, prompting the development of the commonly used Long Short Term Memory (LSTM) RNN, introduced by~\cite{hochreiter1997long}\@.
+In theory the RNN has the ability to \enquote{remember} things from the past, however in practice standard RNNs seem to be not that amazing at learning. Among others~\cite{bengio1994learning} investigated this problem and found some reasons for this happening, prompting the development of the commonly used LSTM RNN, introduced by~\cite{hochreiter1997long}\@.
 
 \section{LSTMs}
 
@@ -36,7 +36,7 @@ In theory the RNN has the ability to \enquote{remember} things from the past, ho
 	\source{http://colah.github.io/posts/2015-08-Understanding-LSTMs/img/LSTM3-chain.png}
 \end{figure}
 
-Contrary to regular RNNs, LSTMs have the distinct difference of having an additional hidden state that is never directly outputted (see figure~\ref{fig:lstm_cell}). This additional hidden state can then be used by the network solely for remembering relevant actions, instead of having to share its \enquote{memory} with its output, these values are now separate. This has the advantage of the network never having to forget things, as remembering is its default state, seeing as the line keeps going on to the next iteration.
+Contrary to regular RNNs, LSTMs have an additional hidden state that is never directly outputted (see figure~\ref{fig:lstm_cell}). This additional hidden state can then be used by the network solely for remembering previous relevant data. Instead of having to share its \enquote{memory} with its output, these values are now separate. This has the advantage of the network never having to forget things, as remembering is its default state, seeing as the same state keeps going on to the next iteration.
 
 As can be seen in the figure, there are quite a bit more parameters to this cell than a normal RNN cell. The output value and hidden value are composed of a number of different functions. First of all the network determines how much of the hidden state to forget, also called the forget gate. This is done by running both the previous iteration's output ($c_{t-1}$) and the forget gate vector ($f_t$) through a matrix multiplication. $f_t$ can be obtained by using the following formula, where $W$ contains the weights for the input and $U$ contains the weights for the previous iteration's output vector, $x_t$ refers to the input, $h_{t-1}$ to the previous iteration's output vector and $b$ to a set of vectors:
 
