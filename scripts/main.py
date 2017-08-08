@@ -41,13 +41,9 @@ io = IO({
 })
 
 # Constants
-LSTM_SIZE = 2 ** 4
 BATCH_SIZE = 32
 SPEED_REPORTING_SIZE = 1000
-ANOMALY_THRESHOLD = 1.0
 MAX_HIGHEST_OFFENDERS = 10
-ANOMALY_MULTIPLIER_SCALE = 1.0
-ANOMALY_MULTIPLIER_BASE = 1.0
 GROUP_LENGTH = 32
 
 # Global variables/functions
@@ -81,6 +77,7 @@ PLOTS = {
     "IQRS": dict(),
     "IQR_MAXES": dict(),
     'DEVIATIONS': list(),
+    "ALL_DEVIATIONS": list(),
 
     # Non-plot plots, just data gathering
     "USER_TIMINGS_TRAINING": list(),
@@ -155,7 +152,7 @@ class FeatureDescriptor:
 
 
 FEATURE_SIZE = features.size()
-LAYERS = [FEATURE_SIZE, 4, 4, FEATURE_SIZE]
+LAYERS = [FEATURE_SIZE, 128, 128, FEATURE_SIZE]
 
 
 def create_anomaly(start: int, end: int, train_len: int, dataset: FEATURE_SET) -> Dict[str, Union[int, List[float]]]:
@@ -227,6 +224,32 @@ class RNNModel:
             test_x = np.array(test_data[:-1])
             test_y = np.array(test_data[1:])
 
+            max_groups = len(test_x) + 1 - BATCH_SIZE
+
+            x_groups = list()
+            y_groups = list()
+
+            for i in range(len(test_x)):
+                if i < max_groups:
+                    x_groups.append([test_x[i]])
+                    y_groups.append([test_y[i]])
+
+                for j in range(len(x_groups)):
+                    if len(x_groups[j]) < BATCH_SIZE:
+                        x_groups[j].append(test_x[i])
+                        y_groups[j].append(test_y[i])
+
+            # Serialize the groups
+            test_x = list()
+            test_y = list()
+
+            for i in range(len(x_groups)):
+                test_x = test_x + x_groups[i]
+                test_y = test_y + y_groups[i]
+
+            test_x = np.array(test_x)
+            test_y = np.array(test_y)
+
             test_x = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], 1))
 
             return train_x, train_y, test_x, test_y
@@ -253,54 +276,19 @@ class RNNModel:
             if not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE or i != epochs - 1:
                 self.model.reset_states()
 
-    @staticmethod
-    def find_statistical_anomalies(losses: List[float], max_val: float) -> List[bool]:
-        return list(map(lambda x: x > max_val, losses))
-
-    def rate_anomaly_groups(self, groups: List[LossesGroup]):
-        results = list()
-        for i in range(len(groups)):
-            group = groups[i]
-            anomaly_split = group.anomalies / self.group_size
-
-            multiplier = ANOMALY_MULTIPLIER_BASE + (ANOMALY_MULTIPLIER_SCALE * anomaly_split)
-            results.append(sum(group.losses) * multiplier)
-        return results
-
-    def gen_anomaly_groups(self, losses: List[float], anomalous_losses: List[bool]):
-        groups = list()
-
-        max_groups = (len(losses) + 1) - self.group_size
-        for num_index in range(len(losses)):
-            if num_index <= max_groups:
-                groups.append(LossesGroup(losses[num_index], anomalous_losses[num_index]))
-
-            for i in range(len(groups)):
-                current_group = groups[i]
-                if current_group.length < self.group_size:
-                    # Values are not full yet, add one
-                    current_group.append(losses[num_index])
-
-                    if anomalous_losses[num_index]:
-                        current_group.add_anomaly()
-
-        return self.rate_anomaly_groups(groups)
-
-    def score_groups(self, losses: List[float]) -> List[float]:
-        anomalous_losses = self.find_statistical_anomalies(iqr(losses)[1])
-        return self.gen_anomaly_groups(losses, anomalous_losses)
-
     def test(self, test_x, test_y) -> List[LossesGroupMetadata]:
         """Predicts the result for given test data"""
         losses = list()
-        for i in range(len(test_x)):
-            losses.append(self.model.evaluate(test_x[i], test_y[i],
-                                              batch_size=1, verbose=0))
 
-        scores = self.score_groups(losses)
+        assert len(test_x) % BATCH_SIZE == 0, 'Dataset should be divisible by batch size'
+        for i in range(round(len(test_x) / BATCH_SIZE)):
+            losses.append(self.model.evaluate(test_x[i*BATCH_SIZE:(i+1)*BATCH_SIZE],
+                                              test_y[i*BATCH_SIZE:(i+1)*BATCH_SIZE],
+                                              batch_size=BATCH_SIZE, verbose=0))
+
         groups = list()
-        for i in range(len(scores)):
-            groups.append(LossesGroupMetadata(scores[i], i, i + self.group_size))
+        for i in range(len(losses)):
+            groups.append(LossesGroupMetadata(losses[i], i, i + BATCH_SIZE))
 
         return groups
 
@@ -318,12 +306,16 @@ def iqr(data: List[float]) -> Tuple[float, float]:
     copy = data[:]
     copy.sort()
 
+    # noinspection PyTypeChecker
     q3, q1 = np.percentile(data, [75, 25])
     inter_quartile_range = q3 - q1
 
-    max_val = q3 + (1.5 * inter_quartile_range)
+    return inter_quartile_range, q3
 
-    return inter_quartile_range, max_val
+
+def get_iqr_distance(inter_quartile_range: float, q3: float, value: float) -> float:
+    # Solve:
+    return (value - q3) / inter_quartile_range
 
 
 class UserNetwork:
@@ -359,23 +351,25 @@ class UserNetwork:
         only_losses = list(map(lambda x: x.anomaly_score, test_losses))
 
         # Interquartile range
-        inter_quartile_range, max_iqr_val = iqr(only_losses)
+        inter_quartile_range, q3 = iqr(only_losses)
 
         PLOTS["LOSSES"][self.user_name] = only_losses
         PLOTS["IQRS"][self.user_name] = inter_quartile_range
-        PLOTS["IQR_MAXES"][self.user_name] = max_iqr_val
+        PLOTS["IQR_MAXES"][self.user_name] = q3 + (1.5 * inter_quartile_range)
 
         for i in range(len(test_losses)):
             test_loss = test_losses[i]
-            if test_loss.anomaly_score > max_iqr_val:
+            iqr_distance = get_iqr_distance(inter_quartile_range, q3, test_loss.anomaly_score)
+            if iqr_distance > 1.5:
                 anomaly = create_anomaly(test_loss.start, test_loss.end, len(train_x),
                                          test_y)
                 anomalies.append(anomaly)
 
                 PLOTS["DEVIATIONS"].append({
                     "key": self.user_name,
-                    "val": test_loss.anomaly_score / inter_quartile_range
+                    "val": iqr_distance
                 })
+            PLOTS["ALL_DEVIATIONS"].append(iqr_distance)
 
         return anomalies
 
@@ -488,6 +482,7 @@ def save_plot_data(plot_location: str):
     # Plots of the highest offenders
     logline('')
     logline('Plotting highest offenders plots')
+
     save_plot(plot_location, 'deviations', list(map(lambda x: x["val"], PLOTS["DEVIATIONS"])),
               'User index', 'Relative deviation (from mean)')
     save_plot(plot_location, 'highest_offender_deviations', highest_offenders_with_mean_dict,
@@ -513,6 +508,8 @@ def save_plot_data(plot_location: str):
     # Plots of the losses of all batches
     logline('')
     logline('Plotting losses')
+    save_plot(plot_location, 'all deviations', PLOTS["ALL_DEVIATIONS"],
+              'Batch index', 'IQR Scale')
     save_plot(plot_location, 'losses', listifydict(PLOTS["LOSSES"]),
               'Batch index', 'Loss ratio',
               multidimensional=True, normalize_x=True)
@@ -650,11 +647,6 @@ def do_detection(model: RNNModel, users_list: List[Dict[str, Union[str, Dict[str
 
     debug('Runtime is', timer.report_total_time())
     return all_anomalies
-
-
-def train_on_batch(model: RNNModel, batch: List[List[float]]):
-    train_x, train_y = RNNModel.prepare_data(batch)
-    model.fit(train_x, train_y, epochs=io.get('epochs'))
 
 
 class NumpyEncoder(json.JSONEncoder):
