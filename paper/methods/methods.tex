@@ -5,12 +5,11 @@ Because users behave very differently in the dataset (and every big network), th
 
 %cSpell:words akent
 \section{Data}
-The dataset from \cite{akent-2015-enterprise-data} contains a number of different types of data, as described in the introduction. For this thesis we will only be using the authentication data as that is by far the largest dataset at 1,648,275,307 events. The dataset has a total of 12,425 users over 17,684 computers and spans 58 consecutive days. The data was entirely anonymized in addition to the timeframe at which it was captured not being disclosed. The data format can be seen in table~\ref{tab:data}
+The dataset from~\cite{akent-2015-enterprise-data} contains a number of different types of data, as described in the introduction. For this thesis we will only be using the authentication data as that is by far the largest dataset at 1,648,275,307 events. The dataset has a total of 12,425 users over 17,684 computers and spans 58 consecutive days. The data was entirely anonymized in addition to the timeframe at which it was captured not being disclosed. The data format can be seen in table~\ref{tab:data}
 
 \begin{table}[]
 	\centering
-	\caption{The dataset structure}
-	\label{tab:data}
+	\caption{The dataset structure}\label{tab:data}
 	\resizebox{\linewidth}{!}{
 		\begin{tabular}{lllllllll}
 			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \hline
@@ -23,8 +22,7 @@ The dataset from \cite{akent-2015-enterprise-data} contains a number of differen
 
 \begin{table}[]
 	\centering
-	\caption{The features}
-	\label{tab:features}
+	\caption{The features}\label{tab:features}
 	\resizebox{\linewidth}{!}{
 		\begin{tabular}{lll}
 			Index & Feature                & Description                                                                \\ \hline
@@ -49,9 +47,9 @@ Because the raw data has some unneeded values, some that need to be transformed,
 The features have been chosen to fill the values that the network will probably be using. For example the network is unlikely to keep track of a list of every computer the user logged in to, but would probably be interested in knowing whether the user logged in to a new computer. Additionally the network is unlikely to subtract the previous action's timestamp from the current timestamp, but will probably be interested in knowing the time since the last action to see whether the user is doing lots of operations at once, is doing actions at a normal human speed, or if they're barely doing anything.
 
 \section{Preprocessing}
-In order to have both a training and test set for every user, the data is split up. 70\% is used for training and 30\% is used for the test set. This is done separately for every user, making sure that each user has the same 70-30 split. The network expects only real-valued numbers from the range [0,1], however because the features contain integer values, these values have to be normalized to fit into the range. This is done by taking the maximum value for every column and dividing every value in that column by that maximum, linearly scaling every value down to the range [0,1]. This is done by applying the formula below to every row, where $x$ is the old row and $x'$ is the new row:
+In order to have both a training and test set for every user, the data is split up. 70\% is used for training and 30\% is used for the test set. This is done separately for every user, making sure that each user has the same 70--30 split. The network expects only real-valued numbers from the range [0,1], however because the features contain integer values, these values have to be normalized to fit into the range. This is done by taking the maximum value for every column and dividing every value in that column by that maximum, linearly scaling every value down to the range [0,1]. This is done by applying the formula below to every row, where $x$ is the old row and $x'$ is the new row:
 
-$$ x' = x / max(x) $$
+$$ x' = x / \max(x) $$
 
 This operation is performed for the training and test set at the same time before they are split up, ensuring that the scaling factor is the same for both sets. The data is kept in chronological order as it was read originally, ensuring that the input data closely resembles real input data and making maximum use of the LSTM's ability to make sense of sequences.
 
