@@ -17,7 +17,7 @@ A recurrent neural network (RNN) is a variation of artificial neural networks th
 	\caption{A single RNN cell. From~\cite{SimpleRNN2015}\label{fig:rnn_cell}}
 \end{figure}
 
-As can be seen in~\ref{fig:rnn_cell} RNNs only have a single value that acts as both the output of the cell and the data passed through to the next iteration. This hidden layer value h$_{\text{t}}$ at timestep t is calculated by the following function where h$_{\text{t}}$ is the value of the current hidden state and output and h$_{\text{t-1}}$ the value of the previous hidden state, $W$ is the weight matrix for the cell's input, $U$ is the weight matrix for the hidden value, x$_{\text{t}}$ is the input of this cell, and $\sigma$ is a sigmoid function used to squash its inputs into the [-1, 1] range:
+As can be seen in figure~\ref{fig:rnn_cell}, RNNs only have a single value that acts as both the output of the cell and the data passed through to the next iteration. This hidden layer value h$_{\text{t}}$ at timestep t is calculated by the following function where h$_{\text{t}}$ is the value of the current hidden state and output and h$_{\text{t-1}}$ the value of the previous hidden state, $W$ is the weight matrix for the cell's input, $U$ is the weight matrix for the hidden value, x$_{\text{t}}$ is the input of this cell, and $\sigma$ is a sigmoid function used to squash its inputs into the [-1, 1] range:
 
 $$ h_t = \sigma(Wx + Uh_\text{t-1}) $$
 
