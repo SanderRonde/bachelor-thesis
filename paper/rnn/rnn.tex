@@ -5,18 +5,16 @@
 	\begin{center}
 		\includegraphics[scale=0.5]{rnn/rnn_rolled}
 	\end{center}
-	\caption{A recurrent neural network.\label{fig:rnn_img}}
-	\source{http://colah.github.io/posts/2015-08-Understanding-LSTMs/img/RNN-rolled.png}
+	\caption{A recurrent neural network. From~\cite{RNNRolled2015}\label{fig:rnn_img}}
 \end{figure}
 
-A recurrent neural network (RNN) is a variation of artificial neural networks that continuously uses the output of its previous layer as the input of the current layer along with the input the user feeds into it (see figure~\ref{fig:rnn_img}). Because of this feature, RNNs have the ability to \enquote{remember} previous input values as they can be passed along through the previous iteration's output. 
+A recurrent neural network (RNN) is a variation of artificial neural networks that continuously uses the output of its previous layer as the input of the current layer along with the input that was inputted to this iteration (see figure~\ref{fig:rnn_img}). Because of this feature, RNNs have the ability to store and keep in memory previous input values as they can be passed along through the previous iteration's output. 
 
 \begin{figure}
 	\begin{center}
 		\includegraphics[scale=0.5]{rnn/rnn_cell}
 	\end{center}
-	\caption{A single RNN cell.\label{fig:rnn_cell}}
-	\source{http://colah.github.io/posts/2015-08-Understanding-LSTMs/img/LSTM3-SimpleRNN.png}
+	\caption{A single RNN cell. From~\cite{SimpleRNN2015}\label{fig:rnn_cell}}
 \end{figure}
 
 As can be seen in~\ref{fig:rnn_cell} RNNs only have a single value that acts as both the output of the cell and the data passed through to the next iteration. This hidden layer value h$_{\text{t}}$ at timestep t is calculated by the following function where h$_{\text{t}}$ is the value of the current hidden state and output and h$_{\text{t-1}}$ the value of the previous hidden state, $W$ is the weight matrix for the cell's input, $U$ is the weight matrix for the hidden value, x$_{\text{t}}$ is the input of this cell, and $\sigma$ is a sigmoid function used to squash its inputs into the [-1, 1] range:
@@ -24,7 +22,7 @@ As can be seen in~\ref{fig:rnn_cell} RNNs only have a single value that acts as 
 $$ h_t = \sigma(Wx + Uh_\text{t-1}) $$
 
 %cSpell:words bengio hochreiter
-In theory the RNN has the ability to \enquote{remember} things from the past, however in practice standard RNNs seem to be not that amazing at learning. Among others~\cite{bengio1994learning} investigated this problem and found some reasons for this happening, prompting the development of the commonly used LSTM RNN, introduced by~\cite{hochreiter1997long}\@.
+In theory the RNN has the ability to recall previous inputs, however in practice standard RNNs seem to be not that amazing at remembering data for long periods of time. This problem was investigated in~\cite{bengio1994learning} among others, finding problems with gradient based learning algorithms when applied to RNNs. This then prompted the development of the commonly used LSTM RNN, introduced by~\cite{hochreiter1997long}\@.
 
 \section{LSTMs}
 
@@ -32,8 +30,7 @@ In theory the RNN has the ability to \enquote{remember} things from the past, ho
 	\begin{center}
 		\includegraphics[scale=0.5]{rnn/lstm_cell}
 	\end{center}
-	\caption{A single LSTM cell.\label{fig:lstm_cell}}
-	\source{http://colah.github.io/posts/2015-08-Understanding-LSTMs/img/LSTM3-chain.png}
+	\caption{A single LSTM cell. From~\cite{LSTMCell2015}\label{fig:lstm_cell}}
 \end{figure}
 
 Contrary to regular RNNs, LSTMs have an additional hidden state that is never directly outputted (see figure~\ref{fig:lstm_cell}). This additional hidden state can then be used by the network solely for remembering previous relevant data. Instead of having to share its \enquote{memory} with its output, these values are now separate. This has the advantage of the network never having to forget things, as remembering is its default state, seeing as the same state keeps going on to the next iteration.
@@ -62,8 +59,7 @@ $$ h_t = o_t \circ \sigma(c_t) $$
 	\begin{center}
 		\includegraphics[scale=0.5]{rnn/gru_cell}
 	\end{center}
-	\caption{A single GRU variation cell.\label{fig:gru_cell}}
-	\source{http://colah.github.io/posts/2015-08-Understanding-LSTMs/img/LSTM3-var-GRU.png}
+	\caption{A single GRU variation cell. From~\cite{GRU2015}\label{fig:gru_cell}}
 \end{figure}
 
 %cSpell:words gers jozefowicz
