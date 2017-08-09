@@ -1,0 +1,1619 @@
+
+<!-- saved from url=(0114)https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><script type="text/javascript" src="./LS98_files/d823139095"></script><script src="./LS98_files/nr-1044.min.js.download"></script><script type="text/javascript">window.NREUM||(NREUM={}),__nr_require=function(e,n,t){function r(t){if(!n[t]){var o=n[t]={exports:{}};e[t][0].call(o.exports,function(n){var o=e[t][1][n];return r(o||n)},o,o.exports)}return n[t].exports}if("function"==typeof __nr_require)return __nr_require;for(var o=0;o<t.length;o++)r(t[o]);return r}({1:[function(e,n,t){function r(){}function o(e,n,t){return function(){return i(e,[c.now()].concat(u(arguments)),n?null:this,t),n?void 0:this}}var i=e("handle"),a=e(2),u=e(3),f=e("ee").get("tracer"),c=e("loader"),s=NREUM;"undefined"==typeof window.newrelic&&(newrelic=s);var p=["setPageViewName","setCustomAttribute","setErrorHandler","finished","addToTrace","inlineHit","addRelease"],d="api-",l=d+"ixn-";a(p,function(e,n){s[n]=o(d+n,!0,"api")}),s.addPageAction=o(d+"addPageAction",!0),s.setCurrentRouteName=o(d+"routeName",!0),n.exports=newrelic,s.interaction=function(){return(new r).get()};var m=r.prototype={createTracer:function(e,n){var t={},r=this,o="function"==typeof n;return i(l+"tracer",[c.now(),e,t],r),function(){if(f.emit((o?"":"no-")+"fn-start",[c.now(),r,o],t),o)try{return n.apply(this,arguments)}finally{f.emit("fn-end",[c.now()],t)}}}};a("setName,setAttribute,save,ignore,onEnd,getContext,end,get".split(","),function(e,n){m[n]=o(l+n)}),newrelic.noticeError=function(e){"string"==typeof e&&(e=new Error(e)),i("err",[e,c.now()])}},{}],2:[function(e,n,t){function r(e,n){var t=[],r="",i=0;for(r in e)o.call(e,r)&&(t[i]=n(r,e[r]),i+=1);return t}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],3:[function(e,n,t){function r(e,n,t){n||(n=0),"undefined"==typeof t&&(t=e?e.length:0);for(var r=-1,o=t-n||0,i=Array(o<0?0:o);++r<o;)i[r]=e[n+r];return i}n.exports=r},{}],4:[function(e,n,t){n.exports={exists:"undefined"!=typeof window.performance&&window.performance.timing&&"undefined"!=typeof window.performance.timing.navigationStart}},{}],ee:[function(e,n,t){function r(){}function o(e){function n(e){return e&&e instanceof r?e:e?f(e,u,i):i()}function t(t,r,o,i){if(!d.aborted||i){e&&e(t,r,o);for(var a=n(o),u=m(t),f=u.length,c=0;c<f;c++)u[c].apply(a,r);var p=s[y[t]];return p&&p.push([b,t,r,a]),a}}function l(e,n){v[e]=m(e).concat(n)}function m(e){return v[e]||[]}function w(e){return p[e]=p[e]||o(t)}function g(e,n){c(e,function(e,t){n=n||"feature",y[t]=n,n in s||(s[n]=[])})}var v={},y={},b={on:l,emit:t,get:w,listeners:m,context:n,buffer:g,abort:a,aborted:!1};return b}function i(){return new r}function a(){(s.api||s.feature)&&(d.aborted=!0,s=d.backlog={})}var u="nr@context",f=e("gos"),c=e(2),s={},p={},d=n.exports=o();d.backlog=s},{}],gos:[function(e,n,t){function r(e,n,t){if(o.call(e,n))return e[n];var r=t();if(Object.defineProperty&&Object.keys)try{return Object.defineProperty(e,n,{value:r,writable:!0,enumerable:!1}),r}catch(i){}return e[n]=r,r}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],handle:[function(e,n,t){function r(e,n,t,r){o.buffer([e],r),o.emit(e,n,t)}var o=e("ee").get("handle");n.exports=r,r.ee=o},{}],id:[function(e,n,t){function r(e){var n=typeof e;return!e||"object"!==n&&"function"!==n?-1:e===window?0:a(e,i,function(){return o++})}var o=1,i="nr@id",a=e("gos");n.exports=r},{}],loader:[function(e,n,t){function r(){if(!x++){var e=h.info=NREUM.info,n=d.getElementsByTagName("script")[0];if(setTimeout(s.abort,3e4),!(e&&e.licenseKey&&e.applicationID&&n))return s.abort();c(y,function(n,t){e[n]||(e[n]=t)}),f("mark",["onload",a()+h.offset],null,"api");var t=d.createElement("script");t.src="https://"+e.agent,n.parentNode.insertBefore(t,n)}}function o(){"complete"===d.readyState&&i()}function i(){f("mark",["domContent",a()+h.offset],null,"api")}function a(){return E.exists&&performance.now?Math.round(performance.now()):(u=Math.max((new Date).getTime(),u))-h.offset}var u=(new Date).getTime(),f=e("handle"),c=e(2),s=e("ee"),p=window,d=p.document,l="addEventListener",m="attachEvent",w=p.XMLHttpRequest,g=w&&w.prototype;NREUM.o={ST:setTimeout,SI:p.setImmediate,CT:clearTimeout,XHR:w,REQ:p.Request,EV:p.Event,PR:p.Promise,MO:p.MutationObserver};var v=""+location,y={beacon:"bam.nr-data.net",errorBeacon:"bam.nr-data.net",agent:"js-agent.newrelic.com/nr-1044.min.js"},b=w&&g&&g[l]&&!/CriOS/.test(navigator.userAgent),h=n.exports={offset:u,now:a,origin:v,features:{},xhrWrappable:b};e(1),d[l]?(d[l]("DOMContentLoaded",i,!1),p[l]("load",r,!1)):(d[m]("onreadystatechange",o),p[m]("onload",r)),f("mark",["firstbyte",u],null,"api");var x=0,E=e(4)},{}]},{},["loader"]);</script><title>Papers - 
+7th USENIX Security Symposium, 1998
+
+
+</title></head>
+
+<body bgcolor="#ffffff" text="#000000" link="#990000" alink="#666666" vlink="#666666" topmargin="0" leftmargin="0" rightmargin="0" marginheight="0"><a href="http://www.usenix.org/"><img src="./LS98_files/new_usenix.jpg" width="288" height="232" alt="Check out the new USENIX Web site." align="right"></a>
+
+<!-- IE understands topmargin, leftmargin, rightmargin, NS understands marginheight -->
+
+<!-- Banner -->
+<table bgcolor="#ffffff" border="0" width="100%" cellspacing="0" cellpadding="0">
+<tbody><tr><td align="LEFT" valign="TOP"><table border="0" cellspacing="0" cellpadding="0" width="600"><tbody><tr><td>
+<table border="0" cellpadding="0" cellspacing="0" width="600">
+<!-- space at top -->
+<tbody><tr><td colspan="13"><img src="./LS98_files/dot_clear.gif" width="1" height="5" alt=""><br></td></tr>
+ <tr><!-- row 1 -->
+   <td colspan="13"><img src="./LS98_files/smalltop.gif" width="600" height="6" border="0" alt=""></td>
+  </tr>
+
+  <tr><!-- row 2 -->
+   <td rowspan="2"><img src="./LS98_files/smallleft.gif" width="102" height="23" border="0" alt=""></td>
+   <td bgcolor="#666666"><a href="https://www.usenix.org/legacy/"><img src="./LS98_files/smallhome.gif" width="38" height="16" border="0" alt="Home"></a></td>
+   <td bgcolor="#666666"><img src="./LS98_files/divider16.gif" width="17" height="16" border="0" alt=""></td>
+   <td bgcolor="#666666"><a href="https://www.usenix.org/legacy/about"><img src="./LS98_files/smallabout.gif" width="90" height="16" border="0" alt="About USENIX"></a></td>
+   <td bgcolor="#666666"><img src="./LS98_files/divider16.gif" width="17" height="16" border="0" alt=""></td>
+   <td bgcolor="#666666"><a href="https://www.usenix.org/legacy/events"><img src="./LS98_files/smallevents.gif" width="42" height="16" border="0" alt="Events"></a></td>
+   <td bgcolor="#666666"><img src="./LS98_files/divider16.gif" width="17" height="16" border="0" alt=""></td>
+   <td bgcolor="#666666"><a href="https://www.usenix.org/legacy/membership"><img src="./LS98_files/smallmembership.gif" width="78" height="16" border="0" alt="Membership"></a></td>
+   <td bgcolor="#666666"><img src="./LS98_files/divider16.gif" width="17" height="16" border="0" alt=""></td>
+   <td bgcolor="#666666"><a href="https://www.usenix.org/legacy/publications"><img src="./LS98_files/smallpublications.gif" width="77" height="16" border="0" alt="Publications"></a></td>
+   <td bgcolor="#666666"><img src="./LS98_files/divider16.gif" width="17" height="16" border="0" alt=""></td>
+   <td bgcolor="#666666"><a href="https://www.usenix.org/legacy/students"><img src="./LS98_files/smallstudents.gif" width="54" height="16" border="0" alt="Students"></a></td>
+   <td bgcolor="#666666"><img src="./LS98_files/smallright16.gif" width="34" height="16" border="0" alt=""></td>
+  </tr>
+
+  <tr><!-- row 3 -->
+   <td colspan="12" bgcolor="#666666"><img src="./LS98_files/dot_clear.gif" width="2" height="7" border="0" alt=""></td>
+  </tr>
+
+</tbody></table>
+</td></tr></tbody></table></td></tr></tbody></table>
+<!-- End of Banner -->
+
+
+<table width="100%" border="0" cellspacing="0" cellpadding="8"><tbody><tr><td>
+
+
+<font size="+1" color="#990000" face="verdana, arial, helvetica, sans-serif"><b>
+7th USENIX Security Symposium, 1998</b></font>&nbsp;&nbsp;&nbsp;
+<font size="-1" face="verdana, arial, helvetica, sans-serif">[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/technical.html">Technical Program</a>]</font>
+<p>
+<!-- START OF PAGE CONTENTS -->
+
+
+
+
+</p><p></p><h1 align="CENTER">Data Mining Approaches for Intrusion Detection<a name="TITLE" href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#5"><sup>1</sup></a> </h1> <p align="CENTER"><strong>Wenke Lee and Salvatore J. Stolfo <br>
+<br>
+	<em>Computer Science Department</em> <br>
+	<em>Columbia University</em> <br>
+	<em>500 West 120th Street, New York, NY 10027</em> <br>
+	{wenke,sal}@cs.columbia.edu<br>
+</strong></p>
+<p align="CENTER"><strong></strong></p>
+<p align="LEFT"></p>
+<p></p><h2><a name="SECTION00001000000000000000">
+Abstract</a>
+</h2>
+In this paper we discuss our research in developing general and
+systematic methods for intrusion detection. The key ideas are to use
+data mining techniques to discover consistent and useful patterns of
+system features that describe program and user behavior, and use the
+set of relevant system features to compute (inductively learned)
+classifiers that can recognize anomalies and known intrusions. Using
+experiments on the <em>sendmail</em> system call data and the network
+<em>tcpdump</em> data, we demonstrate that we can construct concise and
+accurate classifiers to detect anomalies. We provide an overview on
+two general data mining algorithms that we have implemented: the
+association rules algorithm and the frequent episodes algorithm. These
+algorithms can be used to compute the intra- and inter- audit record
+patterns, which are essential in describing program or user
+behavior. The discovered patterns can guide the audit data gathering
+process and facilitate feature selection. To meet the challenges of
+both efficient learning (mining) and real-time detection, we propose
+an agent-based architecture for intrusion detection systems where the
+learning agents continuously compute and provide the updated
+(detection) models to the detection agents.
+<p></p><h1><a name="SECTION00010000000000000000">
+1 Introduction</a>
+</h1>
+As network-based computer systems play increasingly vital roles in
+modern society, they have become the targets of our enemies and
+criminals. Therefore, we need to find the best ways possible to
+protect our systems.
+<p>
+The security of a computer system is compromised when an intrusion
+takes place. An intrusion can be defined &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Hlms_90">HLMS90</a>] as "any set
+of actions that attempt to compromise the integrity, confidentiality
+or availability of a resource".  Intrusion prevention techniques,
+such as user authentication (e.g. using passwords or biometrics),
+avoiding programming errors, and information protection (e.g.,
+encryption) have been used to protect computer systems as a first line
+of defense. Intrusion prevention alone is not sufficient because as
+systems become ever more complex, there are always exploitable
+weakness in the systems due to design and programming errors, or
+various "socially engineered" penetration techniques. For example,
+after it was first reported many years ago, exploitable "buffer
+overflow" still exists in some recent system software due to
+programming errors. The policies that balance convenience versus
+strict control of a system and information access also make it
+impossible for an operational system to be completely secure.
+</p><p>
+Intrusion detection is therefore needed as another wall to protect
+computer systems. The elements central to intrusion detection are:
+<em>resources</em> to be protected in a target system, i.e., user
+accounts, file systems, system kernels, etc; <em>models</em> that
+characterize the "normal" or "legitimate" behavior of these
+resources; <em>techniques</em> that compare the actual system activities
+with the established models, and identify those that are "abnormal"
+or "intrusive".
+</p><p>
+Many researchers have proposed and implemented different models
+which define different measures of system behavior, with an ad hoc
+presumption that normalcy and anomaly (or illegitimacy) will be
+accurately manifested in the chosen set of system features that are
+modeled and measured. Intrusion detection techniques can be
+categorized into <em>misuse detection</em>, which uses patterns of
+well-known attacks or weak spots of the system to identify intrusions;
+and <em>anomaly detection</em>, which tries to determine whether
+deviation from the established normal usage patterns can be flagged as
+intrusions.
+</p><p>
+Misuse detection systems, for example &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Kumar_1995">KS95</a>] and
+STAT&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Ilgun_1995">IKP95</a>], encode and match the sequence of "signature
+actions" (e.g., change the ownership of a file) of known intrusion
+scenarios. The main shortcomings of such systems are: known intrusion
+patterns have to be hand-coded into the system; they are unable to
+detect any future (unknown) intrusions that have no matched patterns
+stored in the system.
+</p><p>
+Anomaly detection (sub)systems, such as IDES&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Lunt_1992">LTG+92</a>],
+establish normal usage patterns (profiles) using statistical measures
+on system features, for example, the CPU and I/O activities by a
+particular user or program. The main difficulties of these systems
+are: intuition and experience is relied upon in selecting the system
+features, which can vary greatly among different computing
+environments; some intrusions can only be detected by studying the
+sequential interrelation between events because each event alone may
+fit the profiles.
+</p><p>
+Our research aims to eliminate, as much as possible, the manual and
+ad-hoc elements from the process of building an intrusion detection
+system. We take a data-centric point of view and consider intrusion
+detection as a data analysis process. Anomaly detection is about
+finding the normal usage patterns from the audit data, whereas misuse
+detection is about encoding and matching the intrusion patterns using
+the audit data. The central theme of our approach is to apply data
+mining techniques to intrusion detection. Data mining generally refers
+to the process of (automatically) extracting models from large stores
+of data&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Fayyad_1996b">FPSS96</a>]. The recent rapid development in data
+mining has made available a wide variety of algorithms, drawn from the
+fields of statistics, pattern recognition, machine learning, and
+database. Several types of algorithms are particularly relevant to our
+research:
+</p><dl>
+<dt><strong>Classification:</strong>
+</dt><dd>maps a data item into one of several
+pre-defined categories. These algorithms normally output
+"classifiers", for example, in the form of decision trees or
+rules. An ideal application in intrusion detection will be to gather
+sufficient "normal" and "abnormal" audit data for a user or a
+program, then apply a classification algorithm to learn a classifier
+that will determine (future) audit data as belonging to the normal
+class or the abnormal class;
+</dd><dt><strong>Link analysis:</strong>
+</dt><dd>determines relations between fields in the
+database. Finding out the correlations in audit data will provide
+insight for selecting the right set of system features for intrusion
+detection;
+</dd><dt><strong>Sequence analysis:</strong>
+</dt><dd>models sequential patterns. These algorithms
+can help us understand what (time-based) sequence of audit events are
+frequently encountered together. These frequent event patterns are
+important elements of the behavior profile of a user or program.
+</dd></dl>
+<p>
+We are developing a systematic framework for designing, developing and
+evaluating intrusion detection systems. Specifically, the framework
+consists of a set of environment-independent guidelines and programs
+that can assist a system administrator or security officer to
+</p><ul>
+<li> select appropriate system features from audit data to build
+models for intrusion detection;
+</li><li> architect a hierarchical detector system from component
+detectors;
+</li><li> update and deploy new detection systems as needed.
+</li></ul>
+<p>
+The key advantage of our approach is that it can automatically
+generate concise and accurate detection models from large amount of
+audit data. The methodology itself is general and mechanical, and
+therefore can be used to build intrusion detection systems for a wide
+variety of computing environments.
+</p><p>
+The rest of the paper is organized as follows:
+Section&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#classifications_experiments">2</a> describes our experiments in
+building classification models for <em>sendmail</em> and network
+traffic. Section&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#algorithms">3</a> presents the association rules and
+frequent episodes algorithms that can be used to compute a set of
+patterns from audit data. Section&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#architecture">4</a> briefly
+highlights the architecture of our proposed intrusion detection
+system. Section&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#conclusion">5</a> outlines our future research plans.
+</p><p></p><h1><a name="SECTION00020000000000000000">
+2 Building Classification Models</a>
+</h1>
+<a name="classifications_experiments">&nbsp;</a>In this section we describe in detail our experiments in constructing
+classification models for anomaly detection.  The first set of
+experiments, first reported in &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Lee_1997">LSC97</a>], is on the <em>
+sendmail</em> system call data, and the second is on the network <em>
+tcpdump</em> data.
+<p></p><h2><a name="SECTION00021000000000000000">
+2.1 Experiments on <em>sendmail</em> Data</a>
+</h2>
+<a name="sendmail_experiments">&nbsp;</a>There have been a lot of attacks on computer systems that are carried
+out as exploitations of the design and programming errors in
+privileged programs, those that can run as root. For example, a flaw
+in the <em>finger</em> daemon allows the attacker to use "buffer
+overflow" to trick the program to execute his malicious code. Recent
+research efforts by Ko et al. &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Ko_1994">KFL94</a>] and Forrest et
+al. &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>] attempted to build intrusion detection
+systems that monitor the execution of privileged programs and detect
+the attacks on their vulnerabilities. Forrest et al. discovered that
+the short sequences of system calls made by a program during its
+normal executions are very consistent, yet different from the
+sequences of its abnormal (exploited) executions as well as the
+executions of other programs. Therefore a database containing these
+normal sequences can be used as the "self" definition of the normal
+behavior of a program, and as the basis to detect anomalies. Their
+findings motivated us to search for simple and accurate intrusion
+detection models.
+<p>
+Stephanie Forrest provided us with a set of traces of the <em>
+sendmail</em> program used in her experiments&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>]. We
+applied machine learning techniques to produce classifiers that can
+distinguish the exploits from the normal runs.
+</p><p></p><h3><a name="SECTION00021100000000000000">
+2.1.1 The <em>sendmail</em> System Call Traces</a>
+</h3>
+<a name="systemcall_data">&nbsp;</a>The procedure of generating the <em>sendmail</em> traces were detailed in
+&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>]. Briefly, each file of the trace data has two
+columns of integers, the first is the process ids and the second is
+the system call "numbers". These numbers are indices into a lookup
+table of system call names. For example, the number "5" represents
+system call <em>open</em>. The set of traces include:
+<dl>
+<dt><strong>Normal traces:</strong>
+</dt><dd>a trace of the <em>sendmail</em> daemon and a
+concatenation of several invocations of the <em>sendmail</em> program;
+</dd><dt><strong>Abnormal traces:</strong>
+</dt><dd>3 traces of the <em>sscp</em> (<em>
+sunsendmailcp</em>) attacks, 2 traces of the <em>syslog-remote</em> attacks,
+2 traces of the <em>syslog-local</em> attacks, 2 traces of the <em>
+decode</em> attacks, 1 trace of the <em>sm5x</em> attack and 1 trace of the
+<em>sm565a</em> attack. These are the traces of (various kinds of)
+abnormal runs of the <em>sendmail</em> program.
+</dd></dl><h3><a name="SECTION00021200000000000000">
+2.1.2 Learning to Classify System Call Sequences</a>
+</h3>
+<a name="learning_sequences">&nbsp;</a>In order for a machine learning program to learn the classification
+models of the "normal" and "abnormal" system call sequences, we
+need to supply it with a set of training data containing pre-labeled
+"normal" and "abnormal" sequences. We use a sliding window to scan
+the normal traces and create a list of unique sequences of system
+calls. We call this list the "normal" list. Next, we scan each of
+the intrusion traces. For each sequence of system calls, we first look
+it up in the normal list. If an exact match can be found then the
+sequence is labeled as "normal". Otherwise it is labeled as
+"abnormal" (note that the data gathering process described in
+&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>] ensured that the normal traces include nearly all
+possible "normal" short sequences of system calls, as new runs of
+<i>sendmail</i> failed to generate new sequences). Needless to say all
+sequences in the normal traces are labeled as "normal". See
+Table&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#labeled_sequences">1</a> for an example of the labeled
+sequences. It should be noted that an intrusion trace contains many
+normal sequences in addition to the abnormal sequences since the
+illegal activities only occur in some places within a trace.
+<a name="labeled_sequences">&nbsp;</a>
+<div align="CENTER">
+<a name="72">&nbsp;</a>
+<table cellpadding="3" border="1">
+<tbody><tr valign="TOP"><td align="LEFT" nowrap="">System Call Sequences (length 7)</td>
+<td align="LEFT" nowrap="">Class Labels</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">4 2 66 66 4 138 66</td>
+<td align="LEFT" nowrap="">"normal"</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">...</td>
+<td align="LEFT" nowrap="">...</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">5 5 5 4 59 105 104</td>
+<td align="LEFT" nowrap="">"abnormal"</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">...</td>
+<td align="LEFT" nowrap="">...</td>
+</tr>
+</tbody><caption><strong>Table 1:</strong>
+Pre-labeled System Call Sequences of Length 7</caption>
+</table></div>
+<br>
+<p>
+We applied RIPPER&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Cohen_1995">Coh95</a>], a rule learning program, to our
+training data. The following learning tasks were formulated to induce
+the rule sets for normal and abnormal system call sequences:
+</p><ul>
+<li> Each record has <i>n</i> positional attributes, <i>p<sub>1</sub></i>, <i>p<sub>2</sub></i>,
+..., <i>p</i><sub><i>n</i></sub>, one for each of the system calls in a sequence of
+length <i>n</i>; plus a class label, "normal" or "abnormal"
+</li><li> The training data is composed of normal sequences taken from
+80% of the normal traces, plus the abnormal sequences from 2
+traces of the <i>sscp</i> attacks, 1 trace of the <em>syslog-local</em>
+attack, and 1 trace of the <em>syslog-remote</em> attack
+</li><li> The testing data includes both normal and abnormal traces not
+used in the training data.
+</li></ul>
+<p>
+RIPPER outputs a set of if-then rules for the "minority" classes,
+and a default "true" rule for the remaining class. The following
+exemplar RIPPER rules were generated from the system call data:
+</p><blockquote>
+normal:- <i>p<sub>2</sub></i>=104, <i>p<sub>7</sub></i>=112.  [meaning: if <i>p<sub>2</sub></i> is 104
+(<i>vtimes</i>) and <i>p<sub>7</sub></i> is 112 (<i>vtrace</i>) then the sequence is
+"normal"]
+<p>
+normal:- <i>p<sub>6</sub></i>=19, <i>p<sub>7</sub></i>=105.  [meaning: if <i>p<sub>6</sub></i> is 19
+(<i>lseek</i>) and <i>p<sub>7</sub></i> is 105 (<i>sigvec</i>) then the sequence is
+"normal"]
+</p><p>...
+</p><p>
+abnormal:- true.  [meaning: if none of the above, the sequence is
+"abnormal"]
+</p></blockquote>
+<p>
+These RIPPER rules can be used to predict whether a sequence is
+"abnormal" or "normal". But what the intrusion detection system
+needs to know is whether the trace being analyzed is an intrusion or
+not. We use the following post-processing scheme to detect whether a
+given trace is an intrusion based on the RIPPER predictions of its
+constituent sequences:
+</p><dl compact="">
+<dt>1.
+</dt><dd>Use a sliding window of length 2<i>L</i>+1, e.g., 7, 9, 11, 13, etc.,
+and a sliding (shift) step of <i>L</i>, to scan the predictions made by the
+RIPPER rules on system call sequences.  
+</dd><dt>2.
+</dt><dd>For each of the (length 2<i>L</i>+1) regions of RIPPER predictions
+generated in Step 1, if more than <i>L</i> predictions are "abnormal"
+then the current region of predictions is an "abnormal" region. (Note
+that <i>L</i> is an input parameter).
+</dd><dt>3.
+</dt><dd>If the percentage of abnormal regions is above a threshold
+value, say 2%, then the trace is an intrusion.
+</dd></dl>
+<p>
+This scheme is an attempt to filter out the spurious prediction
+errors. The intuition behind this scheme is that when an intrusion
+actually occurs, the majority of adjacent system call sequences are
+abnormal; whereas the prediction errors tend to be isolated and
+sparse. In &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>], the percentage of the mismatched
+sequences (out of the total number of matches (lookups) performed for
+the trace) is used to distinguish normal from abnormal. The
+"mismatched" sequences are the abnormal sequences in our
+context. Our scheme is different in that we look for abnormal regions
+that contain more abnormal sequences than the normal ones, and
+calculate the percentage of abnormal regions (out of the total number
+of regions). Our scheme is more sensitive to the temporal information,
+and is less sensitive to noise (errors).
+</p><p>
+RIPPER only outputs rules for the "minority" class. For example, in
+our experiments, if the training data has fewer abnormal sequences
+than the normal ones, the output RIPPER rules can be used to identify
+abnormal sequences, and the default (everything else) prediction is
+normal. We conjectured that a set of specific rules for normal
+sequences can be used as the "identity" of a program, and thus can
+be used to detect any known and unknown intrusions (anomaly intrusion
+detection). Whereas having only the rules for abnormal sequences only
+gives us the capability to identify known intrusions (misuse intrusion
+detection).
+<a name="sequence_results">&nbsp;</a>
+</p><div align="CENTER">
+<a name="321">&nbsp;</a>
+<table cellpadding="3" border="1">
+<caption><strong>Table:</strong>
+Comparing Detection of Anomalies. The column
+&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>] is the percentage of the abnormal sequences of
+the traces. Columns A, B, C, and D are the percentages of abnormal
+regions (as measured by the post-processing scheme) of the
+traces. <i>sendmail</i> is the 20% normal traces not used in the
+training data. Traces in bold were included in the training data, the
+other traces were used as testing data only.</caption>
+<tbody><tr valign="TOP"><td align="LEFT" nowrap="">&nbsp;</td>
+<td align="CENTER" nowrap=""> % abn.</td>
+<td align="CENTER" nowrap="" colspan="4"> % abn. in experiment</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">Traces</td>
+<td align="CENTER" nowrap="">&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>]</td>
+<td align="CENTER" nowrap="">A</td>
+<td align="CENTER" nowrap="">B</td>
+<td align="CENTER" nowrap="">C</td>
+<td align="CENTER" nowrap="">D</td>
+</tr>
+<tr valign="TOP"><th align="LEFT" nowrap=""><b>sscp-1</b></th>
+<td align="CENTER" nowrap="">5.2</td>
+<td align="CENTER" nowrap="">41.9</td>
+<td align="CENTER" nowrap="">32.2</td>
+<td align="CENTER" nowrap="">40.0</td>
+<td align="CENTER" nowrap="">33.1</td>
+</tr>
+<tr valign="TOP"><th align="LEFT" nowrap=""><b>sscp-2</b></th>
+<td align="CENTER" nowrap="">5.2</td>
+<td align="CENTER" nowrap="">40.4</td>
+<td align="CENTER" nowrap="">30.4</td>
+<td align="CENTER" nowrap="">37.6</td>
+<td align="CENTER" nowrap="">33.3</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">sscp-3</td>
+<td align="CENTER" nowrap="">5.2</td>
+<td align="CENTER" nowrap="">40.4</td>
+<td align="CENTER" nowrap="">30.4</td>
+<td align="CENTER" nowrap="">37.6</td>
+<td align="CENTER" nowrap="">33.3</td>
+</tr>
+<tr valign="TOP"><th align="LEFT" nowrap=""><b>syslog-r-1</b></th>
+<td align="CENTER" nowrap="">5.1</td>
+<td align="CENTER" nowrap="">30.8</td>
+<td align="CENTER" nowrap="">21.2</td>
+<td align="CENTER" nowrap="">30.3</td>
+<td align="CENTER" nowrap="">21.9</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">syslog-r-2</td>
+<td align="CENTER" nowrap="">1.7</td>
+<td align="CENTER" nowrap="">27.1</td>
+<td align="CENTER" nowrap="">15.6</td>
+<td align="CENTER" nowrap="">26.8</td>
+<td align="CENTER" nowrap="">16.5</td>
+</tr>
+<tr valign="TOP"><th align="LEFT" nowrap=""><b>syslog-l-1</b></th>
+<td align="CENTER" nowrap="">4.0</td>
+<td align="CENTER" nowrap="">16.7</td>
+<td align="CENTER" nowrap="">11.1</td>
+<td align="CENTER" nowrap="">17.0</td>
+<td align="CENTER" nowrap="">13.0</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">syslog-l-2</td>
+<td align="CENTER" nowrap="">5.3</td>
+<td align="CENTER" nowrap="">19.9</td>
+<td align="CENTER" nowrap="">15.9</td>
+<td align="CENTER" nowrap="">19.8</td>
+<td align="CENTER" nowrap="">15.9</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">decode-1</td>
+<td align="CENTER" nowrap="">0.3</td>
+<td align="CENTER" nowrap="">4.7</td>
+<td align="CENTER" nowrap="">2.1</td>
+<td align="CENTER" nowrap="">3.1</td>
+<td align="CENTER" nowrap="">2.1</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">decode-2</td>
+<td align="CENTER" nowrap="">0.3</td>
+<td align="CENTER" nowrap="">4.4</td>
+<td align="CENTER" nowrap="">2.0</td>
+<td align="CENTER" nowrap="">2.5</td>
+<td align="CENTER" nowrap="">2.2</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">sm565a</td>
+<td align="CENTER" nowrap="">0.6</td>
+<td align="CENTER" nowrap="">11.7</td>
+<td align="CENTER" nowrap="">8.0</td>
+<td align="CENTER" nowrap="">1.1</td>
+<td align="CENTER" nowrap="">1.0</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">sm5x</td>
+<td align="CENTER" nowrap="">2.7</td>
+<td align="CENTER" nowrap="">17.7</td>
+<td align="CENTER" nowrap="">6.5</td>
+<td align="CENTER" nowrap="">5.0</td>
+<td align="CENTER" nowrap="">3.0</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap=""><i>sendmail</i></td>
+<td align="CENTER" nowrap="">0</td>
+<td align="CENTER" nowrap="">1.0</td>
+<td align="CENTER" nowrap="">0.1</td>
+<td align="CENTER" nowrap="">0.2</td>
+<td align="CENTER" nowrap="">0.3</td>
+</tr>
+</tbody></table></div>
+<br>
+<p>
+We compare the results of the following experiments that have
+different distributions of abnormal versus normal sequences in the
+training data: 
+</p><dl>
+<dt><strong>Experiment A:</strong>
+</dt><dd>46% normal and 54% abnormal, sequence length is 11;
+</dd><dt><strong>Experiment B:</strong>
+</dt><dd>46% normal and 54% abnormal, sequence length is 7;
+</dd><dt><strong>Experiment C:</strong>
+</dt><dd>46% abnormal and 54% normal, sequence length is 11;
+</dd><dt><strong>Experiment D:</strong>
+</dt><dd>46% abnormal and 54% normal, sequence length is 7.
+</dd></dl>
+<p>
+Table&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#sequence_results">2</a> shows the results of using the
+classifiers from these experiments to analyze the traces. We report
+here the percentage of abnormal regions (as measured by our
+post-processing scheme) of each trace, and compare our results with
+Forrest et al., as reported in &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>]. From
+Table&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#sequence_results">2</a>, we can see that in general, intrusion
+traces generate much larger percentages of abnormal regions than the
+normal traces. We call these measured percentages the "scores" of
+the traces. In order to establish a threshold score for identifying
+intrusion traces, it is desirable that there is a sufficiently large
+gap between the scores of the normal sendmail traces and the low-end
+scores of the intrusion traces. Comparing experiments that used the
+same sequence length, we observe that such a gap in A, 3.4, is
+larger than the gap in C, 0.9; and 1.9 in B is larger than
+0.7 in D. The RIPPER rules from experiments A and B describe the
+patterns of the normal sequences. Here the results show that these
+rules can be used to identify the intrusion traces, including those
+not seen in the training data, namely, the <em>decode</em> traces, the
+<em>sm565a</em> and <em>sm5x</em> traces. This confirms our conjecture that
+rules for normal patterns can be used for anomaly detection. The
+RIPPER rules from experiments C and D specify the patterns of abnormal
+sequences in the intrusion traces included in the training data. The
+results indicate that these rules are very capable of detecting the
+intrusion traces of the "known" types (those seen in the training
+data), namely, the <em>sscp-3</em> trace, the <em>syslog-remote-2</em> trace
+and the <em>syslog-local-2</em> trace. But comparing with the rules from
+A and B, the rules in C and D perform poorly on intrusion traces of
+"unknown" types. This confirms our conjecture that rules for
+abnormal patterns are good for misuse intrusion detection, but may not
+be as effective in detecting future ("unknown") intrusions.
+</p><p>
+The results from Forrest et al. showed that their method required a
+very low threshold in order to correctly detect the <i>decode</i> and
+<i>sm</i>565<i>a</i> intrusions. While the results here show that our approach
+generated much stronger "signals" of anomalies from the intrusion
+traces, it should be noted that their method used all of the normal
+traces but not any of the intrusion traces in training.
+</p><p></p><h3><a name="SECTION00021300000000000000">
+2.1.3 Learning to Predict System Calls</a>
+</h3>
+<a name="predict_syscalls">&nbsp;</a>Unlike the experiments in Section&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#learning_sequences">2.1.2</a> which
+required abnormal traces in the training data, here we wanted to
+study how to compute an anomaly detector given just the normal
+traces.  We conducted experiments to learn the (normal) correlation
+among system calls: the <i>n</i>th system calls or the middle system
+calls in (normal) sequences of length <i>n</i>.
+<p>
+The learning tasks were formulated as follows:
+</p><ul>
+<li> Each record has <i>n</i>-1 positional attributes, <i>p<sub>1</sub></i>, <i>p<sub>2</sub></i>,
+..., <i>p</i><sub><i>n</i>-1</sub>, each being a system call; plus a class label, the
+system call of the <i>n</i>th position or the middle position
+</li><li> The training data is composed of (normal) sequences taken from 
+80% of the normal sendmail traces
+</li><li> The testing data is the traces not included in the training
+data, namely, the remaining 20% of the normal sendmail traces and
+all the intrusion traces.
+</li></ul>
+<p>
+RIPPER outputs rules in the following form:
+</p><blockquote>
+38 :- <i>p<sub>3</sub></i>=40, <i>p<sub>4</sub></i>=4.  [meaning: if <i>p<sub>3</sub></i> is 40 (<i>lstat</i>)
+and <i>p<sub>4</sub></i> is 4 (<i>write</i>), then the 7th system call is 38
+(<i>stat</i>).]
+<p>...
+</p><p>
+5:- true.
+[meaning: if none of the above, then the 7th system calls is 5 (<i>open</i>).]
+</p></blockquote>
+<p>
+Each of these RIPPER rules has some "confidence" information: the
+number of matched examples (records that conform to the rule) and the
+number of unmatched examples (records that are in conflict with the
+rule) in the training data. For example, the rule for "38
+(<i>stat</i>)" covers 12 matched examples and 0 unmatched examples. We
+measure the confidence value of a rule as the number of matched
+examples divided by the sum of matched and unmatched examples. These
+rules can be used to analyze a trace by examining each sequence of the
+trace. If a violation occurs (the actual system call is not the same
+as predicted by the rule), the "score" of the trace is incremented
+by 100 times the confidence of the violated rule. For example, if a
+sequence in the trace has <i>p<sub>3</sub></i>=40 and <i>p<sub>4</sub></i>=4, but <i>p<sub>7</sub></i>=44
+instead of 38, the total score of the trace is incremented by 100
+since the confidence value of this violated rule is 1. The averaged
+score (by the total number of sequences) of the trace is then used to
+decide whether an intrusion has occurred.
+<a name="syscalls_results">&nbsp;</a>
+</p><div align="CENTER">
+<a name="129">&nbsp;</a>
+<table cellpadding="3" border="1">
+<caption><strong>Table 3:</strong>
+Detecting Anomalies using Predicted System Calls. Columns A,
+B, C, and D are the averaged scores of violations of the
+traces. <i>sendmail</i> is the 20% normal traces not used in the
+training data. None of the intrusion traces was used in training.</caption>
+<tbody><tr valign="TOP"><td align="LEFT" nowrap="">&nbsp;</td>
+<td align="CENTER" nowrap="" colspan="4">averaged score of violations</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">Traces</td>
+<td align="CENTER" nowrap="">Exp. A</td>
+<td align="CENTER" nowrap="">Exp. B</td>
+<td align="CENTER" nowrap="">Exp. C</td>
+<td align="CENTER" nowrap="">Exp. D</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">sscp-1</td>
+<td align="CENTER" nowrap="">24.1</td>
+<td align="CENTER" nowrap="">13.5</td>
+<td align="CENTER" nowrap="">14.3</td>
+<td align="CENTER" nowrap="">24.7</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">sscp-2</td>
+<td align="CENTER" nowrap="">23.5</td>
+<td align="CENTER" nowrap="">13.6</td>
+<td align="CENTER" nowrap="">13.9</td>
+<td align="CENTER" nowrap="">24.4</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">sscp-3</td>
+<td align="CENTER" nowrap="">23.5</td>
+<td align="CENTER" nowrap="">13.6</td>
+<td align="CENTER" nowrap="">13.9</td>
+<td align="CENTER" nowrap="">24.4</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">syslog-r-1</td>
+<td align="CENTER" nowrap="">19.3</td>
+<td align="CENTER" nowrap="">11.5</td>
+<td align="CENTER" nowrap="">13.9</td>
+<td align="CENTER" nowrap="">24.0</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">syslog-r-2</td>
+<td align="CENTER" nowrap="">15.9</td>
+<td align="CENTER" nowrap="">8.4</td>
+<td align="CENTER" nowrap="">10.9</td>
+<td align="CENTER" nowrap="">23.0</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">syslog-l-1</td>
+<td align="CENTER" nowrap="">13.4</td>
+<td align="CENTER" nowrap="">6.1</td>
+<td align="CENTER" nowrap="">7.2</td>
+<td align="CENTER" nowrap="">19.0</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">syslog-l-2</td>
+<td align="CENTER" nowrap="">15.2</td>
+<td align="CENTER" nowrap="">8.0</td>
+<td align="CENTER" nowrap="">9.0</td>
+<td align="CENTER" nowrap="">20.2</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">decode-1</td>
+<td align="CENTER" nowrap="">9.4</td>
+<td align="CENTER" nowrap="">3.9</td>
+<td align="CENTER" nowrap="">2.4</td>
+<td align="CENTER" nowrap="">11.3</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">decode-2</td>
+<td align="CENTER" nowrap="">9.6</td>
+<td align="CENTER" nowrap="">4.2</td>
+<td align="CENTER" nowrap="">2.8</td>
+<td align="CENTER" nowrap="">11.5</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">sm565a</td>
+<td align="CENTER" nowrap="">14.4</td>
+<td align="CENTER" nowrap="">8.1</td>
+<td align="CENTER" nowrap="">9.4</td>
+<td align="CENTER" nowrap="">20.6</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">sm5x</td>
+<td align="CENTER" nowrap="">17.2</td>
+<td align="CENTER" nowrap="">8.2</td>
+<td align="CENTER" nowrap="">10.1</td>
+<td align="CENTER" nowrap="">18.0</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap=""><i>sendmail</i></td>
+<td align="CENTER" nowrap="">5.7</td>
+<td align="CENTER" nowrap="">0.6</td>
+<td align="CENTER" nowrap="">1.2</td>
+<td align="CENTER" nowrap="">12.6</td>
+</tr>
+</tbody></table></div>
+<br>
+<p>
+Table&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#syscalls_results">3</a> shows the results of the following
+experiments: 
+</p><dl>
+<dt><strong>Experiment A:</strong>
+</dt><dd>predict the 11th system call;
+</dd><dt><strong>Experiment B:</strong>
+</dt><dd>predict the middle system call in a sequence
+of length 7;
+</dd><dt><strong>Experiment C:</strong>
+</dt><dd>predict the middle system call in a sequence
+of length 11;
+</dd><dt><strong>Experiment D:</strong>
+</dt><dd>predict the 7th system call.
+</dd></dl>
+<p>
+We can see from Table&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#syscalls_results">3</a> that the RIPPER rules
+from experiments A and B are effective because the gap between the
+score of normal sendmail and the low-end scores of intrusion traces,
+3.9, and 3.3 respectively, are large enough. However, the rules
+from C and D perform poorly. Since C predicts the middle system call
+of a sequence of length 11 and D predicts the 7th system call, we
+reason that the training data (the normal traces) has no stable
+patterns for the 6th or 7th position in system call sequences.
+</p><p></p><h3><a name="SECTION00021400000000000000">
+2.1.4 Discussion</a>
+</h3>
+Our experiments showed that the normal behavior of a program execution
+can be established and used to detect its anomalous usage. This
+confirms the results of other related work in anomaly detection. The
+weakness of the model in &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>] may be that the recorded
+(rote learned) normal sequence database may be too specific as it
+contains about ~1,500 entries. Here we show that a machine learning
+program, RIPPER, was able to generalize the system call sequence
+information, from 80% of the normal sequences, to a set of
+concise and accurate rules (the rule sets have 200 to 280 rules, and
+each rule has 2 or 3 attribute tests). We demonstrated that these
+rules were able to identify unseen intrusion traces as well as normal
+traces.
+<p>
+We need to search for a more predictive classification model so that
+the anomaly detector has higher confidence in flagging intrusions.
+Improvement in accuracy can come from adding more features, rather
+than just the system calls, into the models of program execution. For
+example, the directories and the names of the files touched by a
+program can be used. In &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Frank_1994">Fra94</a>], it is reported that as the
+number of features increases from 1 to 3, the classification error
+rate of their network intrusion detection system decreases
+dramatically. Furthermore, the error rate stabilizes after the size of
+the feature set reaches 4, the optimal size in their experiments. Many
+operating systems provide auditing utilities, such as the BSM audit of
+Solaris, that can be configured to collect abundant information (with
+many features) of the activities in a host system. From the audit
+trails, information about a process (program) or a user can then be
+extracted. The challenge now is to efficiently compute accurate
+patterns of programs and users from the audit data.
+</p><p>
+A key assumption in using a learning algorithm for anomaly detection
+(and to some degree, misuse detection) is that the training data is
+nearly "complete" with regard to all possible "normal" behavior of
+a program or user. Otherwise, the learned detection model can not
+confidently classify or label an unmatched data as "abnormal" since
+it can just be an unseen "normal" data. For example, the experiments
+in Section&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#predict_syscalls">2.1.3</a> used
+80% of "normal" system call sequences; whereas the experiments in
+Section&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#learning_sequences">2.1.2</a>
+actually required all "normal" sequences in order to pre-label the
+"abnormal" sequences to create the training data. During the audit
+data gathering process, we want to ensure that as much different
+normal behavior as possible is captured. We first need to have a
+simple and incremental (continuously learning) summary measure of an
+audit trail so that we can update this measure as each new audit trail
+is processed, and can stop the audit process when the measure
+stabilizes. In Section&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#algorithms">3</a>, we
+propose to use the frequent intra- and inter- audit record patterns as
+the summary measure of an audit trail, and describe the algorithms to
+compute these patterns.  </p><p></p><h2><a name="SECTION00022000000000000000">
+2.2 Experiments on <em>tcpdump</em> Data</a>
+</h2>
+<a name="tcpdump_experiments">&nbsp;</a>There are two approaches for network intrusion detection: one is to
+analyze the audit data on each host of the network and correlate the
+evidence from the hosts. The other is to monitor the network traffic
+directly using a packet capturing program such as <em>tcpdump</em>
+&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Jacobson_1989">JLM89</a>]. In this section, we describe how classifiers
+can be induced from <em>tcpdump</em> data to distinguish network attacks
+from normal traffic.
+<p></p><h3><a name="SECTION00022100000000000000">
+2.2.1 The <em>tcpdump</em> Data</a>
+</h3>
+We obtained a set of <em>tcpdump</em> data, available at <a href="http://iris.cs.uml.edu:8080/network.html">http://iris.cs.uml.edu:8080/network.html</a>,
+that is part of an Information Exploration Shootout (see <a href="http://iris.cs.uml.edu:8080/">http://iris.cs.uml.edu:8080</a>). <em>
+tcpdump</em> was executed on the gateway that connects the enterprise
+LAN and the external networks. It captured the headers (not the user
+data) of the network packets that passed by the network interface of
+the gateway. Network traffic between the enterprise LAN and external
+networks, as well as the broadcast packets within the LAN were
+therefore collected. For the purposes of the shootout, filters were
+used so that <em>tcpdump</em> only collected Internet Transmission
+Control Protocol (TCP) and Internet User Datagram Protocol (UDP)
+packets. The data set consists of 3 runs of <em>tcpdump</em> on
+generated network intrusions<a name="shootout" href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#152"><sup>2</sup></a> and one <em> tcpdump</em> run
+on normal network traffic (with no intrusions). The output of each
+<em>tcpdump</em> run is in a separate file. The traffic volume (number
+of network connections) of these runs are about the same. Our
+experiments focused on building an anomaly detection model from the
+normal dataset.
+<p>
+Since <em>tcpdump</em> output is not intended specifically for security
+purposes, we had to go through multiple iterations of data
+pre-processing to extract meaningful features and measures. We studied
+TCP/IP and its security related problems, for example
+&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Stevens_1994">Ste84</a>,<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Paxon_97">Pax97</a>,<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Atkins_1996">ABH+96</a>,<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Paxon_98">Pax98</a>,<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Bellovin">Bel89</a>,<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Porras_98">PV98</a>],
+for guidelines on the protocols and the important features that
+characterize a connection.
+</p><p></p><h3><a name="SECTION00022200000000000000">
+2.2.2 Data Pre-processing</a>
+</h3>
+We developed a script to scan each <em>tcpdump</em> data file and extract
+the "connection" level information about the network traffic. For
+each TCP connection, the script processes packets between the two
+ports of the participating hosts, and:
+<ul>
+<li> checks whether 3-way handshake has been properly followed
+to establish the connection. The following errors are recorded:
+connection rejected, connection attempted but not established (the
+initiating host never receives a SYN acknowledgment), and unwanted
+SYN acknowledgment received (no connection request, a SYN packet, was
+sent first),
+</li><li> monitors each data packet and ACK packet, keeps a number of
+counters in order to calculate these statistics of the connection:
+resent rate, wrong resent rate, duplicate ACK rate, hole rate, wrong
+(data packet) size rate, (data) bytes sent in each direction,
+percentage of data packet, and percentage of control packet, and
+</li><li> watches how connection is terminated: normal (both sides
+properly send and receive FINs), abort (one host sends RST to
+terminate, and all data packets are properly ACKed), half closed (only
+one host sends FIN), and disconnected.
+</li></ul>
+<p>
+Since UDP is connectionless (no connection state), we simply treat
+each packet as a connection.
+</p><p>
+A connection record, in preparation of data mining, now has the
+following fields (features): start time, duration, participating
+hosts, ports, the statistics of the connection (e.g., bytes sent in
+each direction, resent rate, etc.), flag ("normal" or one of the
+recorded connection/termination errors), and protocol (TCP or
+UDP). From the ports, we know whether the connection is to a
+well-known service, e.g., <em>http</em> (port 80), or a user
+application.
+</p><p>
+We call the host that initiates the connection, i.e., the one that
+sends the first SYN, as the source, and the other as the
+destination. Depending on the direction from the source to the
+destination, a connection is in one of the three types: <em>
+out-going</em> - from the LAN to the external networks; <em>in-coming</em> -
+from the external networks to the LAN; and <em>inter-LAN</em> - within
+the LAN. Taking the topologies of the network into consideration is
+important in network intrusion detection. Intuitively, intrusions
+(which come from outside) may first exhibit some abnormal patterns
+(e.g., penetration attempts) in the <em>in-coming</em> connections, and
+subsequently in the <em>inter-LAN</em> (e.g., doing damage to the LAN)
+and/or the <em>out-going</em> (e.g., stealing/uploading data)
+connections. Analyzing these types of connections and constructing
+corresponding detection models separately may improve detection
+accuracy.
+</p><p></p><h3><a name="SECTION00022300000000000000">
+2.2.3 Experiments and Results</a>
+</h3>
+For each type (direction) of the connections, we formulated the
+classification experiments as the following:
+<ul>
+<li> Each (connection) record uses the destination service (port) as
+the class label, and all the other connection features as attributes;
+</li><li> The training data is 80% of the connections from the normal
+<em>tcpdump</em> data file, while the test data includes the remaining
+20% from the normal <em>tcpdump</em> data file, and all the
+connections from the 3 <em>tcpdump</em> data files marked as having
+embedded attacks; </li><li> 5-fold cross validation evaluation is reported
+here. The process (training and testing) is repeated 5 times, each
+time using a different 80% of the normal data as the training data
+(and accordingly the different remaining 20% of the normal data as
+part of the test data), and the averaged accuracy of the classifiers
+from the 5 runs is reported.
+</li></ul>
+<p>
+We again applied RIPPER to the connection data. The resulting
+classifier characterizes the normal patterns of each service in terms
+of the connection features. When using the classifier on the testing
+data, the percentage of misclassifications on each <em>tcpdump</em> data
+set is reported. Here a misclassification is the situation where the
+the classifier predicts a destination service (according to the
+connection features) that is different from the actual. This
+misclassification rate should be very low for normal connection data
+and high for intrusion data. The intuition behind this classification
+model is straightforward: when intrusions take place, the features
+(characteristics) of connections to certain services, for example,
+<em>ftp</em>, are different from the normal traffic patterns (of the same
+service).
+</p><p>
+The results from the first round of experiments, as shown in
+Table&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#tcpdump_first">4</a>, were not very good: the differences in the
+misclassification rates of the normal and intrusion data were small,
+except for the <em>inter-LAN</em> traffic of some intrusions.
+<a name="tcpdump_first">&nbsp;</a>
+</p><div align="CENTER">
+<a name="185">&nbsp;</a>
+<table cellpadding="3" border="1">
+<caption><strong>Table 4:</strong>
+Misclassification Rate on Normal and Intrusion Data. Separate
+classifiers were trained and tested on connection data of each traffic
+type. "normal" is the 20% data set aside from the training
+data. No intrusion data was used for training.</caption>
+<tbody><tr valign="TOP"><td align="LEFT" nowrap="">&nbsp;</td>
+<td align="CENTER" nowrap="" colspan="3">% misclassification (by traffic type)</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">Data</td>
+<td align="CENTER" nowrap="">out-going</td>
+<td align="CENTER" nowrap="">in-coming</td>
+<td align="CENTER" nowrap="">inter-LAN</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">normal</td>
+<td align="CENTER" nowrap="">3.91%</td>
+<td align="CENTER" nowrap="">4.68%</td>
+<td align="CENTER" nowrap="">4%</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">intrusion1</td>
+<td align="CENTER" nowrap="">3.81%</td>
+<td align="CENTER" nowrap="">6.76%</td>
+<td align="CENTER" nowrap="">22.65%</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">intrusion2</td>
+<td align="CENTER" nowrap="">4.76%</td>
+<td align="CENTER" nowrap="">7.47%</td>
+<td align="CENTER" nowrap="">8.7%</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">intrusion3</td>
+<td align="CENTER" nowrap="">3.71%</td>
+<td align="CENTER" nowrap="">13.7%</td>
+<td align="CENTER" nowrap="">7.86%</td>
+</tr>
+</tbody></table></div>
+<br>
+<p>
+We then redesigned our set of features by adding some continuous and
+intensity measures into each connection record:
+</p><ul>
+<li> Examining all connections in the past <i>n</i> seconds, and counting
+the number of: connection establishment errors (e.g., "connection
+rejected"), all other types of errors (e.g., "disconnected"),
+connections to designated system services (e.g., <em>ftp</em>),
+connections to user applications, and connections to the same service
+as the current connection;
+</li><li> Calculate for the past <i>n</i> seconds, the per-connection average
+duration and data bytes (on both directions) of all connections, and
+the same averages of connections to the same service.
+</li></ul>
+<a name="tcpdump_second">&nbsp;</a>
+<div align="CENTER">
+<a name="198">&nbsp;</a>
+<table cellpadding="3" border="1">
+<caption><strong>Table 5:</strong>
+Using Temporal-Statistical Measures to Improve Classification
+Accuracy. Here the time interval is 30 seconds.</caption>
+<tbody><tr valign="TOP"><td align="LEFT" nowrap="">&nbsp;</td>
+<td align="CENTER" nowrap="" colspan="3">% misclassification (by traffic type)</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">Data</td>
+<td align="CENTER" nowrap="">out-going</td>
+<td align="CENTER" nowrap="">in-coming</td>
+<td align="CENTER" nowrap="">inter-LAN</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">normal</td>
+<td align="CENTER" nowrap="">0.88%</td>
+<td align="CENTER" nowrap="">0.31%</td>
+<td align="CENTER" nowrap="">1.43%</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">intrusion1</td>
+<td align="CENTER" nowrap="">2.54%</td>
+<td align="CENTER" nowrap="">27.37%</td>
+<td align="CENTER" nowrap="">20.48%</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">intrusion2</td>
+<td align="CENTER" nowrap="">3.04%</td>
+<td align="CENTER" nowrap="">27.42%</td>
+<td align="CENTER" nowrap="">5.63%</td>
+</tr>
+<tr valign="TOP"><td align="LEFT" nowrap="">intrusion3</td>
+<td align="CENTER" nowrap="">2.32%</td>
+<td align="CENTER" nowrap="">42.20%</td>
+<td align="CENTER" nowrap="">6.80%</td>
+</tr>
+</tbody></table></div>
+<br>
+<p>
+These additional temporal-statistical features provide additional
+information of the network activity from a continuous perspective, and
+provide more insight into anomalies. For example, a low rate of error
+due to innocent attempts and network glitches in a short time span is
+expected, but an excess beyond the (averaged) norm indicates anomalous
+activity. Table&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#tcpdump_second">5</a> shows the improvement of adding
+these features. Here, using a time interval of 30 seconds (i.e.,
+<i>n</i>=30<i>s</i>), we see that the misclassification rates on the intrusion
+data are much higher than the normal data, especially for the <em>
+in-coming</em> traffic. The RIPPER rule set (the classifier) has just 9
+rules and 25 conditions. For example, one rule says "if the average
+number of bytes from source to destination (of the connections to the
+same service) is 0, and the percentage of control packets in the
+current connection is 100%, then the service is <em>auth</em>".
+</p><div align="CENTER">
+<a name="time_window">&nbsp;</a><a name="206">&nbsp;</a>
+<table>
+<caption><strong>Figure 1:</strong>
+Effects of Window Sizes on Misclassification Rates</caption>
+<tbody><tr><td><img width="397" height="284" src="./LS98_files/time_window.gif" <="" td=""></td></tr>
+</tbody></table>
+</div><br>
+<p>
+To understand the effects of the time intervals on the
+misclassification rates, we ran the experiments using various time
+intervals: 5s, 10s, 30s, 60s, and 90s. The effects on the <em>
+out-going</em> and <em>inter-LAN</em> traffic were very small. However, as
+Figure&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#time_window">1</a> shows, for the <em>in-coming</em> traffic, the
+misclassification rates on the intrusion data increase dramatically as
+the time interval goes from 5s to 30s, then stabilizes or tapers off
+afterwards.
+</p><p></p><h3><a name="SECTION00022400000000000000">
+2.2.4 Discussion</a>
+</h3>
+We learned some important lessons from the experiments on the <em>
+tcpdump</em> data. First, when the collected data is not designed
+specifically for security purposes or can not be used directly to
+build a detection model, a considerable amount of (iterative) data
+pre-processing is required. This process fundamentally requires a lot
+of domain knowledge, and may not be easily automated. Second, in
+general, adding temporal-statistical features can improve the accuracy
+of the classification model.
+<p>
+There are also much needed improvements to our current approach:
+First, deciding upon the right set of features is difficult and time
+consuming. For example, many trials were attempted before we came up
+with the current set of features and time intervals. We need useful
+tools that can provide insight into the patterns that may be exhibited
+in the data. Second, we should provide tools that can help
+administrative staff understand the nature of the anomalies.
+</p><p></p><h2><a name="SECTION00023000000000000000">
+2.3 Combining Multiple Classifiers</a>
+</h2>
+<a name="combining">&nbsp;</a>The classifiers described in this section each models a single aspect
+of the system behavior. They are what we call the base (single level)
+classifiers. Combining evidence from multiple base classifiers that
+each models different aspect of the target system is likely to improve
+the effectiveness in detecting intrusions. For example, in addition to
+the classifier for network traffic (using <em>tcpdump</em> data), we can
+include the classifiers on the commands issued during the (connection)
+sessions of well-known services, e.g. <em>ftp</em>, <em>telnet</em> etc. The
+combined evidence of anomalous traffic patterns and session behavior
+leads to a more accurate assertion that the network is under attack. A
+priority in our research plan is to study and experiment with
+(inductively learned) classification models that combine evidence from
+multiple (base) detection models. The general approach in learning
+such a meta-detection model can be summarized as follows:
+<ul>
+<li> Build base classifiers that each models different aspect of the
+target system;
+</li><li> Formulate the meta learning task: each record in the training
+data is a collection of the evidence (generated at the same time
+period) from the base classifiers; each attribute value in a record is
+1 or 0, the prediction (evidence) from a base classifier that the
+modeled behavior is "normal" or "abnormal" (i.e., it fits the
+model or not).
+</li><li> Apply a learning algorithm to produce the meta classifier.
+</li></ul>
+<p>
+The meta detection model is actually a hierarchy of detection
+models. At the bottom, the base classifiers take audit data as input
+and output evidence to the meta classifier, which in turn outputs the
+final assertion.
+</p><p>
+Our research activities in JAM&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Stolfo_1997a">SPT+97</a>], which focus on the
+accuracy and efficiency of meta classifiers, will contribute
+significantly to our effort in building meta detection models.
+</p><p></p><h1><a name="SECTION00030000000000000000">
+3 Mining Patterns from Audit Data</a>
+</h1>
+<a name="algorithms">&nbsp;</a>In order to construct an accurate (effective) base classifier, we need
+to gather a sufficient amount of training data and identify a set of
+meaningful features. Both of these tasks require insight into the
+nature of the audit data, and can be very difficult without proper
+tools and guidelines. In this section we describe some algorithms that
+can address these needs. Here we use the term "audit data" to refer
+to general data streams that have been properly processed for
+detection purposes. An example of such data streams is the connection
+record data extracted from the raw <em>tcpdump</em> output.
+<p></p><h2><a name="SECTION00031000000000000000">
+3.1 Association Rules</a>
+</h2>
+<a name="association_rules">&nbsp;</a>The goal of mining association rules is to derive multi-feature
+(attribute) correlations from a database table. A simple yet
+interesting commercial application of the association rules algorithm
+is to determine what items are often purchased together by customers,
+and use that information to arrange store layout. Formally, given a
+set of records, where each record is a set of items, an association
+rule is an expression  <i>X</i> --&gt; <i>Y</i>, <i>confidence, support</i> [<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Srikant_1995">SA95</a>]. <i>X</i> and <i>Y</i> are
+subsets of the items in a record, <em>support</em> is the percentage
+of records that contain <i>X</i>+<i>Y</i>, whereas <em>confidence</em>
+is <em>support(X+Y)/support(X)</em>. For example, an association rule
+from the shell command history file (which is a stream of commands and
+their arguments) of a user is <p align="CENTER"> <em>trn</em> --&gt;
+<em>rec.humor; [0.3, 0.1],</em></p> which indicates that 30% of the
+time when the user invokes <i>trn</i>, he or she is reading the news
+in <i>rec</i>.<i>humor</i>, and reading this newsgroup accounts for
+10% of the activities recorded in his or her command history
+file. Here 0.3 is the <em> confidence</em> and 0.1 is the
+<i>support</i>.
+<p>
+The motivation for applying the association rules algorithm to audit
+data are:
+</p><ul>
+<li> Audit data can be formatted into a database table where each row
+is an audit record and each column is a field (system feature) of the
+audit records;
+</li><li> There is evidence that program executions and user activities
+exhibit frequent correlations among system features. For example, one
+of the reasons that "program policies", which codify the access
+rights of privileged programs, are concise and capable to detect
+known attacks&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Ko_1994">KFL94</a>] is that the intended behavior of a
+program, e.g., <i>read</i> and <i>write</i> files from certain directories
+with specific permissions, is very consistent. These consistent
+behaviors can be captured in association rules;
+</li><li> We can continuously merge the rules from a new run to the
+aggregate rule set (of all previous runs).
+</li></ul>
+<p>
+Our implementation follows the general association rules algorithm, as
+described in &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Srikant_Thesis">Sri96</a>].
+</p><p></p><h2><a name="SECTION00032000000000000000">
+3.2 Frequent Episodes</a>
+</h2>
+<a name="frequent_episodes">&nbsp;</a>While the association rules algorithm seeks to find intra- audit
+record patterns, the frequent episodes algorithm, as described in
+&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Mannila_1995">MTV95</a>], can be used to discover
+inter- audit record patterns. A frequent episode is a set of events
+that occur frequently within a time window (of a specified
+length). The events must occur (together) in at least a specified
+minimum frequency, <em>min_fr</em>, sliding time window. Events in a
+<i>serial</i> episode must occur in partial order in time; whereas for
+a <i>parallel</i> episode there is no such constraint. For <i>X</i>
+and <i>Y</i> where <i>X</i>+<i>Y</i> is a frequent episode, <i>X</i>
+--&gt; <i>Y</i> with
+<em>confidence</em>=<em>frequency(X+Y)/frequency(X)</em> and
+<i>support</i>=<i>frequency</i>(<i>X</i>+<i>Y</i>) is called a
+frequent episode rule. An example frequent serial episode rule from
+the log file of a department's Web site is <p align="CENTER">
+<em>home, research</em> --&gt; <em>theory; [0.2, 0.05], [30s]</em></p>
+which indicates that when the home page and the research guide are
+visited (in that order), in 20% of the cases the theory group's page
+is visited subsequently within the same 30s time window, and this
+sequence of visits occurs 5% of the total (the 30s) time windows in
+the log file (that is, approximately 5% of all the records).
+<p>
+We seek to apply the frequent episodes algorithm to analyze audit
+trails since there is evidence that the sequence information in
+program executions and user commands can be used to build profiles for
+anomaly detection&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Forrest_1996">FHSL96</a>,<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Lane_1997">LB97</a>]. Our implementation
+followed the description in &nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Mannila_1995">MTV95</a>].
+</p><p></p><h2><a name="SECTION00033000000000000000">
+3.3 Using the Discovered Patterns</a>
+</h2>
+The association rules and frequent episodes can be used to guide the
+audit process. We run a program many times and under different
+settings. For each new run, we compute its rule set (that consists of
+both the association rules and the frequent episodes) from the audit
+trail, and update the (existing) aggregate rule sets using the
+following <em>merge</em> process:
+<ul>
+<li> For each rule in the new rule set: find a match in the aggregate
+rule set. A match is defined as the exact matches on both the LHS and
+RHS of the rules, plus <em>epsilon</em> matches (using ranges), on the
+<i>support</i> (or <i>frequency</i>) and <i>confidence</i> values </li><li>
+If a match is found, increment the <em>match_count</em> of the
+matched rule in the aggregate rule set. Otherwise, add the new rule
+and initialize its <em>match_count</em> to be 1.
+</li></ul>
+<p>
+When the rule set stabilizes (there are no new rules added), we can
+stop the data gathering process since we have produced a near complete set
+of audit data for the normal runs. We then <em>prune</em> the rule set by
+eliminating the rules with low <em>match_count</em>, according to a
+user-defined threshold on the ratio of <em>match_count</em> over the total
+number of audit trails. The system builders can then use the
+correlation information in this final <em>profile</em> rule set to select
+a subset of the relevant features for the classification tasks. We
+plan to build a support environment to integrate the process of user
+selection of features, computing a classifier (according to the
+feature set), and presenting the performance of the classifier. Such
+a support system can speed up the iterative feature selection process,
+and help ensure the accuracy of a detection model.
+</p><p>
+We believe that the discovered patterns from (the extensively
+gathered) audit data can be used directly for anomaly detection. We
+compute a set of association rules and frequent episodes from a new
+audit trail, and compare it with the established <i>profile</i> rule
+set. Scoring functions can be used to evaluate the deviation scores
+for: missing rules with high <i>support</i>, violation (same antecedent
+but different consequent) of rules with high <i>support</i> and
+<i>confidence</i>, new (unseen) rules, and significant changes in
+<i>support</i> of rules.
+</p><p></p><h3><a name="SECTION00033100000000000000">
+3.3.1 <em>tcpdump</em> Data Revisited</a>
+</h3>
+We ran some preliminary experiments using our association rules and
+frequent episodes programs on the <em>tcpdump</em> data that was used in
+the experiments described in Section&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#tcpdump_experiments">2.2</a>.
+<div align="CENTER">
+<a name="time_window_fe">&nbsp;</a><a name="256">&nbsp;</a>
+<table>
+<caption><strong>Figure 2:</strong>
+Effects of Window Sizes on the Number of Frequent Episodes.</caption>
+<tbody><tr><td><img width="397" height="281" src="./LS98_files/time_window_fe.gif" <="" td=""></td></tr>
+</tbody></table>
+</div><br>
+<p>
+We wanted to study how the frequent episodes algorithm can help us
+determine the time window used in gathering temporal-statistical
+features. We ran the algorithm on the "normal" <em>in-coming</em>
+connection records (without the temporal-statistical features). We set
+the program to produce two types of output: <i>raw</i> serial and
+parallel episodes (no rules were generated) and serial episode
+rules. For <i>raw</i> episodes, we used <em>min_fr</em>=0.3. And for
+serial episode rules, we used <em>min_fr</em>=0.1 and
+<em>min_conf</em>=0.6 and 0.8. We used different time window sizes
+(<i>win</i>): 2s, 5s, 10s, 15s, 30s, 45s, 60s, 90s, 120s, 150s, and
+200s; and recorded the number of frequent episodes generated on each
+<i>win</i>. In Figure&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#time_window_fe">2</a>
+we see that the number of frequent episodes (<i>raw</i> episodes or
+serial episode rules) increases sharply as <i>win</i> goes from 2s to
+30s, it then gradually stabilizes (note that by the nature of the
+frequent episodes algorithm, the number of episodes can only increase
+as <i>win</i> increases). This phenomenon coincides with the trends in
+Figure&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#time_window">1</a>. Note that here we
+made the particular choice of the parameters (i.e., <em>min_fr</em>,
+<em>min_conf</em>) only for the purpose of controlling the maximum
+size of the episode rule set. Different settings exhibited the same
+phenomenon. We conjecture (and will verify with further experiments on
+other data sets) that we can use this technique to analyze data
+streams and automatically discover the most important temporal
+measure: the time window size, i.e., the period of time within which
+to measure appropriate statistical features to maximize classifier
+accuracy. Intuitively, the first requirement of a time window size is
+that its set of sequence patterns is stable, that is, sufficient
+patterns are captured and noise is small.
+</p><p>
+We also ran both the association rules and frequent episodes programs
+on all the <em>in-coming</em> connection data, and compared the rule sets
+from the normal data with the intrusion data. The purpose of this
+experiment was to determine how these programs can provide insight
+into the (possible) patterns of intrusions. The frequent episodes
+generated were serial episode rules with <i>win</i>=30<i>s</i>, <em>min_fr</em>=0.1 and <em>min_conf</em>=0.8. The associations rules were generated using
+<em>min_support</em>=0.3 and <em>min_confidence</em>=0.9. We manually
+examined and compared the rule sets to look for "unique" patterns
+that exist in the intrusion data (but not in the normal data). Here
+are some results:
+</p><dl>
+<dt><strong>intrusion1:</strong>
+</dt><dd>the unique serial rules are related to
+"ftp-data as the source application", for example,
+<blockquote>
+<em>src_srv</em> = "ftp-data", <em>src_srv</em> = "user-apps"
+ --&gt; <em>src_srv</em> = "ftp-data"; [0.96, 0.11], [30s]
+</blockquote>
+This rule means: when a connection with a user application as the
+source service follows a connection with <em>ftp-data</em>, 96% of
+the cases, a connection with <em>ftp-data</em> follows and falls into the
+same time window (30s); and this patterns occur 11% of the
+time. The unique association rules are related to "destination
+service is a user application", for example,
+<blockquote>
+<em>dst_srv</em> = "user-apps" --&gt; <em> duration</em> = 0,
+<em>dst_to_src_bytes</em> = 0; [0.9, 0.33]
+</blockquote>
+<p>
+This rule means: when the destination service of a connection is a
+user application, 90% of the cases, the duration and the number of
+data bytes from the destination to the source are both 0; and this
+pattern occurs 33% of the time.  </p></dd><dt><strong>intrusion2:</strong>
+</dt><dd>the results are nearly identical to <i>intrusion</i>1 in terms of
+the unique serial rules and association rules.
+</dd><dt><strong>intrusion3:</strong> </dt><dd>the unique serial rules are
+related to "auth as the destination service", for example,
+<blockquote>
+<em>dst_srv</em> = "auth" --&gt; <em>flag</em> = "unwanted_syn_ack";
+[0.82, 0.1], [30s] </blockquote> and
+<blockquote>
+<em>dst_srv</em> = "auth" --&gt; <em>dst_srv</em> = "user-apps",
+<em>dst_srv</em> = "auth"; [0.82, 0.1], [30s]
+</blockquote>
+<p>
+There are a significant number of unique association rules in regard
+to "smtp is the source application". Many of these rules
+suggest connection error of <em>smtp</em>, for example,
+</p><blockquote>
+<em>src_srv</em> = "smtp" --&gt; <em>duration</em> = 0, <em>
+flag</em> = "unwanted_syn_ack", <em>dst_srv</em> = "user-apps"; [1.0,
+0.38]
+</blockquote></dd></dl>
+<p>
+These rules may provide hints about the intrusions. For example, the
+unique (not normal) serial episodes in <i>intrusion</i>1 and
+<i>intrusion</i>2 reveal that there are a large number of <i>ftp</i> data
+transfer activities; whereas the unique serial episodes in
+<i>intrusion</i>3 suggest that a large number of connections to the
+<i>auth</i> service were attempted.
+</p><p></p><h1><a name="SECTION00040000000000000000">
+4 Architecture Support</a>
+</h1>
+<a name="architecture">&nbsp;</a>The biggest challenge of using data mining approaches in intrusion
+detection is that it requires a large amount of audit data in order to
+compute the profile rule sets. And the fact that we may need to
+compute a detection model for each resource in a target system makes
+the data mining task daunting. Moreover, this learning (mining)
+process is an integral and continuous part of an intrusion detection
+system because the rule sets used by the detection module may not be
+static over a long period of time. For example, as a new version of a
+system software arrives, we need to update the "normal" profile
+rules. Given that data mining is an expensive process (in time and
+storage), and real-time detection needs to be lightweight to be
+practical, we can't afford to have a monolithic intrusion detection
+system.
+<div align="CENTER">
+<a name="intrusion_detection_agent">&nbsp;</a><a name="297">&nbsp;</a>
+<table>
+<caption><strong>Figure 3:</strong>
+An Architecture for Agent-Based Intrusion Detection System</caption>
+<tbody><tr><td><img width="455" height="418" src="./LS98_files/architecture.gif" <="" td=""></td></tr>
+</tbody></table>
+</div><br>
+<p>
+We propose a system architecture, as shown in
+Figure&nbsp;<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#intrusion_detection_agent">3</a>, that includes two kinds of
+intelligent agents: the learning agents and the detection agents. A
+learning agent, which may reside in a server machine for its computing
+power, is responsible for computing and maintaining the rule sets for
+programs and users. It produces both the base detection models and the
+meta detection models. The task of a learning agent, to compute
+accurate models from very large amount of audit data, is an example of
+the "scale-up" problem in machine learning. We expect that our
+research in agent-based meta-learning systems&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Stolfo_1997a">SPT+97</a>] will
+contribute significantly to the implementation of the learning
+agents. Briefly, we are studying how to partition and dispatch data to
+a host of machines to compute classifiers in parallel, and re-import
+the remotely learned classifiers and combine an accurate (final)
+meta-classifier, a hierarchy of classifiers&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Chan_1993">CS93</a>].
+</p><p>
+A detection agent is generic and extensible. It is equipped with a
+(learned and periodically updated) rule set (i.e., a classifier) from
+the remote learning agent. Its detection engine "executes" the
+classifier on the input audit data, and outputs evidence of
+intrusions. The main difference between a base detection agent and the
+meta detection agent is: the former uses preprocessed audit data as
+input while the later uses the evidence from all the base detection
+agents. The base detection agents and the meta detection agent need
+not be running on the same host. For example, in a network
+environment, a meta agent can combine reports from (base) detection
+agents running on each host, and make the final assertion on the state
+of the network.
+</p><p>
+The main advantages of such a system architecture are:
+</p><ul>
+<li> It is easy to construct an intrusion detection system as a
+compositional hierarchy of generic detection agents.
+</li><li> The detection agents are lightweight since they can function
+independently from the heavyweight learning agents, in time and
+locale, so long as it is already equipped with the rule sets.
+</li><li> A detection agent can report new instances of intrusions by
+transmitting the audit records to the learning agent, which can in
+turn compute an updated classifier to detect such intrusions, and
+dispatch them to all detection agents. Interestingly, the capability
+to derive and disseminate anti-virus codes faster than the virus can
+spread is also considered a key requirement for anti-virus
+systems&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Kephart">KSSW97</a>].
+</li></ul><h1><a name="SECTION00050000000000000000">
+5 Conclusion and Future Work</a>
+</h1>
+<a name="conclusion">&nbsp;</a>In this paper we proposed a systemic framework that employs data
+mining techniques for intrusion detection. This framework consists of
+classification, association rules, and frequence episodes programs,
+that can be used to (automatically) construct detection models. The
+experiments on <em>sendmail</em> system call data and network <em>
+tcpdump</em> data demonstrated the effectiveness of classification models
+in detecting anomalies. The accuracy of the detection models depends
+on sufficient training data and the right feature set. We suggested
+that the association rules and frequent episodes algorithms can be
+used to compute the consistent patterns from audit data. These
+frequent patterns form an abstract summary of an audit trail, and
+therefore can be used to: guide the audit data gathering process;
+provide help for feature selection; and discover patterns of
+intrusions. Preliminary experiments of using these algorithms on the
+<em>tcpdump</em> data showed promising results.
+<p>
+We are in the initial stages of our research, much remains to be done
+including the following tasks:
+</p><ul>
+<li> Implement a support environment for system builders to
+iteratively drive the integrated process of pattern discovering,
+system feature selection, and construction and evaluation of detection
+models;
+</li><li> Investigate the methods and benefits of combining multiple
+simple detection models. We need to use multiple audit data streams for
+experiments;
+</li><li> Implement a prototype agent-based intrusion detection
+system. JAM&nbsp;[<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#Stolfo_1997a">SPT+97</a>] already provides a base
+infrastructure;
+</li><li> Evaluate our approach using extensive audit data sets, some of
+which is presently under construction at Rome Labs.
+</li></ul><h1><a name="SECTION00060000000000000000">
+6 Acknowledgments</a>
+</h1>
+We are very grateful to Stephanie Forrest and Steven A. Hofmeyr, both
+of University of New Mexico, for providing us with the system call
+data and explaining the details of their experiments. We also wish to
+thank Philip K. Chan of Florida Institute of Technology and David Wei
+Fan of Columbia University for their helpful advice.
+
+<h2><a name="SECTIONREF">References</a>
+</h2>
+<dl compact=""><p></p><dt><a name="Atkins_1996"><strong>ABH+96</strong></a>
+</dt><dd>
+D. Atkins, P. Buis, C. Hare, R. Kelley, C. Nachenberg, A. B. Nelson,
+  P. Phillips, T. Ritchey, and W. Steen.
+<br><em>Internet Security Professional Reference</em>.
+<br>New Riders Publishing, 1996.
+<p></p><p></p></dd><dt><a name="Bellovin"><strong>Bel89</strong></a>
+</dt><dd>
+S. M. Bellovin.
+<br>Security problems in the tcp/ip protocol suite.
+<br><em>Computer Communication Review</em>, 19(2):32-48, April 1989.
+<p></p><p></p></dd><dt><a name="Cohen_1995"><strong>Coh95</strong></a>
+</dt><dd>
+W. W. Cohen.
+<br>Fast effective rule induction.
+<br>In <em>Machine Learning: the 12th International Conference</em>, Lake
+  Taho, CA, 1995. Morgan Kaufmann.
+<p></p><p></p></dd><dt><a name="Chan_1993"><strong>CS93</strong></a>
+</dt><dd>
+P. K. Chan and S. J. Stolfo.
+<br>Toward parallel and distributed learning by meta-learning.
+<br>In <em>AAAI Workshop in Knowledge Discovery in Databases</em>, pages
+  227-240, 1993.
+<p></p><p></p></dd><dt><a name="Forrest_1996"><strong>FHSL96</strong></a>
+</dt><dd>
+S. Forrest, S. A. Hofmeyr, A. Somayaji, and T. A. Longstaff.
+<br>A sense of self for unix processes.
+<br>In <em>Proceedings of the 1996 IEEE Symposium on Security and
+  Privacy</em>, pages 120-128, Los Alamitos, CA, 1996. IEEE Computer Society
+  Press.
+<p></p><p></p></dd><dt><a name="Fayyad_1996b"><strong>FPSS96</strong></a>
+</dt><dd>
+U. Fayyad, G. Piatetsky-Shapiro, and P. Smyth.
+<br>The KDD process of extracting useful knowledge from volumes of
+  data.
+<br><em>Communications of the ACM</em>, 39(11):27-34, November 1996.
+<p></p><p></p></dd><dt><a name="Frank_1994"><strong>Fra94</strong></a>
+</dt><dd>
+J. Frank.
+<br>Artificial intelligence and intrusion detection: Current and future
+  directions.
+<br>In <em>Proceedings of the 17th National Computer Security
+  Conference</em>, October 1994.
+<p></p><p></p></dd><dt><a name="Hlms_90"><strong>HLMS90</strong></a>
+</dt><dd>
+R. Heady, G. Luger, A. Maccabe, and M. Servilla.
+<br>The architecture of a network level intrusion detection system.
+<br>Technical report, Computer Science Department, University of New
+  Mexico, August 1990.
+<p></p><p></p></dd><dt><a name="Ilgun_1995"><strong>IKP95</strong></a>
+</dt><dd>
+K. Ilgun, R. A. Kemmerer, and P. A. Porras.
+<br>State transition analysis: A rule-based intrusion detection approach.
+<br><em>IEEE Transactions on Software Engineering</em>, 21(3):181-199,
+  March 1995.
+<p></p><p></p></dd><dt><a name="Jacobson_1989"><strong>JLM89</strong></a>
+</dt><dd>
+V. Jacobson, C. Leres, and S. McCanne.
+<br>tcpdump.
+<br>available via anonymous ftp to ftp.ee.lbl.gov, June 1989.
+<p></p><p></p></dd><dt><a name="Ko_1994"><strong>KFL94</strong></a>
+</dt><dd>
+C. Ko, G. Fink, and K. Levitt.
+<br>Automated detection of vulnerabilities in privileged programs by
+  execution monitoring.
+<br>In <em>Proceedings of the 10th Annual Computer Security Applications
+  Conference</em>, pages 134-144, December 1994.
+<p></p><p></p></dd><dt><a name="Kumar_1995"><strong>KS95</strong></a>
+</dt><dd>
+S. Kumar and E. H. Spafford.
+<br>A software architecture to support misuse intrusion detection.
+<br>In <em>Proceedings of the 18th National Information Security
+  Conference</em>, pages 194-204, 1995.
+<p></p><p></p></dd><dt><a name="Kephart"><strong>KSSW97</strong></a>
+</dt><dd>
+J. O. Kephart, G. B. Sorkin, M. Swimmer, and S. R. White.
+<br>Blueprint for a computer immune system.
+<br>Technical report, IBM T. J. Watson Research Center, Yorktown Heights,
+  New York, 1997.
+<p></p><p></p></dd><dt><a name="Lane_1997"><strong>LB97</strong></a>
+</dt><dd>
+T. Lane and C. E. Brodley.
+<br>Sequence matching and learning in anomaly detection for computer
+  security.
+<br>In <em>AAAI Workshop: AI Approaches to Fraud Detection and Risk
+  Management</em>, pages 43-49. AAAI Press, July 1997.
+<p></p><p></p></dd><dt><a name="Lee_1997"><strong>LSC97</strong></a>
+</dt><dd>
+W. Lee, S. J. Stolfo, and P. K. Chan.
+<br>Learning patterns from unix process execution traces for intrusion
+  detection.
+<br>In <em>AAAI Workshop: AI Approaches to Fraud Detection and Risk
+  Management</em>, pages 50-56. AAAI Press, July 1997.
+<p></p><p></p></dd><dt><a name="Lunt_1992"><strong>LTG+92</strong></a>
+</dt><dd>
+T. Lunt, A. Tamaru, F. Gilham, R. Jagannathan, P. Neumann, H. Javitz,
+  A. Valdes, and T. Garvey.
+<br>A real-time intrusion detection expert system (IDES) - final
+  technical report.
+<br>Technical report, Computer Science Laboratory, SRI International,
+  Menlo Park, California, February 1992.
+<p></p><p></p></dd><dt><a name="Mannila_1995"><strong>MTV95</strong></a>
+</dt><dd>
+H. Mannila, H. Toivonen, and A. I. Verkamo.
+<br>Discovering frequent episodes in sequences.
+<br>In <em>Proceedings of the 1st International Conference on Knowledge
+  Discovery in Databases and Data Mining</em>, Montreal, Canada, August 1995.
+<p></p><p></p></dd><dt><a name="Paxon_97"><strong>Pax97</strong></a>
+</dt><dd>
+Vern Paxon.
+<br>End-to-end internet packet dynamics.
+<br>In <em>Proceedings of SIGCOMM '97</em>, September 1997.
+<p></p><p></p></dd><dt><a name="Paxon_98"><strong>Pax98</strong></a>
+</dt><dd>
+Vern Paxon.
+<br>Bro: A system for detecting network intruders in real-time.
+<br>In <em>Proceedings of the 7th USENIX Security Symposium</em>, San
+  Antonio, TX, 1998.
+<p></p><p></p></dd><dt><a name="Porras_98"><strong>PV98</strong></a>
+</dt><dd>
+Phillip A. Porras and Alfonso Valdes.
+<br>Live traffic analysis of tcp/ip gateways.
+<br>In <em>Proceedings of the Internet Society Symposium on Network and
+  Distributed System Security</em>, March 1998.
+<p></p><p></p></dd><dt><a name="Srikant_1995"><strong>SA95</strong></a>
+</dt><dd>
+R. Srikant and R. Agrawal.
+<br>Mining generalized association rules.
+<br>In <em>Proceedings of the 21st VLDB Conference</em>, Zurich,
+  Switzerland, 1995.
+<p></p><p></p></dd><dt><a name="Stolfo_1997a"><strong>SPT+97</strong></a>
+</dt><dd>
+S. J. Stolfo, A. L. Prodromidis, S. Tselepis, W. Lee, D. W. Fan, and P. K.
+  Chan.
+<br>Jam: Java agents for meta-learning over distributed databases.
+<br>In <em>Proceedings of the 3rd International Conference on Knowledge
+  Discovery and Data Mining</em>, pages 74-81, Newport Beach, CA, August 1997.
+  AAAI Press.
+<p></p><p></p></dd><dt><a name="Srikant_Thesis"><strong>Sri96</strong></a>
+</dt><dd>
+R. Srikant.
+<br><em>Fast Algorithms for Mining Association Rules and Sequential
+  Patterns</em>.
+<br>PhD thesis, University of Wisconsin - Madison, 1996.
+<p></p><p></p></dd><dt><a name="Stevens_1994"><strong>Ste84</strong></a>
+</dt><dd>
+W. R. Stevens.
+<br><em>TCP/IP Illustrated</em>, volume 1.
+<br>Addison-Wesley Publishing Company, 1984.
+</dd></dl>
+
+<hr>
+<h2><a name="SECTIONNOTE">Footnotes</a>
+</h2>
+<dl>
+<dt><a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#TITLE">1</a><a name="5">...Detection</a>
+</dt><dd>This
+research is supported in part by grants from DARPA (F30602-96-1-0311)
+and NSF (IRI-96-32225 and CDA-96-25374)
+<p></p></dd><dt><a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/full_papers/lee/lee_html/lee.html#shootout">2</a><a name="152">...intrusions</a>
+</dt><dd>Note that, to this date, the organizers of
+the shootout have not provided us with information, i.e., the times,
+targets, and actions, of these network intrusions.
+<p></p></dd></dl><br>
+
+
+
+<!-- END OF PAGE CONTENTS -->
+</td></tr>
+</tbody></table>
+<hr>
+<table border="0" width="100%" cellspacing="0" cellpadding="0" align="LEFT">
+<tbody><tr><td valign="TOP" width="40%">
+<address>
+<font size="2">This paper was originally published in the
+Proceedings of the 7th USENIX Security Symposium,
+January 26-29, 1998,
+San Antonio, Texas
+
+</font><br>
+<!-- EDIT THE DATE AND YOUR LOGIN NAME BELOW -->
+<font size="2">Last changed: 12 April 2002 aw</font><br>
+</address>
+</td><td valign="TOP" align="RIGHT" width="60%">
+
+
+<!-- Upwards Navigation Table -->
+<table border="0" cellspacing="0" cellpadding="0">
+<tbody><tr><td>
+<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/technical.html"><img src="./LS98_files/blueball.gif" width="16" align="top" height="16" alt="" border="0"><font size="1">Technical Program</font></a><br>
+
+<a href="https://www.usenix.org/legacy/publications/library/proceedings/sec98/full_papers/index.html"><img src="./LS98_files/blueball.gif" width="16" align="top" height="16" alt="" border="0"><font size="1">Conference Index</font></a><br>
+
+<a href="https://www.usenix.org/legacy/index.html"><img src="./LS98_files/blueball.gif" width="16" align="top" height="16" alt="" border="0"><font size="1">USENIX home</font></a><br>
+</td></tr></tbody></table>
+<!-- End of Upwards Navigation Table -->
+
+</td></tr></tbody></table>
+<script type="text/javascript">window.NREUM||(NREUM={});NREUM.info={"beacon":"bam.nr-data.net","licenseKey":"d823139095","applicationID":"509444","transactionName":"YVJVZksCXkEEVhIMWFgYdlFNCl9cSkAVAFlfT2hAXAdZQABWEhZoWFhDbV8MRVwB","queueTime":0,"applicationTime":193,"atts":"TRVWEAMYTU8=","errorBeacon":"bam.nr-data.net","agent":""}</script>
+
+</body></html>
