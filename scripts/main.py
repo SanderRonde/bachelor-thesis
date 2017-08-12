@@ -44,7 +44,7 @@ io = IO({
 BATCH_SIZE = 32
 SPEED_REPORTING_SIZE = 1000
 MAX_HIGHEST_OFFENDERS = 10
-GROUP_LENGTH = 32
+ANOMALY_HISTORY = 31
 
 # Global variables/functions
 EPOCHS = io.get('epochs')
@@ -58,9 +58,12 @@ logline, debug, error, log_to_folder_done = logline_to_folder(folder_loc=io.get(
 T = TypeVar('T')
 
 if io.run:
-    from keras.layers.core import Dense
+    import tensorflow as tf
+    import keras
+    from keras.layers.core import Dense, Dropout
     from keras.layers.recurrent import LSTM
     from keras.models import Sequential
+    from keras.losses import MSE
 
 plt.switch_backend('agg')
 
@@ -152,108 +155,69 @@ class FeatureDescriptor:
 
 
 FEATURE_SIZE = features.size()
-LAYERS = [FEATURE_SIZE, 128, 128, FEATURE_SIZE]
+LAYERS = [FEATURE_SIZE, FEATURE_SIZE, FEATURE_SIZE, FEATURE_SIZE]
 
 
-def create_anomaly(start: int, end: int, train_len: int, dataset: FEATURE_SET) -> Dict[str, Union[int, List[float]]]:
+def create_anomaly(start: int = None, end: int = None, train_len: int = None, dataset: FEATURE_SET = None,
+                   predicted: List[float] = None, actual: List[float] = None) -> Dict[str, Union[int, List[float]]]:
+    if None in [start, end, train_len, dataset, predicted, actual]:
+        error('One of create_anomaly\'s arguments was not supplied')
+        sys.exit(2)
+
     final_row = dataset[end - 1]
     return {
         "start": start + train_len,
         "end": end + train_len,
-        "final_row_features": final_row
+        "final_row_features": final_row,
+        "predicted": predicted,
+        "actual": actual
     }
 
 
-class LossesGroup:
-    def __init__(self, first_loss: float, is_anomaly: bool):
-        self.losses = [first_loss]
-        self.anomalies = 1 if is_anomaly else 0
-
-    @property
-    def length(self):
-        return len(self.losses)
-
-    def append(self, loss: float):
-        self.losses.append(loss)
-
-    def add_anomaly(self):
-        self.anomalies += 1
+def rnn_model(batch_size=BATCH_SIZE):
+    model = Sequential()
+    model.add(LSTM(LAYERS[1], input_shape=(LAYERS[0], 1), batch_size=batch_size,
+                   return_sequences=True, stateful=True))
+    model.add(LSTM(LAYERS[2], return_sequences=False, stateful=True))
+    model.add(Dense(LAYERS[3]))
+    model.compile(loss='mean_squared_error', optimizer='adam')
+    return model
 
 
-class LossesGroupMetadata:
-    def __init__(self, anomaly_score: float, start: int, end: int):
-        self.anomaly_score = anomaly_score
-        self.start = start
-        self.end = end
+def prepare_data(training_data: FEATURE_SET, test_data: FEATURE_SET = None):
+    """Prepares given datasets for insertion into the model"""
+
+    if len(training_data) == 1:
+        error('Training data is not big enough', training_data, test_data)
+    assert len(training_data) > 1, "Training data is longer than 1, (is %d)" % len(training_data)
+    if test_data is not None:
+        assert len(test_data) > 1, "Test data is longer than 1, (is %d)" % len(test_data)
+
+    train_x = np.array(training_data[:-1])
+    train_y = np.array(training_data[1:])
+
+    train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], 1))
+
+    if test_data is not None:
+        test_x = np.array(test_data[:-1])
+        test_y = np.array(test_data[1:])
+
+        test_x = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], 1))
+
+        return train_x, train_y, test_x, test_y
+    return train_x, train_y
 
 
-class RNNModel:
-    """An RNN"""
+class TrainingSession:
+    """A training session featuring a RNN with batch_size BATCH_SIZE"""
 
-    def __init__(self, group_size=GROUP_LENGTH):
-        model = Sequential()
-        model.add(LSTM(LAYERS[1], input_shape=(FEATURE_SIZE, 1), batch_size=BATCH_SIZE,
-                       return_sequences=True, stateful=True))
-        model.add(LSTM(LAYERS[2], return_sequences=False, stateful=True))
-        model.add(Dense(LAYERS[3]))
-        model.compile(loss='mean_squared_error', optimizer='adam')
-
+    def __init__(self, model, batch_size=BATCH_SIZE):
         self.model = model
-        self.group_size = group_size
+        self.batch_size = batch_size
 
         self._starting_weights = list()
         for i in range(len(model.layers)):
             self._starting_weights.append(model.layers[i].get_weights())
-
-    @staticmethod
-    def prepare_data(training_data: FEATURE_SET, test_data: FEATURE_SET = None):
-        """Prepares given datasets for insertion into the model"""
-
-        if len(training_data) == 1:
-            error('Training data is not big enough', training_data, test_data)
-        assert len(training_data) > 1, "Training data is longer than 1, (is %d)" % len(training_data)
-        if test_data is not None:
-            assert len(test_data) > 1, "Test data is longer than 1, (is %d)" % len(test_data)
-
-        train_x = np.array(training_data[:-1])
-        train_y = np.array(training_data[1:])
-
-        train_x = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], 1))
-
-        if test_data is not None:
-            test_x = np.array(test_data[:-1])
-            test_y = np.array(test_data[1:])
-
-            max_groups = len(test_x) + 1 - BATCH_SIZE
-
-            x_groups = list()
-            y_groups = list()
-
-            for i in range(len(test_x)):
-                if i < max_groups:
-                    x_groups.append([test_x[i]])
-                    y_groups.append([test_y[i]])
-
-                for j in range(len(x_groups)):
-                    if len(x_groups[j]) < BATCH_SIZE:
-                        x_groups[j].append(test_x[i])
-                        y_groups[j].append(test_y[i])
-
-            # Serialize the groups
-            test_x = list()
-            test_y = list()
-
-            for i in range(len(x_groups)):
-                test_x = test_x + x_groups[i]
-                test_y = test_y + y_groups[i]
-
-            test_x = np.array(test_x)
-            test_y = np.array(test_y)
-
-            test_x = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], 1))
-
-            return train_x, train_y, test_x, test_y
-        return train_x, train_y
 
     def reset(self, reset_weights=True):
         if reset_weights:
@@ -264,33 +228,60 @@ class RNNModel:
     def fit(self, train_x, train_y, epochs: int = 10):
         """Fits the model to given training data"""
 
+        self.model.reset_states()
+
+        verbosity = 1 if VERBOSE_RUNNING else 0
         for i in range(epochs):
-            global VERBOSE_RUNNING
-            if VERBOSE_RUNNING:
-                logline("Epoch", i, '/', epochs)
-            verbosity = 0
-            if VERBOSE_RUNNING:
-                verbosity = 1
-            self.model.fit(train_x, train_y, batch_size=BATCH_SIZE,
-                           epochs=1, verbose=verbosity, shuffle=False)
-            if not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE or i != epochs - 1:
-                self.model.reset_states()
+            logline('Epoch ', i + 1, '/', epochs, spaces_between=False)
+            self.model.fit(train_x, train_y, batch_size=self.batch_size, epochs=1,
+                           verbose=verbosity, shuffle=False)
+            self.model.reset_states()
 
-    def test(self, test_x, test_y) -> List[LossesGroupMetadata]:
+
+class TestLoss:
+    def __init__(self, loss: float, prediction: List[float], actual: List[float]):
+        self.loss = loss
+        self.prediction = prediction
+        self.actual = actual
+
+
+class TestSession:
+    """A testing session for an RNN with batch_size 1"""
+
+    def __init__(self, model):
+        self.model = model
+        self.batch_size = 1
+
+        self._starting_weights = list()
+        for i in range(len(model.layers)):
+            self._starting_weights.append(model.layers[i].get_weights())
+
+    def reset(self, reset_weights=True):
+        if reset_weights:
+            for i in range(len(self.model.layers)):
+                self.model.layers[i].set_weights(self._starting_weights[i])
+        self.model.reset_states()
+
+    def test(self, test_x, test_y) -> List[TestLoss]:
         """Predicts the result for given test data"""
+        if not GIVE_TEST_SET_PREVIOUS_KNOWLEDGE:
+            self.model.reset_states()
+
         losses = list()
+        for i in range(len(test_x)):
+            prediction = self.model.predict(test_x[i], batch_size=self.batch_size, verbose=0)
+            actual = test_y[i]
 
-        assert len(test_x) % BATCH_SIZE == 0, 'Dataset should be divisible by batch size'
-        for i in range(round(len(test_x) / BATCH_SIZE)):
-            losses.append(self.model.evaluate(test_x[i*BATCH_SIZE:(i+1)*BATCH_SIZE],
-                                              test_y[i*BATCH_SIZE:(i+1)*BATCH_SIZE],
-                                              batch_size=BATCH_SIZE, verbose=0))
+            loss = MSE(actual, prediction)
+            losses.append(TestLoss(loss, prediction, actual))
 
-        groups = list()
-        for i in range(len(losses)):
-            groups.append(LossesGroupMetadata(losses[i], i, i + BATCH_SIZE))
+        return losses
 
-        return groups
+
+class Session:
+    def __init__(self, train: TrainingSession, test: TestSession):
+        self.train = train
+        self.test = test
 
 
 def abs_ratio(a: float, b: float) -> float:
@@ -321,7 +312,7 @@ def get_iqr_distance(inter_quartile_range: float, q3: float, value: float) -> fl
 class UserNetwork:
     """The class describing a single model and all its corresponding data"""
 
-    def __init__(self, model: RNNModel, data: Dataset, epochs: int = 10):
+    def __init__(self, training_model: TrainingSession, test_model: TestSession, data: Dataset, epochs: int = 10):
         """Creates a new set of networks"""
 
         self.user_name = data.user_name
@@ -330,39 +321,47 @@ class UserNetwork:
             "epochs": epochs
         }
 
-        self.model = model
-        self.model.reset()
+        self.train_model = training_model
+        self.test_model = test_model
 
-    def get_losses(self, x: np.ndarray, y: np.ndarray) -> List[LossesGroupMetadata]:
-        return self.model.test(x, y)
+        self.train_model.reset()
+        self.test_model.reset()
+
+    def sync_models(self):
+        # Sync weights
+        self.test_model.model.set_weights(self.train_model.model.get_weights())
 
     def find_anomalies(self) -> List[Dict[str, Union[int, List[float]]]]:
         # Train the network first
-        train_x, train_y, test_x, test_y = RNNModel.prepare_data(self.dataset.training, test_data=self.dataset.test)
-        self.model.fit(train_x, train_y, epochs=self.config["epochs"])
+        train_x, train_y, test_x, test_y = prepare_data(self.dataset.training, test_data=self.dataset.test)
+        self.train_model.fit(train_x, train_y, epochs=self.config["epochs"])
 
         logline("\n")
+        logline('Syncing models')
+        self.sync_models()
         logline("Checking losses on test set...")
-        test_losses = self.get_losses(test_x, test_y)
+        test_losses = self.test_model.test(test_x, test_y)
         logline("Done checking losses on test set\n")
 
         anomalies = list()
 
-        only_losses = list(map(lambda x: x.anomaly_score, test_losses))
-
         # Interquartile range
-        inter_quartile_range, q3 = iqr(only_losses)
+        inter_quartile_range, q3 = iqr(list(map(lambda x: x.loss, test_losses)))
 
-        PLOTS["LOSSES"][self.user_name] = only_losses
+        PLOTS["LOSSES"][self.user_name] = test_losses
         PLOTS["IQRS"][self.user_name] = inter_quartile_range
         PLOTS["IQR_MAXES"][self.user_name] = q3 + (1.5 * inter_quartile_range)
 
         for i in range(len(test_losses)):
             test_loss = test_losses[i]
-            iqr_distance = get_iqr_distance(inter_quartile_range, q3, test_loss.anomaly_score)
+            iqr_distance = get_iqr_distance(inter_quartile_range, q3, test_loss.loss)
             if iqr_distance > 1.5:
-                anomaly = create_anomaly(test_loss.start, test_loss.end, len(train_x),
-                                         test_y)
+                anomaly = create_anomaly(start=i - ANOMALY_HISTORY,
+                                         end=i + 1,
+                                         dataset=test_y,
+                                         train_len=len(train_x),
+                                         actual=test_loss.actual,
+                                         predicted=test_loss.prediction)
                 anomalies.append(anomaly)
 
                 PLOTS["DEVIATIONS"].append({
@@ -374,9 +373,9 @@ class UserNetwork:
         return anomalies
 
 
-def find_anomalies(model: RNNModel, data: Dataset) -> List[Dict[str, Union[int, List[float]]]]:
+def find_anomalies(session: Session, data: Dataset) -> List[Dict[str, Union[int, List[float]]]]:
     """Finds anomalies in given data"""
-    network = UserNetwork(model, data, epochs=EPOCHS)
+    network = UserNetwork(session.train, session.test, data, epochs=EPOCHS)
     anomalies = network.find_anomalies()
     return anomalies
 
@@ -442,7 +441,7 @@ def get_mean(data_list: List[Dict[str, Union[str, float]]]) -> float:
     return total / len(data_list)
 
 
-def data_points_for_users(highest_offenders: List[Dict[str, Union[str, float]]],
+def data_points_for_users(highest_offenders: List[Dict[str, Union[str, float, Dict[str, Union[str, float]]]]],
                           data: Dict[str, float], key: str = None) -> Dict[str, Dict[str, float]]:
     match_dict = dict()
     for i in range(len(highest_offenders)):
@@ -611,7 +610,7 @@ def open_users_list():
     return divided
 
 
-def do_detection(model: RNNModel, users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]
+def do_detection(session: Session, users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]
                  ) -> Dict[str, List[Dict[str, int]]]:
     logline('Calculating total dataset size')
     total_samples = 0
@@ -635,7 +634,7 @@ def do_detection(model: RNNModel, users_list: List[Dict[str, Union[str, Dict[str
         current_user = Dataset(user)
 
         try:
-            anomalies = find_anomalies(model, current_user)
+            anomalies = find_anomalies(session, current_user)
             if len(anomalies) > 0:
                 all_anomalies[current_user.user_name] = anomalies
             tested_users += 1
@@ -666,13 +665,16 @@ def main():
     users_list = open_users_list()
 
     try:
-        logline("Setting up generic model...")
-        model = RNNModel()
+        logline("Setting up generic models...")
+        train_model = TrainingSession(rnn_model())
+        test_model = TestSession(rnn_model(batch_size=1))
+
+        session = Session(train_model, test_model)
     except tf.errors.InternalError:
         error("No GPU is currently available for you, aborting")
         raise
 
-    all_anomalies = do_detection(model, users_list)
+    all_anomalies = do_detection(session, users_list)
 
     logline("Done checking users, outputting results now")
 
@@ -703,8 +705,11 @@ def main():
             output_file = output_file[0:-5] + '.part.' + str(io.get('start')) + '.' + str(io.get('end')) + '.json'
         logline("Outputting results to", output_file)
         with open(output_file, 'w') as out_file:
-            debug('All_anomalies is', all_anomalies)
-            out_file.write(json.dumps(all_anomalies, cls=NumpyEncoder))
+            try:
+                out_file.write(json.dumps(all_anomalies, cls=NumpyEncoder))
+            except Exception:
+                error('Could not write to output for some reason, printing instead')
+                debug('All_anomalies is', all_anomalies)
 
     logline("Done, closing files and stuff")
 
