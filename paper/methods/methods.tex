@@ -30,19 +30,28 @@ The dataset from~\cite{akent-2015-enterprise-data} contains a number of differen
 			1     & dest users delta       & 1 if a previously unvisited destination user was accessed, 0 otherwise     \\
 			2     & src computers delta    & 1 if a previously unvisited source computer was accessed, 0 otherwise      \\
 			3     & dest computers delta   & 1 if a previously unvisited destination computer was accessed, 0 otherwise \\
-			4     & src computer           & The current source computer                                                \\
-			5     & dest computer          & The current destination computer                                           \\
-			6     & time since last access & The time (in seconds) since the last time any network activity occurred    \\
-			7     & auth type              & What type of authentication type was used (one of enum)                    \\
-			8     & logon type             & What type of logon type was used (one of enum)                             \\
-			9     & auth orientation       & What type of authentication orientation was used (one of enum)             \\
-			10    & success or failure     & 1 if the login succeeded, 0 if it didn't                                  
+			4     & time since last access & The time (in seconds) since the last time any network activity occurred    \\
+			5     & auth type              & What type of authentication type was used (one of enum)                    \\
+			6     & logon type             & What type of logon type was used (one of enum)                             \\
+			7     & auth orientation       & What type of authentication orientation was used (one of enum)             \\
+			8    & success or failure     & 1 if the login succeeded, 0 if it didn't                                  
 		\end{tabular}
 	}
 \end{table}
 
 \section{Features}
-Because the raw data has some unneeded values, some that need to be transformed, and some that need to be added, features are made from the original rows. Because increasing the amount of features has a big performance impact, keeping the amount of features low, while still making sure the most important features are extracted is very important. The features are taken from the actions of one user over the whole dataset. For the features see table~\ref{tab:features}.
+Because the raw data has some unneeded values, some that need to be transformed, and some that need to be added, features are made from the original rows. Because increasing the amount of features has a big performance impact, keeping the amount of features low, while still making sure the most important features are extracted is very important. The features are taken from the actions of one user over the whole dataset. For the features see table~\ref{tab:features}. All enum values (indexes 5,6,7) have been encoded using 1-of-encoding (see table~\ref{tab:one_of_encoding} for an example), ensuring the values remain nominal. This gives each possible value a single spot in a vector, setting it to 1 only if that value is true, and setting the rest to 0. This allows the network to make individual predictions for every possible enum value instead of possibly assigning them a real value. This brings the total number of the feature vector up to 33 (11, 9 and 6 possible values for the enums respectively).
+
+\begin{table}[]
+	\centering
+	\caption{One of encoding}\label{one_of_encoding}
+	\begin{tabular}{llll}
+	Value & A & B & C \\ \midrule
+	1     & 1 & 0 & 0 \\
+	2     & 0 & 1 & 0 \\
+	3     & 0 & 0 & 1
+	\end{tabular}
+\end{table}
 
 The features have been chosen to fill the values that the network will probably be using. For example the network is unlikely to keep track of a list of every computer the user logged in to, but would probably be interested in knowing whether the user logged in to a new computer. Additionally the network is unlikely to subtract the previous action's timestamp from the current timestamp, but will probably be interested in knowing the time since the last action to see whether the user is doing lots of operations at once, is doing actions at a normal human speed, or if they're barely doing anything.
 
