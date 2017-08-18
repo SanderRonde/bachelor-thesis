@@ -1,15 +1,15 @@
 \chapter{Methods}\label{ch:methods}
 
-In a dataset as big as the one that is being used, there is a lot of information that is very essential but not included by default in a row (such as whether the user connected to an unvisited computer), while there is also some data that is completely useless by default (text data that the network can't handle as a vector). This is the reason for the data being turned into so-called features. These features are then sent to the network to learn after being split into a training and test set. 
-Because users behave very differently in the dataset (and every big network), the decision was made to train one network per user. The possibility of using one network for all users was explored, but this introduced some problems like the amount of actions for all users not being the same, the network moving to recognize the median values, and simple performance reasons. After training on the training set, the network then runs on the test set. A list is then composed containing the differences between the expected and actual values. Any items in this list that deviate too much from the median are then labeled as anomalies.
+In a data set as big as the one that is being used, there is a lot of information that is very essential but not included by default in a row (such as whether the user connected to an unvisited computer), while there is also some data that is completely useless by default (text data that the network can't handle as a vector). This is the reason for the data being turned into so-called features. These features are then sent to the network to learn after being split into a training and test set. 
+Because users behave very differently in the data set (and every big network), the decision was made to train one network per user. The possibility of using one network for all users was explored, but this introduced some problems like the amount of actions for all users not being the same, the network moving to recognize the median values, and simple performance reasons. After training on the training set, the network then runs on the test set. A list is then composed containing the differences between the expected and actual values. Any items in this list that deviate too much from the median are then labeled as anomalies.
 
 %cSpell:words akent
 \section{Data}
-The dataset from~\cite{akent-2015-enterprise-data} contains a number of different types of data, as described in the introduction. For this thesis we will only be using the authentication data as that is by far the largest dataset at 1,648,275,307 events. The dataset has a total of 12,425 users over 17,684 computers and spans 58 consecutive days. The data was entirely anonymized in addition to the timeframe at which it was captured not being disclosed. The data format can be seen in table~\ref{tab:data}
+The data set from~\cite{akent-2015-enterprise-data} contains a number of different types of data, as described in the introduction. For this thesis we will only be using the authentication data as that is by far the largest data set at 1,648,275,307 events. The data set has a total of 12,425 users over 17,684 computers and spans 58 consecutive days. The data was entirely anonymized in addition to the time frame at which it was captured not being disclosed. The data format can be seen in table~\ref{tab:data}
 
-\begin{table}[]
+\begin{table}[htbp]
 	\centering
-	\caption{The dataset structure}\label{tab:data}
+	\caption{The data set structure}\label{tab:data}
 	\resizebox{\linewidth}{!}{
 		\begin{tabular}{lllllllll}
 			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
@@ -20,7 +20,7 @@ The dataset from~\cite{akent-2015-enterprise-data} contains a number of differen
 	}
 \end{table}
 
-\begin{table}[]
+\begin{table}[htbp]
 	\centering
 	\caption{The features}\label{tab:features}
 	\resizebox{\linewidth}{!}{
@@ -39,12 +39,9 @@ The dataset from~\cite{akent-2015-enterprise-data} contains a number of differen
 	}
 \end{table}
 
-\section{Features}
-Because the raw data has some unneeded values, some that need to be transformed, and some that need to be added, features are made from the original rows. Because increasing the amount of features has a big performance impact, keeping the amount of features low, while still making sure the most important features are extracted is very important. The features are taken from the actions of one user over the whole dataset. For the features see table~\ref{tab:features}. All enum values (indexes 5,6,7) have been encoded using 1-of-encoding (see table~\ref{tab:one_of_encoding} for an example), ensuring the values remain nominal. This gives each possible value a single spot in a vector, setting it to 1 only if that value is true, and setting the rest to 0. This allows the network to make individual predictions for every possible enum value instead of possibly assigning them a real value. This brings the total number of the feature vector up to 33 (11, 9 and 6 possible values for the enums respectively).
-
-\begin{table}[]
+\begin{table}[htbp]
 	\centering
-	\caption{One of encoding}\label{one_of_encoding}
+	\caption{One of encoding}\label{tab:one_of_encoding}
 	\begin{tabular}{llll}
 	Value & A & B & C \\ \midrule
 	1     & 1 & 0 & 0 \\
@@ -53,7 +50,10 @@ Because the raw data has some unneeded values, some that need to be transformed,
 	\end{tabular}
 \end{table}
 
-The features have been chosen to fill the values that the network will probably be using. For example the network is unlikely to keep track of a list of every computer the user logged in to, but would probably be interested in knowing whether the user logged in to a new computer. Additionally the network is unlikely to subtract the previous action's timestamp from the current timestamp, but will probably be interested in knowing the time since the last action to see whether the user is doing lots of operations at once, is doing actions at a normal human speed, or if they're barely doing anything.
+\section{Features}
+Because the raw data has some unneeded values, some that need to be transformed, and some that need to be added, features are made from the original rows. Because increasing the amount of features has a big performance impact, keeping the amount of features low, while still making sure the most important features are extracted is very important. The features are taken from the actions of one user over the whole data set. For the features see table~\ref{tab:features}. All enum values (indexes 5,6,7) have been encoded using 1-of-encoding (see table~\ref{tab:one_of_encoding} for an example), ensuring the values remain nominal. This gives each possible value a single spot in a vector, setting it to 1 only if that value is true, and setting the rest to 0. This allows the network to make individual predictions for every possible enum value instead of possibly assigning them a real value. This brings the total number of the feature vector up to 33 (11, 9 and 6 possible values for the enums respectively).
+
+The features have been chosen to fill the values that the network will probably be using. For example the network is unlikely to keep track of a list of every computer the user logged in to, but would probably be interested in knowing whether the user logged in to a new computer. Additionally the network is unlikely to subtract the previous action's time stamp from the current time stamp, but will probably be interested in knowing the time since the last action to see whether the user is doing lots of operations at once, is doing actions at a normal human speed, or if they're barely doing anything.
 
 \section{Preprocessing}
 Not all users are can be used for training/testing. This is because some users have so little actions that no reasonable predictions can be made for them. The minimal amount of actions was chosen to be 150. Any users having more than 150 actions are used for training/testing. In order to have both a training and test set for every user, the data is split up. 70\% is used for training and 30\% is used for the test set. This is done separately for every user, making sure that each user has the same 70--30 split. The network expects only real-valued numbers from the range [0,1], however because the features contain integer values, these values have to be normalized to fit into the range. This is done by taking the maximum value for every column and dividing every value in that column by that maximum, linearly scaling every value down to the range [0,1]. This is done by applying the formula below to every row, where \(x\) is the old row and \(x'\) is the new row:
@@ -74,6 +74,7 @@ After training, the network is applied to the test set. There is a limitation re
 The losses from all of the test data is then collected, after which the interquartile range (IQR) is calculated. The IQR function attempts to find statistical outliers based on the median values of a distribution. This is done by calculating the medians of both the upper and lower half of a distribution, who are then called Q1 and Q3 respectively. The IQR is then equal to \(Q3 - Q1\). Any values that lay outside of the ranges of the following functions, where \(x\) is the input value, are then called outliers.
 
 \( x < Q1 - 1.5 IQR \)
+\\
 \( x > Q3 + 1.5 IQR \)
 
 In practice however, the first form of outlier will almost never be found, as that would mean an action so perfectly fits the user, it is an anomaly, which is very unlikely to point to actual anomalous behavior.
