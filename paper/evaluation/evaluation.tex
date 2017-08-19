@@ -50,3 +50,73 @@ Taking a look at the time since the last network access for the top 10 highest o
 %TODO: maybe not?
 Figure~\ref{fig:percentage_failed_logins} shows the percentage of failed logins of all actions made by the top 10 highest offending users. This figure also shows some users with percentages that lie very far from the box plot's average. As this value is a percentage over all their logins it has to rise slowly. This is why there are no sudden jumps and why the outliers are still outliers even if they were made over lots of actions.
 
+\begin{table}[htbp]
+	\centering
+	\caption{The predicted features vs the actual features of the top offender}\label{tab:predicted_vs_actual}
+	\resizebox{\linewidth}{!}{
+		\begin{tabular}{lllllllll}
+			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
+			1    & C625@DOM1          & U147@DOM1               & C625            & C625                 & Negotiate           & Batch      & LogOn                      & Success         \\
+			1    & C625@DOM1          & SYSTEM@C653             & C653            & C653                 & Negotiate           & Service    & LogOn                      & Success         \\
+			1    & C625@DOM1          & SYSTEM@C653             & C660            & C660                 & Negotiate           & Service    & LogOn                      & Success        
+		\end{tabular}
+	}
+\end{table}
+
+The highest offending action's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual}.
+
+%TODO: if is very weird
+As can be seen, the predicted features are very different from the actual features. The actual features also seems very strange in and of themselves, bla bla bla bla.
+
+%TODO: if it's pretty normal
+Even though the predicted features differ a lot from the actual features, the actual features do not look that weird. As such this anomaly highlights the network's ability to learn the user's behavior and to find any deviations from that, not necessarily finding strange actions, but actions that are strange given the user's normal behavior.
+
+\begin{table}[htbp]
+	\centering
+	%TODO: title & label
+	\caption{OtherAnomaly}\label{tab:other_anomaly}
+	\resizebox{\linewidth}{!}{
+		\begin{tabular}{lllllllll}
+			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
+			1    & C625@DOM1          & U147@DOM1               & C625            & C625                 & Negotiate           & Batch      & LogOn                      & Success         \\
+			1    & C625@DOM1          & SYSTEM@C653             & C653            & C653                 & Negotiate           & Service    & LogOn                      & Success         \\
+			1    & C625@DOM1          & SYSTEM@C653             & C660            & C660                 & Negotiate           & Service    & LogOn                      & Success        
+		\end{tabular}
+	}
+\end{table}
+
+\begin{table}[htbp]
+	\centering
+	%TODO: title & label
+	\caption{OtherAnomaly}\label{tab:prev_actions_collective}
+	\resizebox{\linewidth}{!}{
+		\begin{tabular}{lllllllll}
+			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
+			1    & C625@DOM1          & U147@DOM1               & C625            & C625                 & Negotiate           & Batch      & LogOn                      & Success         \\
+			1    & C625@DOM1          & SYSTEM@C653             & C653            & C653                 & Negotiate           & Service    & LogOn                      & Success         \\
+			1    & C625@DOM1          & SYSTEM@C653             & C660            & C660                 & Negotiate           & Service    & LogOn                      & Success        
+		\end{tabular}
+	}
+\end{table}
+
+%TODO: find one
+Not all of the detected anomalies are obvious, in Table~\ref{tab:other_anomaly} an action can be seen that does not look very anomalous, however taking a look at the previous actions the user has made in that batch in Table~\ref{tab:prev_actions_collective} shows that the user's previous actions were also slightly off, leading the network to deem the last action a so-called collective anomaly. This shows off one of the biggest advantages of using an RNN, namely being able to find anomalies over multiple actions.
+
+\begin{table}[htbp]
+	\centering
+	%TODO: title & label
+	\caption{OtherAnomaly}\label{tab:differs_from_expected}
+	\resizebox{\linewidth}{!}{
+		\begin{tabular}{lllllllll}
+			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
+			1    & C625@DOM1          & U147@DOM1               & C625            & C625                 & Negotiate           & Batch      & LogOn                      & Success         \\
+			1    & C625@DOM1          & SYSTEM@C653             & C653            & C653                 & Negotiate           & Service    & LogOn                      & Success         \\
+			1    & C625@DOM1          & SYSTEM@C653             & C660            & C660                 & Negotiate           & Service    & LogOn                      & Success        
+		\end{tabular}
+	}
+\end{table}
+
+%TODO: maybe not?
+Not all of the detected flagged actions look strange. An example is Table~\ref{tab:differs_from_expected}. In this table the action does not seem very anomalous at all, bla bla bla bla. However because the network has learned the user's behavior very well, it knows that even though this behavior is not strange, it does not fit the user who made the actions, flagging it as an anomaly.
+
+%TODO: Possibly confirm with domain expert
