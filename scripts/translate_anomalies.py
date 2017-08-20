@@ -1,15 +1,20 @@
 import os
+import time
 import json
+import sys
 import numpy as np
 import pandas as pd
 from typing import Union, List, Dict
 from imports.timer import Timer
-from imports.log import logline
+from imports.log import logline, debug, error
 from imports.io import IO, IOInput
 
-MAX_ROWS = None
+DATASET_ROWS = {
+    'auth': 1051430459
+}
+
 REPORT_SIZE = 100
-TRAINING_SET_PERCENTAGE = 70
+REMOVE_INPUT_FILE = False
 
 
 io = IO({
@@ -22,9 +27,12 @@ io = IO({
     'd': IOInput('/data/s1481096/LosAlamos/data/auth_small.h5', str, arg_name='dataset_file',
                  descr='The dataset file to use (in h5 format)',
                  alias='dataset_file'),
-    'M': IOInput(False, bool, has_input=False,
-                 descr='Enable meganet mode',
-                 alias='meganet')
+    's': IOInput(None, str, arg_name='state_file',
+                 descr='The state file for which to wait before starting',
+                 alias='state_file'),
+    'p': IOInput(5.0, float, arg_name='dataset_percentage',
+                 descr='The percentage of the dataset to use',
+                 alias='dataset_percentage')
 })
 
 
@@ -43,6 +51,14 @@ class AnomalySource:
                 return self.data[i][user]
 
         return None
+
+    def get_users(self) -> List[str]:
+        users = list()
+        for i in range(len(self.data)):
+            for user in self.data[i].keys():
+                users.append(user)
+
+        return users
 
 
 def read_anomalies(input_file: str) -> AnomalySource:
@@ -72,27 +88,78 @@ def translate_feature_arr(feature_arr: List[float]) -> Dict[str, float]:
     }
 
 
+def listify_df(df) -> List[Dict[str, Union[str]]]:
+    df_list = json.loads(df.to_json(orient='records'))
+    index = 0
+    for row in df.itertuples():
+        df_list[index]["time"] = str(row[0])
+        index = index + 1
+    return df_list
+
+
+def get_state(state_file_location: str) -> int:
+    try:
+        with open(state_file_location, 'r+') as state_file:
+            try:
+                state_obj = json.loads(state_file.read())
+            except Exception:
+                error('State file does not exist, cancelling')
+                sys.exit(2)
+
+            if state_obj["error"]:
+                error('An error occurred in another instance, exiting with error code', state_obj['error_code'])
+                sys.exit(state_obj['error_code'])
+            return state_obj['state']
+    except FileNotFoundError:
+        error('State file does not exist, cancelling')
+        sys.exit(2)
+
+
+def get_dataset_name():
+    return io.get('dataset_file').split('/')[-1].split('.')[0]
+
+
+def calc_rows_amount() -> Union[int, None]:
+    dataset_name = get_dataset_name()
+
+    if dataset_name in DATASET_ROWS:
+        all_rows = DATASET_ROWS.get(dataset_name)
+    elif io.get('dataset_percentage') == 100.0:
+        return None
+    else:
+        debug('Reading percentages of unknown datasets is not possible,'
+              'please add the dataset name and amount of rows to the'
+              'DATASET_ROWS variable in this file and try again')
+        debug('Using all rows instead')
+        return None
+
+    return round((all_rows / 100) * io.get('dataset_percentage'))
+
+
 def main():
     if not io.run:
         return
 
+    state_file = io.get('state_file')
     input_file = io.get('input_file')
     output_file = io.get('output_file')
     dataset_file = io.get('dataset_file')
 
-    anomalies = read_anomalies(input_file)
+    logline('Loading dataset file...')
+    f = pd.read_hdf(dataset_file, get_dataset_name(), start=0, stop=calc_rows_amount())
+    logline('Grouping users')
+    f = group_df(f)
 
-    f = pd.read_hdf(dataset_file, 'auth', start=0, stop=MAX_ROWS)
-    if io.get('meganet'):
-        test_set = list()
-        index = 0
-        for g, dataframe in f.groupby(np.arange(10)):
-            if index * 10 > TRAINING_SET_PERCENTAGE:
-                test_set.append(dataframe)
-        # noinspection PyTypeChecker
-        f = group_df(pd.concat(test_set))
-    else:
-        f = group_df(f)
+    if state_file is not None:
+        initial_state = get_state(state_file)
+        logline('Waiting for state to reach different value, currently at ' + str(initial_state) + '...')
+        while get_state(state_file) == initial_state:
+            time.sleep(60)
+
+        logline('State file has switched to ' + str(get_state(state_file)) + ', continuing execution')
+
+    logline('Loading anomalies')
+    anomalies = read_anomalies(input_file)
 
     anomaly_rows_list = dict()
 
@@ -109,12 +176,16 @@ def main():
 
             user_anomalies = list()
             for anomaly in anomaly_collection:
-                user_anomalies.append({
+                anomaly_dict = {
                     "start": anomaly["start"],
                     "end": anomaly["end"],
-                    "lines": group.iloc[anomaly["start"]:anomaly["end"]],
-                    "final_features": translate_feature_arr(anomaly["final_row_features"])
-                })
+                    "lines": listify_df(group.iloc[anomaly["start"]:anomaly["end"]]),
+                    "final_features": translate_feature_arr(anomaly["final_row_features"]),
+                    "predicted": anomaly["predicted"],
+                    "actual": anomaly["actual"],
+                    "loss": anomaly["loss"]
+                }
+                user_anomalies.append(anomaly_dict)
 
             anomaly_rows_list[user_name] = user_anomalies
 
@@ -123,20 +194,28 @@ def main():
         if timer.current % REPORT_SIZE == 0:
             logline('ETA is ' + timer.get_eta())
 
+    debug('Runtime is', timer.report_total_time())
     logline('Generating concatenated results')
     if output_file == 'stdout':
         logline("Outputting results to stdout\n\n\n")
-        logline(json.dumps(combined_values))
+        logline('Final value is', anomaly_rows_list)
+        logline(json.dumps(anomaly_rows_list))
     else:
         logline('Outputting results to', output_file)
-        with open(output_file, 'w') as output_file:
-            output_file.write(json.dumps(combined_values))
+        with open(output_file, 'w') as out_file:
+            out_file.write(json.dumps(anomaly_rows_list))
+            logline('Output results to', output_file)
 
-    logline('Not Removing encoded file')
-    #os.remove(input_file)
+    if REMOVE_INPUT_FILE:
+        os.remove(input_file)
+        logline('Removed encoded file')
+    else:
+        logline('Not Removing encoded file')
 
     logline('Done, closing files and stuff')
 
 
 if __name__ == '__main__':
+    start_time = time.time()
     main()
+    logline('Total runtime is', Timer.stringify_time(Timer.format_time(time.time() - start_time)))

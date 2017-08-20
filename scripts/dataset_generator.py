@@ -9,6 +9,7 @@ from imports.timer import Timer
 from imports.log import logline, debug, error
 from imports.io import IO, IOInput
 from typing import List, TypeVar, Tuple, Union, Dict, Any
+import traceback
 
 import features as features
 import numpy as np
@@ -17,15 +18,16 @@ import multiprocessing
 
 T = TypeVar('T')
 
-MAX_ROWS_PERCENTAGE = 1
-ALL_ROWS = 1051430459
+DATASET_ROWS = {
+    'auth': 1051430459
+}
 
 TRAINING_SET_PERCENTAGE = 70
 REPORT_SIZE = 1000
 BATCH_SIZE = 32
 MIN_GROUP_SIZE = 150
 MIN_GROUP_SIZE = max(MIN_GROUP_SIZE, (BATCH_SIZE * 2) + 2)
-PROCESSING_GROUP_SIZE = 10000
+PROCESSING_GROUP_SIZE = 500
 SKIP_COMPUTERS = False
 SKIP_MAIN = False
 
@@ -39,9 +41,12 @@ io = IO({
     'c': IOInput(1, int, arg_name='cpus',
                  descr='The number of CPUs to use',
                  alias='cpus'),
-    'n': IOInput(None, str, arg_name='dataset_name',
+    'n': IOInput('auth', str, arg_name='dataset_name',
                  descr='The name of the pandas object in the dataset file',
-                 alias='dataset_name')
+                 alias='dataset_name'),
+    'p': IOInput(100.0, float, arg_name='dataset_percentage',
+                 descr='The percentage of the dataset to use',
+                 alias='dataset_percentage')
 })
 
 
@@ -70,57 +75,54 @@ class Row:
 
 
 class PropertyDescription:
-    def __init__(self):
-        self._list = list()
-        self._counts = dict()
-
-        self._reported_length = 0
-        self._actual_length = 0
+    def __init__(self, _list: list = None, _last: str = None):
+        self._list = _list or list()
+        self._last = _last
 
     def append(self, item: str):
         """Appends given item to the list of the property"""
-        self._list.append(item)
+        if item not in self._list:
+            self._list.append(item)
+        self._last = item
 
     @property
     def unique(self) -> int:
         # Get the length of the unique items of the last X items
-        unique_items = list()
-        for i in range(len(self._list)):
-            if self._list[i] not in unique_items:
-                unique_items.append(self._list[i])
-
-        return len(unique_items)
+        return len(self._list)
 
     @property
-    def freq(self) -> int:
-        counts = {}
-        for i in range(len(self._list)):
-            counts[self._list[i]] = counts.get(self._list[i], 0) + 1
-
-        highest_index = 0
-        for key, value in counts.items():
-            if value > highest_index:
-                highest_index = value
-
-        return highest_index
+    def last(self) -> int:
+        if self._last in self._list:
+            return self._list.index(self._last)
+        return 0
 
     @property
     def list(self) -> List[str]:
         return self._list
 
+    def snapshot(self):
+        return PropertyDescription(_list=self._list[:], _last=self._last)
+
 
 class Features:
     """All the features fr a model"""
 
-    def __init__(self):
-        self._current_access = 0
-        self._last_access = 0
-        self._domains = PropertyDescription()
-        self._dest_users = PropertyDescription()
-        self._src_computers = PropertyDescription()
-        self._dest_computers = PropertyDescription()
-        self._failed_logins = 0
-        self._login_attempts = 0
+    def __init__(self, current_access: int = 0,
+                 last_access: int = 0,
+                 domains = None,
+                 dest_users = None,
+                 src_computers = None,
+                 dest_computers = None,
+                 failed_logins: int = 0,
+                 login_attempts: int = 0):
+        self._current_access = current_access
+        self._last_access = last_access
+        self._domains = domains or PropertyDescription()
+        self._dest_users = dest_users or PropertyDescription()
+        self._src_computers = src_computers or PropertyDescription()
+        self._dest_computers = dest_computers or PropertyDescription()
+        self._failed_logins = failed_logins
+        self._login_attempts = login_attempts
 
     def update_dest_users(self, user: str):
         """Updates the dest_users list"""
@@ -194,17 +196,34 @@ class Features:
         """Gets the time between the current access and the last one"""
         return self._current_access - self._last_access
 
+    def snapshot(self):
+        return Features(
+            current_access=self.current_access,
+            last_access=self._last_access,
+            domains=self._domains.snapshot(),
+            dest_users=self._dest_users.snapshot(),
+            src_computers=self._src_computers.snapshot(),
+            dest_computers=self._dest_computers.snapshot(),
+            failed_logins=self._failed_logins,
+            login_attempts=self._login_attempts
+        )
 
-def normalize_all(feature_list: List[List[float]]) -> np.ndarray:
-    np_arr = np.array(feature_list)
-    reshaped = np.reshape(feature_list, (np_arr.shape[1], np_arr.shape[0]))
 
-    for col in range(len(reshaped)):
-        col_max = max(reshaped[col])
-        reshaped[col] = [float(i) / col_max for i in reshaped[col]]
+def normalize_all(feature_list: List[List[float]]) -> Tuple[List[float], np.ndarray]:
+    copy = feature_list[:]
+    np_arr = np.array(copy).astype(float)
+    swapped = np.swapaxes(np_arr, 0, 1)
 
-    return np.reshape(np.reshape(np.array(reshaped), (np_arr.shape[0], np_arr.shape[1])),
-                      (np_arr.shape[0], np_arr.shape[1]))
+    scales = list()
+    for row in range(len(swapped)):
+        row_max = max(swapped[row])
+        if row_max == 0.0:
+            scales.append(0.0)
+            continue
+        scales.append(row_max)
+        swapped[row] = [float(i) / row_max for i in swapped[row]]
+
+    return scales, np.swapaxes(swapped, 0, 1)
 
 
 def convert_to_features(data_part) -> np.ndarray:
@@ -212,10 +231,12 @@ def convert_to_features(data_part) -> np.ndarray:
     current_features = Features()
 
     feature_list = list()
+    last_features = current_features
     for row in data_part.itertuples():
         row_data = Row(row)
         current_features.update(row_data)
-        feature_list.append(features.extract(row_data, current_features))
+        feature_list.append(features.extract(row_data, current_features, last_features))
+        last_features = current_features.snapshot()
 
     return np.array(feature_list)
 
@@ -260,15 +281,32 @@ def split_dataset(feature_data: np.ndarray) -> Tuple[Union[np.ndarray, None], Un
     return None, None
 
 
-def calc_rows_percentage() -> int:
-    return round((ALL_ROWS / 100) * MAX_ROWS_PERCENTAGE)
+def get_dataset_name() -> str:
+    return io.get('dataset_name') or io.get('input_file').split('/')[-1].split('.')[0]
+
+
+def calc_rows_amount() -> Union[int, None]:
+    dataset_name = get_dataset_name()
+
+    if dataset_name in DATASET_ROWS:
+        all_rows = DATASET_ROWS.get(dataset_name)
+    elif io.get('dataset_percentage') == 100.0:
+        return None
+    else:
+        debug('Reading percentages of unknown datasets is not possible,'
+              'please add the dataset name and amount of rows to the'
+              'DATASET_ROWS variable in this file and try again')
+        debug('Using all rows instead')
+        return None
+
+    return round((all_rows / 100) * io.get('dataset_percentage'))
 
 
 def get_pd_file() -> pd.DataFrame:
     logline('Opening file')
-    dataset_name = io.get('dataset_name') or io.get('input_file').split('/')[-1].split('.')[0]
+    dataset_name = get_dataset_name()
 
-    return pd.read_hdf(io.get('input_file'), dataset_name, start=0, stop=calc_rows_percentage())
+    return pd.read_hdf(io.get('input_file'), dataset_name, start=0, stop=calc_rows_amount())
 
 
 def group_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -305,30 +343,62 @@ def get_lower_bound(maximum: int, base: int) -> int:
     return (maximum // base) * base
 
 
-def gen_features_for_user(args: Tuple[str, Any]) -> Union[None,
-                                                               Dict[str, Union[str,
-                                                                               Dict[str, List[List[float]]]]]]:
+class DatasetContainer:
+    def __init__(self, group_len: int, user_name: str = None, training_set: np.ndarray = None,
+                 test_set: np.ndarray = None, error: bool = False):
+        self.user_name = user_name
+        self.training_set = training_set
+        self.test_set =test_set
+        self.group_len = group_len
+        self.error = error
+
+    def to_dict(self) -> Dict[str, Union[str, int, Dict[str, np.ndarray]]]:
+        if self.error:
+            return {
+                "error": True,
+                "group_len": self.group_len
+            }
+        return {
+            "user_name": self.user_name,
+            "datasets": {
+                "training": self.training_set,
+                "test": self.test_set
+            },
+            "group_len": self.group_len
+        }
+
+
+def gen_features_for_user(args: Tuple[str, Any]) -> Dict[str, Union[str, int, Dict[str, np.ndarray]]]:
     name = args[0]
     group = args[1]
+    empty_result = {
+        "error": True,
+        "group_len": len(group)
+    }
     if len(group.index) > MIN_GROUP_SIZE:
+        # debug('Doing group with length', len(group))
         user_name = name
 
         if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
-            return None
+            return empty_result
         if SKIP_COMPUTERS and user_name.startswith('C') and user_name.endswith('$'):
-            return None
+            return empty_result
 
-        split_dataset_result = split_dataset(convert_to_features(group))
+        scales, normalized = normalize_all(convert_to_features(group))
+        split_dataset_result = split_dataset(normalized)
         if split_dataset_result:
             training_set, test_set = split_dataset_result
             return {
                 "user_name": user_name,
                 "datasets": {
                     "training": training_set,
-                    "test": test_set
+                    "test": test_set,
+                    "scales": scales
                 },
                 "group_len": len(group)
             }
+    else:
+        return empty_result
 
 
 class DFIterator:
@@ -353,9 +423,12 @@ class DFIterator:
             return self.df_iterator.__next__()
 
 
-def strip_group_length(data) -> Union[Tuple[Any, int], None]:
-    if data is None:
-        return None
+def strip_group_length(data) -> Tuple[Union[Dict[str, Any], None], int]:
+    if 'error' in data and data['error']:
+        if data['group_len'] == -1:
+            error('Value too big for pickle returned, skipping it, ETA might be off now')
+            return None, 0
+        return None, data['group_len']
 
     group_length = data['group_len']
     return {
@@ -381,14 +454,10 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
             # Create groups of approx 1000 users big
             if io.get('cpus') == 1:
                 logline('Only using a single CPU')
-                first_line = True
-                logline('Generating iterator')
+                logline('Starting feature generation')
                 if SKIP_COMPUTERS:
                     debug('Skipping all computer users')
                 for name, group in f:
-                    if first_line:
-                        logline('Starting feature generation')
-                        first_line = False
                     completed_result, group_len = strip_group_length(gen_features_for_user((name, group)))
                     timer.add_to_current(group_len)
                     rows += group_len
@@ -402,21 +471,15 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
 
             else:
                 logline('Using', io.get('cpus'), 'cpus')
-                first_line = False
                 for i in range(round(math.ceil(users / PROCESSING_GROUP_SIZE))):
                     dataset_iterator.set_max((i + 1) * PROCESSING_GROUP_SIZE)
                     if i == 0:
-                        logline('Generating iterator')
+                        logline('Starting feature generation')
 
                     if SKIP_COMPUTERS:
                         debug('Skipping all computer users')
-                    if i == 0:
-                        first_line = True
                     with multiprocessing.Pool(io.get('cpus')) as p:
                         for completed_result in p.imap_unordered(gen_features_for_user, dataset_iterator, chunksize=100):
-                            if first_line:
-                                logline('Starting feature generation')
-                                first_line = False
 
                             completed_result, group_len = strip_group_length(completed_result)
                             timer.add_to_current(group_len)
@@ -426,13 +489,16 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
                                 users_list.append(completed_result)
 
                                 if rows % REPORT_SIZE == 0:
-                                    logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta(),
-                                            spaces_between=False)
+                                    logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta()
+                                            , spaces_between=False)
         except KeyboardInterrupt:
             logline('User cancelled execution, wrapping up')
             debug('Cancelled early at', len(users_list), 'instead of', users)
             debug('You skipped a total of', users - len(users_list), 'users, or',
                   100 - ((len(users_list) / users) * 100), '%')
+        except Exception:
+            error('An error occurred during execution', traceback.format_exc())
+            debug('Salvaging all remaining users')
         finally:
             debug('Runtime is', timer.report_total_time())
 
@@ -455,19 +521,23 @@ def get_features() -> Union[Dict[str, List[Dict[str, Union[str, List[List[float]
 
 
 def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]):
-    logline('Outputting data to file', io.get('output_file'))
-    output = open(io.get('output_file'), 'wb')
-    try:
-        pickle.dump(users_list, output)
-    except:
+    if io.get('output_file') == 'stdout':
+        logline('Outputting to stdout')
+        sys.stdout.write(json.dumps(users_list))
+    else:
+        logline('Outputting data to file', io.get('output_file'))
+        output = open(io.get('output_file'), 'wb')
         try:
-            logline("Using JSON instead")
-            output.write(json.dumps(users_list))
+            pickle.dump(users_list, output)
         except:
-            error('Outputting to console instead')
-            print(json.dumps(users_list))
+            try:
+                logline("Using JSON instead")
+                output.write(json.dumps(users_list))
+            except:
+                error('Outputting to console instead')
+                print(json.dumps(users_list))
+                raise
             raise
-        raise
 
 
 def main():
@@ -475,7 +545,7 @@ def main():
         return
 
     start_time = time.time()
-    logline("Gathering features for", str(MAX_ROWS_PERCENTAGE) + "% rows",
+    logline("Gathering features for", str(io.get('dataset_percentage')) + "% of rows",
             "using a batch size of", BATCH_SIZE)
 
     output_data(get_features())

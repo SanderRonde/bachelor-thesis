@@ -13,6 +13,7 @@ import features
 from imports.timer import Timer
 from imports.log import logline_to_folder
 from imports.io import IO, IOInput
+from sklearn.metrics import mean_squared_error
 
 io = IO({
     "i": IOInput('/data/s1495674/features.p', str, arg_name='input_file',
@@ -60,10 +61,9 @@ T = TypeVar('T')
 if io.run:
     import tensorflow as tf
     import keras
-    from keras.layers.core import Dense, Dropout
+    from keras.layers.core import Dense
     from keras.layers.recurrent import LSTM
     from keras.models import Sequential
-    from keras.losses import MSE
 
 plt.switch_backend('agg')
 
@@ -74,8 +74,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 PLOTS = {
     "LOSSES": dict(),
     "TIME_SINCE_LAST_ACCESS": dict(),
-    "UNIQUE_DOMAINS": dict(),
-    "UNIQUE_DEST_USERS": dict(),
     "PERCENTAGE_FAILED_LOGINS": dict(),
     "IQRS": dict(),
     "IQR_MAXES": dict(),
@@ -89,9 +87,7 @@ PLOTS = {
 FEATURE_SET = List[List[float]]
 
 TIME_SINCE_LAST_ACCESS_INDEX = 0
-UNIQUE_DOMAINS_INDEX = 1
-UNIQUE_DEST_USERS_INDEX = 2
-PERCENTAGE_FAILED_LOGINS_INDEX = 7
+PERCENTAGE_FAILED_LOGINS_INDEX = 5
 
 
 def force_str(val: str) -> str:
@@ -109,35 +105,26 @@ def force_feature_set(val: FEATURE_SET) -> FEATURE_SET:
 def force_list_of_int(val: List[int]) -> List[int]:
     return val
 
+def val_at_index(val: List[List[float]], index: int) -> List[float]:
+    return list(map(lambda x: x[index], val))
+
 
 class DataDistribution:
-    def __init__(self, data: Dict[str, FEATURE_SET], user_name: str):
+    def __init__(self, data: Dict[str, Union[FEATURE_SET, List[float]]], user_name: str):
         self.training = force_feature_set(data["training"])
         self.test = force_feature_set(data["test"])
+        self.scale = force_feature(data['scales'])
 
         PLOTS["TIME_SINCE_LAST_ACCESS"][user_name] = {
-            "max": max(
-                self.training[-1][TIME_SINCE_LAST_ACCESS_INDEX],
-                self.test[-1][TIME_SINCE_LAST_ACCESS_INDEX]),
-            "all": list(np.array(self.test)[:, TIME_SINCE_LAST_ACCESS_INDEX])
-        }
-        PLOTS["UNIQUE_DOMAINS"][user_name] = {
-            "max": max(
-                self.training[-1][UNIQUE_DOMAINS_INDEX],
-                self.test[-1][UNIQUE_DOMAINS_INDEX]),
-            "all": list(np.array(self.test)[:, UNIQUE_DOMAINS_INDEX])
-        }
-        PLOTS["UNIQUE_DEST_USERS"][user_name] = {
-            "max": max(
-                self.training[-1][UNIQUE_DEST_USERS_INDEX],
-                self.test[-1][UNIQUE_DEST_USERS_INDEX]),
-            "all": list(np.array(self.test)[:, UNIQUE_DEST_USERS_INDEX])
+            "max": max(max(val_at_index(self.training, TIME_SINCE_LAST_ACCESS_INDEX)),
+                       max(val_at_index(self.test, TIME_SINCE_LAST_ACCESS_INDEX))) *
+                   self.scale[TIME_SINCE_LAST_ACCESS_INDEX],
+            "all": list(map(lambda x: x * self.scale[TIME_SINCE_LAST_ACCESS_INDEX],
+                            list(np.array(self.test)[:, TIME_SINCE_LAST_ACCESS_INDEX])))
         }
         PLOTS["PERCENTAGE_FAILED_LOGINS"][user_name] = {
-            "max": max(
-                self.training[-1][PERCENTAGE_FAILED_LOGINS_INDEX],
-                self.test[-1][PERCENTAGE_FAILED_LOGINS_INDEX]),
-            "all": list(np.array(self.test)[:, PERCENTAGE_FAILED_LOGINS_INDEX])
+            "all": list(map(lambda x: x * self.scale[PERCENTAGE_FAILED_LOGINS_INDEX],
+                        list(np.array(self.test)[:, PERCENTAGE_FAILED_LOGINS_INDEX])))
         }
 
 
@@ -159,8 +146,8 @@ LAYERS = [FEATURE_SIZE, FEATURE_SIZE, FEATURE_SIZE, FEATURE_SIZE]
 
 
 def create_anomaly(start: int = None, end: int = None, train_len: int = None, dataset: FEATURE_SET = None,
-                   predicted: List[float] = None, actual: List[float] = None) -> Dict[str, Union[int, List[float]]]:
-    if None in [start, end, train_len, dataset, predicted, actual]:
+                   predicted: List[float] = None, actual: List[float] = None, loss: float = None) -> Dict[str, Union[int, List[float]]]:
+    if None in [start, end, train_len, dataset, predicted, actual, loss]:
         error('One of create_anomaly\'s arguments was not supplied')
         sys.exit(2)
 
@@ -170,7 +157,8 @@ def create_anomaly(start: int = None, end: int = None, train_len: int = None, da
         "end": end + train_len,
         "final_row_features": final_row,
         "predicted": predicted,
-        "actual": actual
+        "actual": actual,
+        "loss": loss
     }
 
 
@@ -268,11 +256,12 @@ class TestSession:
             self.model.reset_states()
 
         losses = list()
-        for i in range(len(test_x)):
-            prediction = self.model.predict(test_x[i], batch_size=self.batch_size, verbose=0)
+        predictions = self.model.predict(test_x, batch_size=self.batch_size, verbose=0)
+        for i in range(len(predictions)):
+            prediction = predictions[i]
             actual = test_y[i]
 
-            loss = MSE(actual, prediction)
+            loss = mean_squared_error(actual, prediction)
             losses.append(TestLoss(loss, prediction, actual))
 
         return losses
@@ -305,7 +294,6 @@ def iqr(data: List[float]) -> Tuple[float, float]:
 
 
 def get_iqr_distance(inter_quartile_range: float, q3: float, value: float) -> float:
-    # Solve:
     return (value - q3) / inter_quartile_range
 
 
@@ -348,7 +336,7 @@ class UserNetwork:
         # Interquartile range
         inter_quartile_range, q3 = iqr(list(map(lambda x: x.loss, test_losses)))
 
-        PLOTS["LOSSES"][self.user_name] = test_losses
+        PLOTS["LOSSES"][self.user_name] = list(map(lambda x: x.loss, test_losses))
         PLOTS["IQRS"][self.user_name] = inter_quartile_range
         PLOTS["IQR_MAXES"][self.user_name] = q3 + (1.5 * inter_quartile_range)
 
@@ -361,7 +349,8 @@ class UserNetwork:
                                          dataset=test_y,
                                          train_len=len(train_x),
                                          actual=test_loss.actual,
-                                         predicted=test_loss.prediction)
+                                         predicted=test_loss.prediction,
+                                         loss=test_loss.loss)
                 anomalies.append(anomaly)
 
                 PLOTS["DEVIATIONS"].append({
@@ -410,13 +399,15 @@ def save_plot(plot_location: str, name: str,
         out_file.write(json.dumps(plot_data))
 
 
-def listifydict(data_dict: Dict[str, T], get_max=False, get_all=False) -> List[T]:
+def listifydict(data_dict: Dict[str, T], get_max=False, get_all=False, get_last=False) -> List[T]:
     data_list = list()
     for key, val in data_dict.items():
         if get_max:
             data_list.append(val["max"])
         elif get_all:
             data_list.append(val["all"])
+        elif get_last:
+            data_list.append(val["all"][-1])
         else:
             data_list.append(val)
     return data_list
@@ -483,21 +474,14 @@ def save_plot_data(plot_location: str):
     logline('Plotting highest offenders plots')
 
     save_plot(plot_location, 'deviations', list(map(lambda x: x["val"], PLOTS["DEVIATIONS"])),
-              'User index', 'Relative deviation (from mean)')
+              'User index', 'Relative deviation (from mean)',
+              is_log=True)
     save_plot(plot_location, 'highest_offender_deviations', highest_offenders_with_mean_dict,
               'User Name', 'Relative deviation (from mean)',
-              is_dict=True, multidimensional=True, is_highest_offenders=True)
+              is_dict=True, multidimensional=True, is_highest_offenders=True, is_log=True)
     save_plot(plot_location, 'highest_offender_time_since_last_access',
               data_points_for_users(highest_offenders, PLOTS["TIME_SINCE_LAST_ACCESS"], key="all"),
-              'User Name', 'Max time since last access (in seconds)',
-              is_dict=True, is_box_plot=True, is_highest_offenders=True)
-    save_plot(plot_location, 'highest_offender_unique_domains',
-              data_points_for_users(highest_offenders, PLOTS["UNIQUE_DOMAINS"], key="all"),
-              'User Name', 'Max unique domains',
-              is_dict=True, is_box_plot=True, is_highest_offenders=True)
-    save_plot(plot_location, 'highest_offender_dest_users',
-              data_points_for_users(highest_offenders, PLOTS["UNIQUE_DEST_USERS"], key="all"),
-              'User Name', 'Max dest users',
+              'User Name', 'Time since last access (in seconds)',
               is_dict=True, is_box_plot=True, is_highest_offenders=True)
     save_plot(plot_location, 'highest_offender_failed_logins',
               data_points_for_users(highest_offenders, PLOTS["PERCENTAGE_FAILED_LOGINS"], key="all"),
@@ -508,25 +492,20 @@ def save_plot_data(plot_location: str):
     logline('')
     logline('Plotting losses')
     save_plot(plot_location, 'all deviations', PLOTS["ALL_DEVIATIONS"],
-              'Batch index', 'IQR Scale')
+              'Batch index', 'IQR Scale', is_log=True)
     save_plot(plot_location, 'losses', listifydict(PLOTS["LOSSES"]),
               'Batch index', 'Loss ratio',
               multidimensional=True, normalize_x=True)
-    save_plot(plot_location, 'losses_normalized', listifydict(PLOTS["LOSSES"]),
-              'Batch index', 'Loss ratio',
-              multidimensional=True, normalize_x=True, normalize_y=True)
 
     # Plots of max/only values
     logline('')
     logline('Plotting max/only values')
     save_plot(plot_location, 'time_since_last_access', listifydict(PLOTS["TIME_SINCE_LAST_ACCESS"], get_max=True),
               'User index', 'Max time since last access (in seconds)')
-    save_plot(plot_location, 'unique_domains', listifydict(PLOTS["UNIQUE_DOMAINS"], get_max=True),
-              'User index', 'Max unique domains')
-    save_plot(plot_location, 'unique_dest_users', listifydict(PLOTS["UNIQUE_DEST_USERS"], get_max=True),
-              'User index', 'Max dest users')
-    save_plot(plot_location, 'percentage_failed_logins', listifydict(PLOTS["PERCENTAGE_FAILED_LOGINS"], get_max=True),
-              'User index', 'Percentage failed logins')
+    save_plot(plot_location, 'time_since_last_access_log', listifydict(PLOTS["TIME_SINCE_LAST_ACCESS"], get_max=True),
+              'User index', 'Max time since last access (in seconds)', is_log=True)
+    save_plot(plot_location, 'percentage_failed_logins', listifydict(PLOTS["PERCENTAGE_FAILED_LOGINS"], get_last=True),
+              'User index', 'Total percentage failed logins')
     save_plot(plot_location, 'iqrs', listifydict(PLOTS["IQRS"]),
               'Batch index', 'Interquartile range')
     save_plot(plot_location, 'iqr_maxes', listifydict(PLOTS["IQR_MAXES"]),
