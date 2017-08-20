@@ -35,7 +35,7 @@ class Enum:
 
 
 ENUMS_LENGTH = 0
-NON_ENUM_FEATURES_LENGTH = 9
+NON_ENUM_FEATURES_LENGTH = 7
 
 
 def register_enum(values: Dict[str, int]) -> Enum:
@@ -84,16 +84,20 @@ AUTH_ORIENTATION = register_enum({
 })
 
 
-def extract(row, features) -> List[float]:
+def get_delta(new: int, old: int) -> int:
+    if new > old:
+        return 1
+    return 0
+
+
+def extract(row, features, last_features) -> List[float]:
     """Extracts the features for given row"""
 
-    unique_domains = features.domains.unique
-    unique_dest_users = features.dest_users.unique
-    unique_src_computers = features.src_computers.unique
-    unique_dest_computers = features.dest_computers.unique
+    domains_delta = get_delta(features.domains.unique, last_features.domains.unique)
+    dest_users_delta = get_delta(features.dest_users.unique, last_features.dest_users.unique)
+    src_computers_delta = get_delta(features.src_computers.unique, last_features.src_computers.unique)
+    dest_computers_delta = get_delta(features.dest_computers.unique, last_features.dest_computers.unique)
 
-    most_freq_src_computer = features.src_computers.freq
-    most_freq_dest_computer = features.dest_computers.freq
     time_since_last_access = features.get_time_since_last_access()
 
     auth_type = AUTH_TYPE.get(row.auth_type)
@@ -103,9 +107,8 @@ def extract(row, features) -> List[float]:
 
     percentage_failed_logins = features.percentage_failed_logins
 
-    non_enum_features = [time_since_last_access, unique_domains, unique_dest_users,
-                         unique_src_computers, unique_dest_computers, most_freq_src_computer,
-                         most_freq_dest_computer, percentage_failed_logins, success_failure]
+    non_enum_features = [time_since_last_access, domains_delta, dest_users_delta, src_computers_delta,
+                         dest_computers_delta, percentage_failed_logins, success_failure]
     enums = auth_type + logon_type + auth_orientation
 
     assert len(non_enum_features) == NON_ENUM_FEATURES_LENGTH, "Non enum features have specified length"
