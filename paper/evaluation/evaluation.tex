@@ -30,7 +30,7 @@ As can be seen in figure~\ref{fig:iqrs}, the IQRs tend to be fairly close to eac
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.1]{evaluation/highest_offender_time_since_last_access}
+		\includegraphics[scale=1.6]{evaluation/highest_offender_time_since_last_access}
 	\end{center}
 	\caption{The top 10 highest offenders' seconds since last access.~\label{fig:time_since_last_access}}
 \end{figure}
@@ -41,45 +41,43 @@ Taking a look at the time since the last network access for the top 10 highest o
 
 \begin{table}[htbp]
 	\centering
-	\caption{The predicted features vs the actual features of the top offender (to 1 decimal)}\label{tab:predicted_vs_actual_top}
-	\resizebox{\linewidth}{!}{
-		\begin{tabular}{lll}
-			Label & Actual & Predicted \\ \midrule
-			time_since_last_access & 0 & 0.0 \\
-			domains_delta & 0 & 0.0 \\
-			dest_users_delta & 0 & 0.0 \\
-			src_computers_delta & 0 & 0.0 \\
-			dest_computers_delta & 0 & 0.0 \\
-			percentage_failed_logins & 0.0 & 0.0 \\
-			success_failure & 1 & 0.9 \\
-			auth_type_0 & 1 & 0.0 \\
-			auth_type_1 & 0 & 0.2 \\
-			auth_type_2 & 0 & 0.0 \\
-			auth_type_3 & 0 & 0.0 \\
-			auth_type_4 & 0 & 0.0 \\
-			auth_type_5 & 0 & 0.0 \\
-			auth_type_6 & 0 & 0.0 \\
-			auth_type_7 & 0 & 0.0 \\
-			auth_type_8 & 0 & 0.0 \\
-			auth_type_9 & 0 & 0.7 \\
-			auth_type_10 & 0 & 0.0 \\
-			logon_type_0 & 0 & 0.0 \\
-			logon_type_1 & 0 & 0.0 \\
-			logon_type_2 & 0 & 0.0 \\
-			logon_type_3 & 0 & 0.0 \\
-			logon_type_4 & 1 & 0.0 \\
-			logon_type_5 & 0 & 0.0 \\
-			logon_type_6 & 0 & 0.0 \\
-			logon_type_7 & 0 & 0.0 \\
-			logon_type_8 & 0 & 0.8 \\
-			auth_orientation_0 & 0 & 0.6 \\
-			auth_orientation_1 & 0 & 0.0 \\
-			auth_orientation_2 & 0 & 0.0 \\
-			auth_orientation_3 & 0 & 0.0 \\
-			auth_orientation_4 & 0 & 0.0 \\
-			auth_orientation_5 & 1 & 0.3
-		\end{tabular}
-	}
+	\caption{The predicted features vs the actual features of the top offender (precision set to 1 decimal)}\label{tab:predicted_vs_actual_top}
+	\begin{tabular}{lll}
+		Label & Actual & Predicted \\ \midrule
+		time\_since\_last\_access & 0 & 0.00 \\
+		domains\_delta & 0 & 0.00 \\
+		dest\_users\_delta & 0 & 0.00 \\
+		src\_computers\_delta & 0 & 0.00 \\
+		dest\_computers\_delta & 0 & 0.00 \\
+		percentage\_failed\_logins & 0.0 & 0.00 \\
+		success\_failure & 1 & 0.4 \\
+		auth\_type\_0 & 1 & 0.1 \\
+		auth\_type\_1 & 0 & 0.19 \\
+		auth\_type\_2 & 0 & 0.00 \\
+		auth\_type\_3 & 0 & 0.00 \\
+		auth\_type\_4 & 0 & 0.00 \\
+		auth\_type\_5 & 0 & 0.00 \\
+		auth\_type\_6 & 0 & 0.00 \\
+		auth\_type\_7 & 0 & 0.00 \\
+		auth\_type\_8 & 0 & 0.00 \\
+		auth\_type\_9 & 0 & 0.69 \\
+		auth\_type\_10 & 0 & 0.01 \\
+		logon\_type\_0 & 0 & 0.02 \\
+		logon\_type\_1 & 0 & 0.00 \\
+		logon\_type\_2 & 0 & 0.00 \\
+		logon\_type\_3 & 0 & 0.00 \\
+		logon\_type\_4 & 1 & 0.00 \\
+		logon\_type\_5 & 0 & 0.05 \\
+		logon\_type\_6 & 0 & 0.08 \\
+		logon\_type\_7 & 0 & 0.08 \\
+		logon\_type\_8 & 0 & 0.080 \\
+		auth\_orientation\_0 & 0 & 0.58 \\
+		auth\_orientation\_1 & 0 & 0.06 \\
+		auth\_orientation\_2 & 0 & 0.00 \\
+		auth\_orientation\_3 & 0 & 0.01 \\
+		auth\_orientation\_4 & 0 & 0.00 \\
+		auth\_orientation\_5 & 1 & 0.28
+	\end{tabular}
 \end{table}
 
 \begin{table}[htbp]
@@ -124,6 +122,6 @@ Taking a look at the time since the last network access for the top 10 highest o
 	}
 \end{table}
 
-The highest offending action's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual_top}. In this table (and following tables) features that are integers and not floats have been depicted as such, as all but the percentage_failed_logins features are integers. Any predictions made by the network are trimmed to 1 decimal point.
+The highest offending action's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual_top}. In this table (and following tables) features that are integers and not floats have been depicted as such, as all but the $percentage_failed_logins$ features are integers. Any predictions made by the network are trimmed to 1 decimal point.
 
-As can be seen the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to logon_type_4 (interactive logon) and a value of 0.0 to auth-type_0 (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. Often times the user logs in after a really long while or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.
+As can be seen the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to $logon_type_4$ (interactive logon) and a value of 0.0 to $auth-type_0$ (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. Often times the user logs in after a really long while or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.
