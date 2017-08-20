@@ -37,86 +37,93 @@ As can be seen in figure~\ref{fig:iqrs}, the IQRs tend to be fairly close to eac
 
 Focussing on the highest offending users allows us to see more clearly why the network thought certain users were deemed anomalies and whether the network may have been right.
 
-%TODO: maybe not?
-Taking a look at the time since the last network access for the top 10 highest offending users in figure~\ref{fig:time_since_last_access} clearly shows that some of these users were being very inconsistent in the time since their last network access. The box plot has some values that are very far from its average. This could be one of the reasons the network has flagged them as big anomalies.
-
-\begin{figure}
-	\begin{center}
-		\includegraphics[scale=0.1]{evaluation/highest_offender_percentage_failed_logins}
-	\end{center}
-	\caption{The top 10 highest offenders' percentages of failed logins.~\label{fig:percentage_failed_logins}}
-\end{figure}
-
-%TODO: maybe not?
-Figure~\ref{fig:percentage_failed_logins} shows the percentage of failed logins of all actions made by the top 10 highest offending users. This figure also shows some users with percentages that lie very far from the box plot's average. As this value is a percentage over all their logins it has to rise slowly. This is why there are no sudden jumps and why the outliers are still outliers even if they were made over lots of actions.
+Taking a look at the time since the last network access for the top 10 highest offending users in figure~\ref{fig:time_since_last_access} clearly shows that some very big deviations from users' times since their last network access. For example U4891 consistently has a very low time since last access, as can be seen from the box plot being very small and concentrated around that area. However there are some small and bigger deviations from this average, probably causing the network to flag them as suspicious.
 
 \begin{table}[htbp]
 	\centering
-	\caption{The predicted features vs the actual features of the top offender}\label{tab:predicted_vs_actual}
+	\caption{The predicted features vs the actual features of the top offender (to 1 decimal)}\label{tab:predicted_vs_actual_top}
 	\resizebox{\linewidth}{!}{
-		\begin{tabular}{lllllllll}
-			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
-			1    & C625@DOM1          & U147@DOM1               & C625            & C625                 & Negotiate           & Batch      & LogOn                      & Success         \\
-			1    & C625@DOM1          & SYSTEM@C653             & C653            & C653                 & Negotiate           & Service    & LogOn                      & Success         \\
-			1    & C625@DOM1          & SYSTEM@C653             & C660            & C660                 & Negotiate           & Service    & LogOn                      & Success        
-		\end{tabular}
-	}
-\end{table}
-
-The highest offending action's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual}.
-
-%TODO: if is very weird
-As can be seen, the predicted features are very different from the actual features. The actual features also seems very strange in and of themselves, bla bla bla bla.
-
-%TODO: if it's pretty normal
-Even though the predicted features differ a lot from the actual features, the actual features do not look that weird. As such this anomaly highlights the network's ability to learn the user's behavior and to find any deviations from that, not necessarily finding strange actions, but actions that are strange given the user's normal behavior.
-
-\begin{table}[htbp]
-	\centering
-	%TODO: title & label
-	\caption{OtherAnomaly}\label{tab:other_anomaly}
-	\resizebox{\linewidth}{!}{
-		\begin{tabular}{lllllllll}
-			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
-			1    & C625@DOM1          & U147@DOM1               & C625            & C625                 & Negotiate           & Batch      & LogOn                      & Success         \\
-			1    & C625@DOM1          & SYSTEM@C653             & C653            & C653                 & Negotiate           & Service    & LogOn                      & Success         \\
-			1    & C625@DOM1          & SYSTEM@C653             & C660            & C660                 & Negotiate           & Service    & LogOn                      & Success        
+		\begin{tabular}{lll}
+			Label & Actual & Predicted \\ \midrule
+			time_since_last_access & 0 & 0.0 \\
+			domains_delta & 0 & 0.0 \\
+			dest_users_delta & 0 & 0.0 \\
+			src_computers_delta & 0 & 0.0 \\
+			dest_computers_delta & 0 & 0.0 \\
+			percentage_failed_logins & 0.0 & 0.0 \\
+			success_failure & 1 & 0.9 \\
+			auth_type_0 & 1 & 0.0 \\
+			auth_type_1 & 0 & 0.2 \\
+			auth_type_2 & 0 & 0.0 \\
+			auth_type_3 & 0 & 0.0 \\
+			auth_type_4 & 0 & 0.0 \\
+			auth_type_5 & 0 & 0.0 \\
+			auth_type_6 & 0 & 0.0 \\
+			auth_type_7 & 0 & 0.0 \\
+			auth_type_8 & 0 & 0.0 \\
+			auth_type_9 & 0 & 0.7 \\
+			auth_type_10 & 0 & 0.0 \\
+			logon_type_0 & 0 & 0.0 \\
+			logon_type_1 & 0 & 0.0 \\
+			logon_type_2 & 0 & 0.0 \\
+			logon_type_3 & 0 & 0.0 \\
+			logon_type_4 & 1 & 0.0 \\
+			logon_type_5 & 0 & 0.0 \\
+			logon_type_6 & 0 & 0.0 \\
+			logon_type_7 & 0 & 0.0 \\
+			logon_type_8 & 0 & 0.8 \\
+			auth_orientation_0 & 0 & 0.6 \\
+			auth_orientation_1 & 0 & 0.0 \\
+			auth_orientation_2 & 0 & 0.0 \\
+			auth_orientation_3 & 0 & 0.0 \\
+			auth_orientation_4 & 0 & 0.0 \\
+			auth_orientation_5 & 1 & 0.3
 		\end{tabular}
 	}
 \end{table}
 
 \begin{table}[htbp]
 	\centering
-	%TODO: title & label
-	\caption{OtherAnomaly}\label{tab:prev_actions_collective}
+	\caption{The highest offending user's previous logins before the anomaly}\label{tab:prev_logins}
 	\resizebox{\linewidth}{!}{
 		\begin{tabular}{lllllllll}
 			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
-			1    & C625@DOM1          & U147@DOM1               & C625            & C625                 & Negotiate           & Batch      & LogOn                      & Success         \\
-			1    & C625@DOM1          & SYSTEM@C653             & C653            & C653                 & Negotiate           & Service    & LogOn                      & Success         \\
-			1    & C625@DOM1          & SYSTEM@C653             & C660            & C660                 & Negotiate           & Service    & LogOn                      & Success        
+			212020000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C2106 & Network & LogOn & Success \\
+			212020000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C2106 & Network & LogOn & Success \\
+			212020000 & C14012\$@DOM1 & C14012\$@DOM1 & C2106 & C2106 & Network & LogOff & Success \\
+			212023000 & C14012\$@DOM1 & C14012\$@DOM1 & C2106 & C2106 & Network & LogOff & Success \\
+			212029000 & C14012\$@DOM1 & C14012\$@DOM1 & C2106 & C2106 & Network & LogOff & Success \\
+			212043000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			212758000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			212772000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			212784000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			212797000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			213233000 & C14012\$@DOM1 & U6147@DOM1 & C14012 & C14012 & Unlock & LogOn & Success \\
+			213233000 & C14012\$@DOM1 & U6147@DOM1 & C1521 & C14012 & Unlock & LogOn & Success \\
+			213657000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			213671000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			213698000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			213707000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			214557000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			214571000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			214598000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			214608000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			215457000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			215471000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			215524000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			215533000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			216357000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			216371000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			216392000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			216405000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
+			217145000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C2106 & Network & LogOn & Success \\
+			217149000 & C14012\$@DOM1 & C14012\$@DOM1 & C2106 & C2106 & Network & LogOff & Success \\
+			217257000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
+			217271000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success
 		\end{tabular}
 	}
 \end{table}
 
-%TODO: find one
-Not all of the detected anomalies are obvious, in Table~\ref{tab:other_anomaly} an action can be seen that does not look very anomalous, however taking a look at the previous actions the user has made in that batch in Table~\ref{tab:prev_actions_collective} shows that the user's previous actions were also slightly off, leading the network to deem the last action a so-called collective anomaly. This shows off one of the biggest advantages of using an RNN, namely being able to find anomalies over multiple actions.
+The highest offending action's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual_top}. In this table (and following tables) features that are integers and not floats have been depicted as such, as all but the percentage_failed_logins features are integers. Any predictions made by the network are trimmed to 1 decimal point.
 
-\begin{table}[htbp]
-	\centering
-	%TODO: title & label
-	\caption{OtherAnomaly}\label{tab:differs_from_expected}
-	\resizebox{\linewidth}{!}{
-		\begin{tabular}{lllllllll}
-			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
-			1    & C625@DOM1          & U147@DOM1               & C625            & C625                 & Negotiate           & Batch      & LogOn                      & Success         \\
-			1    & C625@DOM1          & SYSTEM@C653             & C653            & C653                 & Negotiate           & Service    & LogOn                      & Success         \\
-			1    & C625@DOM1          & SYSTEM@C653             & C660            & C660                 & Negotiate           & Service    & LogOn                      & Success        
-		\end{tabular}
-	}
-\end{table}
-
-%TODO: maybe not?
-Not all of the detected flagged actions look strange. An example is Table~\ref{tab:differs_from_expected}. In this table the action does not seem very anomalous at all, bla bla bla bla. However because the network has learned the user's behavior very well, it knows that even though this behavior is not strange, it does not fit the user who made the actions, flagging it as an anomaly.
-
-%TODO: Possibly confirm with domain expert
+As can be seen the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to logon_type_4 (interactive logon) and a value of 0.0 to auth-type_0 (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. Often times the user logs in after a really long while or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.
