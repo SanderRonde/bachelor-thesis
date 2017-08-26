@@ -41,7 +41,7 @@ Taking a look at the time since the last network access for the top 10 highest o
 
 \begin{table}[htbp]
 	\centering
-	\caption{The predicted features vs the actual features of the top offender (precision set to 1 decimal)}\label{tab:predicted_vs_actual_top}
+	\caption{The predicted features vs the actual features of the top offender (precision set to 2 decimals)}\label{tab:predicted_vs_actual_top}
 	\begin{tabular}{lll}
 		Label & Actual & Predicted \\ \midrule
 		time\_since\_last\_access & 0 & 0.00 \\
@@ -70,7 +70,7 @@ Taking a look at the time since the last network access for the top 10 highest o
 		logon\_type\_5 & 0 & 0.05 \\
 		logon\_type\_6 & 0 & 0.08 \\
 		logon\_type\_7 & 0 & 0.08 \\
-		logon\_type\_8 & 0 & 0.080 \\
+		logon\_type\_8 & 0 & 0.08 \\
 		auth\_orientation\_0 & 0 & 0.58 \\
 		auth\_orientation\_1 & 0 & 0.06 \\
 		auth\_orientation\_2 & 0 & 0.00 \\
@@ -124,4 +124,4 @@ Taking a look at the time since the last network access for the top 10 highest o
 
 The highest offending action's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual_top}. In this table (and following tables) features that are integers and not floats have been depicted as such, as all but the \(percentage\_failed\_logins\) features are integers. Any predictions made by the network are trimmed to 1 decimal point.
 
-As can be seen the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to \(logon\_type\_4\) (interactive logon) and a value of 0.0 to \(auth\-type\_0\) (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. Often times the user logs in after a really long while or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.
+As can be seen the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to \(logon\_type\_4\) (interactive logon) and a value of 0.0 to \(auth\_type\_0\) (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. Often times the user logs in after a really long while or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.
