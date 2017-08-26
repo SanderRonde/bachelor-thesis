@@ -1,21 +1,23 @@
+"""Estimates how long operations may take"""
 import time
 import math
-from typing import List, Dict, Tuple, Union
 
 
 class Timer:
-    """A timer to determine how long the entire operation might take"""
+	"""A timer to determine how long the entire operation might take"""
 
-    def __init__(self, maximum: int):
-        self._max = maximum
-        self._current = 0
-        self.start_time = time.time()
+	def __init__(self, maximum: int):
+		self._max = maximum
+		self._current = 0
+		self.start_time = time.time()
 
-    def add_to_current(self, num: int):
-        self._current += num
+	def add_to_current(self, num: int):
+		"""Adds another **num** to the current progress"""
+		self._current += num
 
-    @staticmethod
+	@staticmethod
     def format_time(seconds: int) -> Tuple[Union[int, None], Union[int, None], Union[int, None]]:
+		"""Turns seconds into hours, mins and seconds"""
         if seconds <= 60:
             return None, None, seconds
 
@@ -31,6 +33,7 @@ class Timer:
 
     @staticmethod
     def stringify_time(passed_time: Tuple[Union[int, None], Union[int, None], Union[int, None]]) -> str:
+		"""Turns hours, mins and seconds into a string format"""
         hours, mins, seconds = passed_time
 
         if mins is not None:
@@ -42,6 +45,7 @@ class Timer:
             return str(seconds) + 's'
 
     def get_eta(self) -> str:
+		"""Gets the ETA given current progress"""
         if self._current == 0:
             return 'unknown'
 
@@ -52,8 +56,11 @@ class Timer:
         return self.stringify_time(self.format_time(time_remaining))
 
     def report_total_time(self) -> str:
+		"""Reports the total time since timer initialization"""
         return self.stringify_time(self.format_time(time.time() - self.start_time))
 
-    @property
-    def current(self):
-        return self._current
+
+	@property
+	def current(self):
+		"""Gets the current passed actions"""
+		return self._current

@@ -1,3 +1,4 @@
+"""Allows logging with time"""
 import datetime
 import sys
 from typing import List
@@ -11,6 +12,7 @@ group_length = 0
 
 def print_prefix(output=sys.stdout, debug_mode=False, error_mode=False, prefix=None,
                  indent=True):
+				 """Prints a prefix for logging"""
     if prefix is None:
         prefix = group_length
     if group_length > 0:
@@ -32,6 +34,7 @@ def print_prefix(output=sys.stdout, debug_mode=False, error_mode=False, prefix=N
 
 def logline(*args, output=sys.stdout, spaces_between: bool = True, end_line: bool = True,
             debug_mode: bool = False, error_mode: bool = False, indent=True):
+			"""Logs a line with given arguments"""
     # Get the current time
     print_prefix(output=output, debug_mode=debug_mode, error_mode=error_mode, indent=indent)
     is_first = True
@@ -49,20 +52,24 @@ def logline(*args, output=sys.stdout, spaces_between: bool = True, end_line: boo
 
 
 def debug(*args, output=sys.stdout, spaces_between: bool = True, end_line: bool = True):
+	"""Outputs a debug message"""
     logline(*args, output=output, spaces_between=spaces_between, end_line=end_line, debug_mode=True)
 
 
 def error(*args, output=sys.stdout, spaces_between: bool = True, end_line: bool = True):
+	"""Outputs an error message"""
     logline(*args, output=output, spaces_between=spaces_between, end_line=end_line, error_mode=True)
 
 
 def enter_group():
+	"""Enter an indentation group"""
     logline('\\', indent=False)
     global group_length
     group_length = group_length + 1
 
 
 def exit_group():
+	"""Exits an indentation group"""
     global group_length
     group_length = group_length - 1
     if group_length < 0:
@@ -73,6 +80,7 @@ def exit_group():
 
 def logline_proxy(log_file, *args, spaces_between: bool = True, end_line: bool = True,
                   is_debug: bool = False, is_error: bool = False):
+				  """Logs to both file and output"""
     logline(*args, spaces_between=spaces_between, end_line=end_line,
             output=log_file, debug_mode=is_debug, error_mode=is_error)
     logline(*args, spaces_between=spaces_between, end_line=end_line,
@@ -80,6 +88,7 @@ def logline_proxy(log_file, *args, spaces_between: bool = True, end_line: bool =
 
 
 def gen_proxy(log_file, is_debug=False, is_error=False):
+	"""Generates a single function for logging to file and stdout"""
     return lambda *args, spaces_between=True, end_line=True: logline_proxy(
         log_file, *args, spaces_between=spaces_between, end_line=end_line,
         is_debug=is_debug, is_error=is_error
@@ -87,6 +96,7 @@ def gen_proxy(log_file, is_debug=False, is_error=False):
 
 
 def close_logs_file(file):
+	"""Closes the logs file"""
     print_prefix(prefix=0)
     print('Finishing logs...')
     file.write('\nEnd of log entry\n')
@@ -96,6 +106,7 @@ def close_logs_file(file):
 
 
 def logline_to_folder(folder_loc: str = None, file_name: str = None, path: str = None, start: int = 0, end: int = 100):
+	"""Sets up logging to a folder"""
     if (folder_loc is None or file_name is None) and path is None:
         return logline, debug, error, lambda: None
     else:
