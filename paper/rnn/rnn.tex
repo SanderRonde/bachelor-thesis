@@ -55,6 +55,7 @@ The output state \(h_t\) can then be obtained:
 
 $$ h_t = o_t \circ \sigma(c_t) $$
 
+%cSpell:words olah
 \begin{figure}
 	\begin{center}
 		\includegraphics[scale=0.5]{rnn/gru_cell}
@@ -62,5 +63,5 @@ $$ h_t = o_t \circ \sigma(c_t) $$
 	\caption{A single GRU variation cell. From~\cite{olah2015understanding}\label{fig:gru_cell}}
 \end{figure}
 
-%cSpell:words gers jozefowicz
-This results in a version of an RNN that is able to remember more and is more liberal in choosing what it wants to remember and what it wants to discard. This allows them to be used a lot more effectively and has lead to the LSTM becoming the dominant RNN architecture. There have been numerous variations of the standard LSTM architecture that was just described, including but not limited to the Depth Gated RNN~\cite{yao2015depth}, which uses an additional depth gate to connect memory cells of adjacent layers, the Peephole LSTM~\cite{gers2002learning} that connects the hidden state with the gate activation functions, and the Gated Recurrent Unit (GRU)~\cite{cho2014learning} that combines the input and forget gates into a single so-called \enquote{update gate} (see figure~\ref{fig:gru_cell}). There has been some research into which architectures are the most efficient.~\cite{jozefowicz2015empirical} found that some architectures did work better than others, however seeing as this study did not include a variation of anomaly detection in its testing problems, we'll be using the standard LSTM architecture.
+%cSpell:words gers jozefowicz kingma
+This results in a version of an RNN that is able to remember more and is more liberal in choosing what it wants to remember and what it wants to discard. This allows them to be used a lot more effectively and has lead to the LSTM becoming the dominant RNN architecture. There have been numerous variations of the standard LSTM architecture that was just described, including but not limited to the Depth Gated RNN~\cite{yao2015depth}, which uses an additional depth gate to connect memory cells of adjacent layers, the Peephole LSTM~\cite{gers2002learning} that connects the hidden state with the gate activation functions, and the Gated Recurrent Unit (GRU)~\cite{cho2014learning} that combines the input and forget gates into a single so-called \enquote{update gate} (see figure~\ref{fig:gru_cell}). There has been some research into which architectures are the most efficient.~\cite{jozefowicz2015empirical} found that some architectures did work better than others, however seeing as this study did not include a variation of anomaly detection in its testing problems, we'll be using the standard LSTM architecture. We will be using the \enquote{adam} optimizer, which was introduced in~\cite{kingma2014adam}. This is a method of gradient-based optimization of stochastic objective functions.
