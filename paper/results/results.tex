@@ -1,6 +1,6 @@
 \chapter{Results}\label{ch:results}
 
-During the execution of the network a number of plots has been made in order to visualize any outliers, along with a list of any anomalies the network has found. Keep in mind that these plots and anomalies are all based on 5\% of the authentication data.
+During the execution of the network, a number of plots have been made in order to visualize any outliers, along with a list of any anomalies the network has found. Keep in mind that these plots and anomalies are all based on 5\% of the authentication data.
 
 \begin{figure}
 	\begin{center}
@@ -17,7 +17,7 @@ In order to find \(y\) here, the following function is used:
 
 $$ y = (x - Q3) / IQR $$
 
-This \(y\) value is then plotted, the result of which can be seen in figure~\ref{fig:iqr_scale}. As can be seen in teh figure, there are quite a number of outliers, some of which having outliers that fall far beyond the cutoff value of 1.5. From this we can conclude that at least some anomalies are being found. 
+This \(y\) value is then plotted, the result of which can be seen in figure~\ref{fig:iqr_scale}. As can be seen in the figure, there are quite a number of outliers, some of which having outliers that fall far beyond the cutoff value of 1.5. From this, we can conclude that at least some anomalies are being found. 
 
 \begin{figure}
 	\begin{center}
@@ -37,7 +37,7 @@ As can be seen in figure~\ref{fig:iqrs}, the IQRs tend to be fairly close to eac
 
 Focussing on the highest offending users allows us to see more clearly why the network thought certain users were deemed anomalies and whether the network may have been right.
 
-In figure~\ref{fig:time_since_last_access} we take a closer look at the time since the last network access for the top 10 highest offending users. This clearly shows some very big deviations from users' times since their last network access. For example U4891 consistently has a very low time since last access, as can be seen from the box plot being very small and concentrated around that area. Howeve,r there are some small and bigger deviations from this average, probably causing the network to flag them as suspicious.
+In figure~\ref{fig:time_since_last_access} we take a closer look at the time since the last network access for the top 10 highest offending users. This clearly shows some very big deviations from users' times since their last network access. For example, U4891 consistently has a very low time since last access, as can be seen from the box plot being very small and concentrated around that area. However, there are some small and bigger deviations from this average, probably causing the network to flag them as suspicious.
 
 \begin{table}[htbp]
 	\centering
@@ -124,4 +124,4 @@ In figure~\ref{fig:time_since_last_access} we take a closer look at the time sin
 
 The highest offending action's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual_top}. In this table (and following tables) features that are integers and not floats have been depicted as such, as all but the \(percentage\_failed\_logins\) features are integers. Any predictions made by the network are trimmed to 1 decimal point.
 
-As can be seen the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to \(logon\_type\_4\) (interactive logon) and a value of 0.0 to \(auth\_type\_0\) (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. Often times the user logs in after a really long while or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.
+As can be seen, the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to \(logon\_type\_4\) (interactive logon) and a value of 0.0 to \(auth\_type\_0\) (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. Often times the user logs in after a really long while or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.
