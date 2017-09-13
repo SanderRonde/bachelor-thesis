@@ -19,6 +19,7 @@ from imports.timer import Timer
 from imports.log import logline_to_folder
 from imports.io import IO, IOInput
 from sklearn.metrics import mean_squared_error
+import math
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -32,8 +33,6 @@ io = IO({
     'v': IOInput(False, bool, has_input=False, descr="Enable verbose output mode", alias='verbose'),
     'k': IOInput(True, bool, has_input=False, descr="Specifying this disables keeping the training set in the state "
                                                     "before trying the test set", alias='give_prev_knowledge'),
-    'e': IOInput(25, int, arg_name='epochs', descr="The amount of epochs to use (default is 25)",
-                 alias='epochs'),
     's': IOInput(0, int, arg_name='percentage', descr='The index at which to start processing',
                  alias='start'),
     'd': IOInput(100, int, arg_name='percentage', descr='The index at which to stop processing',
@@ -45,17 +44,24 @@ io = IO({
                  alias='plot_location'),
     'l': IOInput(None, str, arg_name='log_folder',
                  descr='The folder to output the logs',
-                 alias='log_folder')
+                 alias='log_folder'),
+    'e': IOInput(None, str, arg_name='experiment',
+                 descr='The experiment to run',
+                 alias='experiment')
 })
+
 
 # Constants
 BATCH_SIZE = 32
 SPEED_REPORTING_SIZE = 1000
 MAX_HIGHEST_OFFENDERS = 10
 ANOMALY_HISTORY = 31
+DROPOUT = 0.5
+RECURRENT_DROPOUT = 0.2
+LEARNING_RATE = 0.001
 
 # Global variables/functions
-EPOCHS = io.get('epochs')
+EPOCHS = 25
 GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = io.get('give_prev_knowledge')
 VERBOSE = io.get('verbose')
 VERBOSE_RUNNING = io.get('running_verbose')
@@ -68,8 +74,9 @@ T = TypeVar('T')
 if io.run:
     import tensorflow as tf
     import keras
+    from keras import optimizers
     from keras.layers.core import Dense
-    from keras.layers.recurrent import LSTM
+    from keras.layers.recurrent import LSTM, SimpleRNN, GRU
     from keras.models import Sequential
 
 plt.switch_backend('agg')
@@ -95,6 +102,97 @@ FEATURE_SET = List[List[float]]
 
 TIME_SINCE_LAST_ACCESS_INDEX = 0
 PERCENTAGE_FAILED_LOGINS_INDEX = 5
+
+
+def bigger_batch_size():
+    global BATCH_SIZE
+    BATCH_SIZE = 64
+
+
+def smaller_batch_size():
+    global BATCH_SIZE
+    BATCH_SIZE = 16
+
+
+def more_epochs():
+    global EPOCHS
+    EPOCHS = 40
+
+
+def less_epochs():
+    global EPOCHS
+    EPOCHS = 15
+
+
+def more_layers():
+    global EXPERIMENTS_MAP
+    EXPERIMENTS_MAP["more_layers"] = True
+
+
+def less_layers():
+    global EXPERIMENTS_MAP
+    EXPERIMENTS_MAP["less_layers"] = True
+
+
+def hidden_nodes_increase():
+    global LAYERS
+    LAYERS[1] = FEATURE_SIZE * 2
+    LAYERS[2] = math.floor(FEATURE_SIZE * 1.5)
+
+
+def regular_rnn():
+    global EXPERIMENTS_MAP
+    EXPERIMENTS_MAP["regular_rnn"] = True
+
+
+def gru_rnn():
+    global EXPERIMENTS_MAP
+    EXPERIMENTS_MAP["gru_rnn"] = True
+
+
+def lower_dropout():
+    global EXPERIMENTS_MAP
+    EXPERIMENTS_MAP["lower_dropout"] = True
+
+
+def higher_learning_rate():
+    global LEARNING_RATE
+    LEARNING_RATE = LEARNING_RATE * 2
+
+
+def lower_learning_rate():
+    global LEARNING_RATE
+    LEARNING_RATE = LEARNING_RATE / 2
+
+
+def different_optimizer():
+    global EXPERIMENTS_MAP
+    EXPERIMENTS_MAP["different_optimizer"] = True
+
+
+def clear_state_on_test():
+    global GIVE_TEST_SET_PREVIOUS_KNOWLEDGE
+    GIVE_TEST_SET_PREVIOUS_KNOWLEDGE = False
+
+
+EXPERIMENTS = {
+    "bigger_batch_size": bigger_batch_size,
+    "smaller_batch_size": smaller_batch_size,
+    "more_epochs": more_epochs,
+    "less_epochs": less_epochs,
+    "more_layers": more_layers,
+    "less_layers": less_layers,
+    "hidden_nodes_increase": hidden_nodes_increase,
+    "regular_rnn": regular_rnn,
+    "gru_rnn": gru_rnn,
+    "lower_dropout": lower_dropout,
+    "higher_learning_rate": higher_learning_rate,
+    "lower_learning_rate": lower_learning_rate,
+    "different_optimizer": different_optimizer,
+    "clear_state_on_test": clear_state_on_test
+}
+
+EXPERIMENTS_MAP = { }
 
 
 def force_str(val: str) -> str:
@@ -171,12 +269,32 @@ def create_anomaly(start: int = None, end: int = None, train_len: int = None, da
 
 def rnn_model(batch_size=BATCH_SIZE):
     model = Sequential()
-    model.add(LSTM(LAYERS[1], input_shape=(LAYERS[0], 1), batch_size=batch_size,
-                   return_sequences=True, stateful=True))
-    model.add(LSTM(LAYERS[2], batch_size=batch_size,
-                   return_sequences=False, stateful=True))
+    if "regular_rnn" in EXPERIMENTS_MAP:
+        layer = SimpleRNN
+    elif "gru_rnn" in EXPERIMENTS_MAP:
+        layer = GRU
+    else:
+        layer = LSTM
+
+    model.add(layer(LAYERS[1], input_shape=(LAYERS[0], 1), batch_size=batch_size,
+                   return_sequences=True, stateful=True, dropout=DROPOUT,
+                    recurrent_dropout=RECURRENT_DROPOUT))
+    if "more_layers" in EXPERIMENTS_MAP:
+        model.add(layer(LAYERS[2], batch_size=batch_size,
+                        return_sequences=True, stateful=True, dropout=DROPOUT,
+                        recurrent_dropout=RECURRENT_DROPOUT))
+    if not "less_layers" in EXPERIMENTS_MAP:
+        model.add(layer(LAYERS[2], batch_size=batch_size,
+                        return_sequences=False, stateful=True, dropout=DROPOUT,
+                        recurrent_dropout=RECURRENT_DROPOUT))
     model.add(Dense(LAYERS[3]))
-    model.compile(loss='mean_squared_error', optimizer='adam')
+
+    if "different_optimizer" in EXPERIMENTS_MAP:
+        optimizer = optimizers.adam(lr=LEARNING_RATE)
+    else:
+        optimizer = optimizers.SGD()
+
+    model.compile(loss='mean_squared_error', optimizer=optimizer)
 
     return model
 
@@ -653,10 +771,18 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+def select_experiment():
+    experiment = io.get('experiment')
+    if experiment:
+        EXPERIMENTS[experiment]()
+
+
 def main():
     """The main function"""
     if not io.run:
         return
+
+    select_experiment()
 
     plot_location = io.get('plot_location')
 
