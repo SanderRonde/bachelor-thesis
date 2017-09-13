@@ -328,7 +328,8 @@ class UserNetwork:
         # Sync weights
         self.test_model.model.set_weights(self.train_model.model.get_weights())
 
-    def get_training_set_iqr(self, train_x: List[List[float]], train_y: List[List[float]]):
+    @staticmethod
+    def get_training_set_iqr(train_x: List[List[float]], train_y: List[List[float]]):
         mses = list()
         for i in range(len(train_x)):
             mses.append(mean_squared_error(train_x[i], train_y[i]))
