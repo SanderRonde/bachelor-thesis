@@ -1,6 +1,11 @@
 """The main script file"""
 import os
+
+os.environ["CUDA_DEVICE_ORDER"] = "PIC_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
 import _pickle as pickle
+import warnings
 import sys
 import time
 import json
@@ -14,6 +19,8 @@ from imports.timer import Timer
 from imports.log import logline_to_folder
 from imports.io import IO, IOInput
 from sklearn.metrics import mean_squared_error
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 io = IO({
     "i": IOInput('/data/s1495674/features.p', str, arg_name='input_file',
@@ -37,7 +44,7 @@ io = IO({
                  descr="The location to store the plotting data",
                  alias='plot_location'),
     'l': IOInput(None, str, arg_name='log_folder',
-                 descr='The to output the logs',
+                 descr='The folder to output the logs',
                  alias='log_folder')
 })
 
@@ -166,9 +173,11 @@ def rnn_model(batch_size=BATCH_SIZE):
     model = Sequential()
     model.add(LSTM(LAYERS[1], input_shape=(LAYERS[0], 1), batch_size=batch_size,
                    return_sequences=True, stateful=True))
-    model.add(LSTM(LAYERS[2], return_sequences=False, stateful=True))
+    model.add(LSTM(LAYERS[2], batch_size=batch_size,
+                   return_sequences=False, stateful=True))
     model.add(Dense(LAYERS[3]))
     model.compile(loss='mean_squared_error', optimizer='adam')
+
     return model
 
 
@@ -319,6 +328,13 @@ class UserNetwork:
         # Sync weights
         self.test_model.model.set_weights(self.train_model.model.get_weights())
 
+    def get_training_set_iqr(self, train_x: List[List[float]], train_y: List[List[float]]):
+        mses = list()
+        for i in range(len(train_x)):
+            mses.append(mean_squared_error(train_x[i], train_y[i]))
+
+        return iqr(mses)
+
     def find_anomalies(self) -> List[Dict[str, Union[int, List[float]]]]:
         # Train the network first
         train_x, train_y, test_x, test_y = prepare_data(self.dataset.training, test_data=self.dataset.test)
@@ -334,7 +350,7 @@ class UserNetwork:
         anomalies = list()
 
         # Interquartile range
-        inter_quartile_range, q3 = iqr(list(map(lambda x: x.loss, test_losses)))
+        inter_quartile_range, q3 = get_training_set_iqr(train_x, train_y)
 
         PLOTS["LOSSES"][self.user_name] = list(map(lambda x: x.loss, test_losses))
         PLOTS["IQRS"][self.user_name] = inter_quartile_range
