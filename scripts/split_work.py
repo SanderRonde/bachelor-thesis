@@ -309,6 +309,9 @@ def do_plot(metadata: Dict[str, Union[str, bool]],
     if metadata['is_highest_offenders']:
         data = recalc_highest_offenders(data, metadata['max_highest_offenders'])
 
+    if metadata['is_sorted']:
+        data = sorted(data)
+
     plt.figure(fig_idx)
     plt.subplot(111)
 
@@ -404,6 +407,7 @@ def join_plots(plot_dir: str):
                         "y_label": data_part['y_label'],
                         "is_plot": data_part['is_plot'],
                         "is_dict": data_part["is_dict"],
+                        "is_sorted": data_part['is_sorted'],
                         "is_box_plot": data_part["is_box_plot"],
                         "normalize_x": data_part['normalize_x'],
                         "normalize_y": data_part['normalize_y'],
@@ -454,6 +458,13 @@ def join_files(cmd: str):
     join_output(out_file)
     join_plots(plot_dir)
 
+def pid_is_running(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return True
 
 def main(gpus: GPUSource, command: str, name: str):
     assert not SKIP_MAIN or not SKIP_JOINING, 'Script should do something'
@@ -462,6 +473,8 @@ def main(gpus: GPUSource, command: str, name: str):
         logline('Skipping main process')
     else:
         distribution = calc_distribution(gpus)
+
+        pids = list()
 
         if gpus.length > 8:
             # Do 16
@@ -484,6 +497,15 @@ def main(gpus: GPUSource, command: str, name: str):
             split_pane(command, get_indexes_at_new_position(11, distribution), 5, 'h')
             split_pane(command, get_indexes_at_new_position(7, distribution), 6, 'h')
             split_pane(command, get_indexes_at_new_position(15, distribution), 7, 'h')
+
+            for i in range(gpus.length - 16):
+                distr_index = i + 16
+
+                indexes = get_indexes_at_new_position(distr_index, distribution)
+                cmd = gen_command_str(command, indexes)
+                if cmd is not None:
+                    pid = os.spawnl(os.P_NOWAIT, cmd)
+                    pids.append(pid)
         else:
             # Do 8 only
             run_cmd('tmux new-session -d ' + gen_command_str(command,
@@ -508,6 +530,11 @@ def main(gpus: GPUSource, command: str, name: str):
                 GET_PERCENTAGE_CMD=get_percentage_cmd
             ))
         run_cmd('tmux -2 attach-session -d')
+
+        while len(pids) > 0:
+            time.sleep(30)
+            pids = list(filter(lambda x: pid_is_running(x), pids))
+            debug(len(pids), 'processes still running')
 
     global main_done
     main_done = time.time()

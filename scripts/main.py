@@ -391,7 +391,7 @@ def save_plot(plot_location: str, name: str,
               x_label: str, y_label: str,
               is_log: bool = False, normalize_x: bool = False, normalize_y: bool = False,
               multidimensional: bool = False, is_dict=False, is_box_plot=False, is_highest_offenders=False,
-              is_plot: bool = True):
+              is_plot: bool = True, is_sorted: bool = False):
     plot_data = {
         "name": name,
         "x_label": x_label,
@@ -403,6 +403,7 @@ def save_plot(plot_location: str, name: str,
         "plot_location": plot_location,
         "multidimensional": multidimensional,
         "is_dict": is_dict,
+        "is_sorted": is_sorted,
         "is_box_plot": is_box_plot,
         "is_highest_offenders": is_highest_offenders,
         "max_highest_offenders": MAX_HIGHEST_OFFENDERS,
@@ -491,8 +492,8 @@ def save_plot_data(plot_location: str):
     logline('Plotting highest offenders plots')
 
     save_plot(plot_location, 'deviations', list(map(lambda x: x["val"], PLOTS["DEVIATIONS"])),
-              'User index', 'Relative deviation (from mean)',
-              is_log=True)
+              'Action index', 'Deviation from IQR (y)',
+              is_log=True, is_sorted=True)
     save_plot(plot_location, 'highest_offender_deviations', highest_offenders_with_mean_dict,
               'User Name', 'Relative deviation (from mean)',
               is_dict=True, multidimensional=True, is_highest_offenders=True, is_log=True)
@@ -509,7 +510,7 @@ def save_plot_data(plot_location: str):
     logline('')
     logline('Plotting losses')
     save_plot(plot_location, 'all deviations', PLOTS["ALL_DEVIATIONS"],
-              'Batch index', 'IQR Scale', is_log=True)
+              'Batch index', 'IQR Scale', is_log=True, is_sorted=True)
     save_plot(plot_location, 'losses', listifydict(PLOTS["LOSSES"]),
               'Batch index', 'Loss ratio',
               multidimensional=True, normalize_x=True)
@@ -524,7 +525,8 @@ def save_plot_data(plot_location: str):
     save_plot(plot_location, 'percentage_failed_logins', listifydict(PLOTS["PERCENTAGE_FAILED_LOGINS"], get_last=True),
               'User index', 'Total percentage failed logins')
     save_plot(plot_location, 'iqrs', listifydict(PLOTS["IQRS"]),
-              'Batch index', 'Interquartile range')
+              'Batch index', 'Interquartile range',
+              is_sorted=True)
     save_plot(plot_location, 'iqr_maxes', listifydict(PLOTS["IQR_MAXES"]),
               'Batch index', 'Max interquartile range')
 
