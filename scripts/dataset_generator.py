@@ -31,6 +31,10 @@ PROCESSING_GROUP_SIZE = 500
 SKIP_COMPUTERS = False
 SKIP_MAIN = False
 
+# True = take the first x% of the data regardless of users
+# False = take the first x% of users regardless of the amount of actions
+DO_ROWS_PERCENTAGE = False
+
 io = IO({
     'i': IOInput('/data/s1481096/LosAlamos/data/auth.h5', str, arg_name='input_file',
                  descr='The source file for the users (in h5 format)',
@@ -45,7 +49,7 @@ io = IO({
                  descr='The name of the pandas object in the dataset file',
                  alias='dataset_name'),
     'p': IOInput(100.0, float, arg_name='dataset_percentage',
-                 descr='The percentage of the dataset to use',
+                 descr='The percentage of the amount of users to use',
                  alias='dataset_percentage')
 })
 
@@ -288,6 +292,9 @@ def get_dataset_name() -> str:
 def calc_rows_amount() -> Union[int, None]:
     dataset_name = get_dataset_name()
 
+    if not DO_ROWS_PERCENTAGE:
+        return None
+
     if dataset_name in DATASET_ROWS:
         all_rows = DATASET_ROWS.get(dataset_name)
     elif io.get('dataset_percentage') == 100.0:
@@ -446,6 +453,10 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
     timer = Timer(row_amount)
     rows = 0
 
+    max_users = users
+    if DO_ROWS_PERCENTAGE:
+        max_users = math.ceil(users * 0.01 * io.get('dataset_percentage'))
+
     logline('Creating iterator')
     dataset_iterator = DFIterator(f)
 
@@ -469,9 +480,12 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
                             logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta(),
                                     spaces_between=False)
 
+                    if len(users_list) >= max_users:
+                        break
+
             else:
                 logline('Using', io.get('cpus'), 'cpus')
-                for i in range(round(math.ceil(users / PROCESSING_GROUP_SIZE))):
+                for i in range(round(math.ceil(max_users / PROCESSING_GROUP_SIZE))):
                     dataset_iterator.set_max((i + 1) * PROCESSING_GROUP_SIZE)
                     if i == 0:
                         logline('Starting feature generation')

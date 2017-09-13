@@ -16,6 +16,10 @@ DATASET_ROWS = {
 REPORT_SIZE = 100
 REMOVE_INPUT_FILE = False
 
+# True = take the first x% of the data regardless of users
+# False = take the first x% of users regardless of the amount of actions
+DO_ROWS_PERCENTAGE = False
+
 
 io = IO({
     'i': IOInput('/data/s1495674/anomalies.encoded.json', str, arg_name='input_file',
@@ -122,6 +126,9 @@ def get_dataset_name():
 def calc_rows_amount() -> Union[int, None]:
     dataset_name = get_dataset_name()
 
+    if not DO_ROWS_PERCENTAGE:
+        return None
+
     if dataset_name in DATASET_ROWS:
         all_rows = DATASET_ROWS.get(dataset_name)
     elif io.get('dataset_percentage') == 100.0:
@@ -165,6 +172,10 @@ def main():
 
     timer = Timer(len(f))
 
+    max_users = users
+    if DO_ROWS_PERCENTAGE:
+        max_users = math.ceil(users * 0.01 * io.get('dataset_percentage'))
+
     for name, group in f:
         user_name = group.iloc[0].get('source_user').split('@')[0]
         if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
@@ -193,6 +204,9 @@ def main():
 
         if timer.current % REPORT_SIZE == 0:
             logline('ETA is ' + timer.get_eta())
+
+        if timer.current >= max_users:
+            break
 
     debug('Runtime is', timer.report_total_time())
     logline('Generating concatenated results')
