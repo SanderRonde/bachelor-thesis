@@ -28,7 +28,6 @@ BATCH_SIZE = 32
 MIN_GROUP_SIZE = 150
 MIN_GROUP_SIZE = max(MIN_GROUP_SIZE, (BATCH_SIZE * 2) + 2)
 PROCESSING_GROUP_SIZE = 500
-SKIP_COMPUTERS = False
 SKIP_MAIN = False
 
 # True = take the first x% of the data regardless of users
@@ -50,7 +49,10 @@ io = IO({
                  alias='dataset_name'),
     'p': IOInput(100.0, float, arg_name='dataset_percentage',
                  descr='The percentage of the amount of users to use',
-                 alias='dataset_percentage')
+                 alias='dataset_percentage'),
+    'u': IOInput(False, bool, arg_name='users_only',
+                 descr='Only use actual users, not computer users',
+                 alias='users_only', has_input=False)
 })
 
 
@@ -388,7 +390,7 @@ def gen_features_for_user(args: Tuple[str, Any]) -> Dict[str, Union[str, int, Di
 
         if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
             return empty_result
-        if SKIP_COMPUTERS and user_name.startswith('C') and user_name.endswith('$'):
+        if io.get('users_only') and user_name.startswith('C') and user_name.endswith('$'):
             return empty_result
 
         scales, normalized = normalize_all(convert_to_features(group))
@@ -467,7 +469,7 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
             if io.get('cpus') == 1:
                 logline('Only using a single CPU')
                 logline('Starting feature generation')
-                if SKIP_COMPUTERS:
+                if io.get('users_only'):
                     debug('Skipping all computer users')
                 for name, group in f:
                     completed_result, group_len = strip_group_length(gen_features_for_user((name, group)))
@@ -491,7 +493,7 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
                     if i == 0:
                         logline('Starting feature generation')
 
-                    if SKIP_COMPUTERS:
+                    if io.get('users_only'):
                         debug('Skipping all computer users')
                     with multiprocessing.Pool(io.get('cpus')) as p:
                         for completed_result in p.imap_unordered(gen_features_for_user, dataset_iterator, chunksize=100):
