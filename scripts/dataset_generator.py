@@ -450,12 +450,13 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
     logline('Calculating amount of groups...')
     users = len(f)
     logline('There are', users, 'users and', row_amount, 'rows')
-    timer = Timer(row_amount)
     rows = 0
 
     max_users = users
     if DO_ROWS_PERCENTAGE:
         max_users = math.ceil(users * 0.01 * io.get('dataset_percentage'))
+
+    timer = Timer(math.ceil(row_amount * 0.01 * io.get('dataset_percentage')))
 
     logline('Creating iterator')
     dataset_iterator = DFIterator(f)

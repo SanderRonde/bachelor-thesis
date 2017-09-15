@@ -2,6 +2,7 @@ import os
 import time
 import json
 import sys
+import math
 import numpy as np
 import pandas as pd
 from typing import Union, List, Dict
@@ -170,11 +171,11 @@ def main():
 
     anomaly_rows_list = dict()
 
-    timer = Timer(len(f))
-
     max_users = users
     if DO_ROWS_PERCENTAGE:
         max_users = math.ceil(users * 0.01 * io.get('dataset_percentage'))
+
+    timer = Timer(math.ceil(len(f) * 0.01 * io.get('dataset_percentage')))
 
     for name, group in f:
         user_name = group.iloc[0].get('source_user').split('@')[0]
