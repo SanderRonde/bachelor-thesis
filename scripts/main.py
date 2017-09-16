@@ -716,7 +716,7 @@ def get_user_list(orig_list: List[T], start: int, end: int) -> List[T]:
 
 def open_users_list():
     with open(io.get('input_file'), 'rb') as in_file:
-        full_list = pickle.load(in_file)
+        full_list = pickle.load(in_file, protocol=4)
 
     total_users = len(full_list)
     logline('Found a total of', total_users, 'users')
