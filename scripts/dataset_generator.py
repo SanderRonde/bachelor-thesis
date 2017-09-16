@@ -456,9 +456,11 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
 
     max_users = users
     if DO_ROWS_PERCENTAGE:
-        max_users = math.ceil(users * 0.01 * io.get('dataset_percentage'))
+        max_users = int(math.ceil(users * 0.01 * io.get('dataset_percentage')))
+    logline('Max amount of usersis', max_users)
 
-    timer = Timer(math.ceil(row_amount * 0.01 * io.get('dataset_percentage')))
+    logline('Setting timer for', int(math.ceil(row_amount * 0.01 * io.get('dataset_percentage'))), 'users')
+    timer = Timer(int(math.ceil(row_amount * 0.01 * io.get('dataset_percentage'))))
 
     logline('Creating iterator')
     dataset_iterator = DFIterator(f)
@@ -482,6 +484,7 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
                         if rows % REPORT_SIZE == 0:
                             logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta(),
                                     spaces_between=False)
+                            logline('At user', len(users_list), '/~', max_users, spaces_between=False)
 
                     if len(users_list) >= max_users:
                         break
@@ -508,6 +511,7 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
                                 if rows % REPORT_SIZE == 0:
                                     logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta()
                                             , spaces_between=False)
+                                    logline('At user', len(users_list), '/~', max_users, spaces_between=False)
         except KeyboardInterrupt:
             logline('User cancelled execution, wrapping up')
             debug('Cancelled early at', len(users_list), 'instead of', users)
@@ -545,7 +549,7 @@ def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]
         logline('Outputting data to file', io.get('output_file'))
         output = open(io.get('output_file'), 'wb')
         try:
-            pickle.dump(users_list, output)
+            pickle.dump(users_list, output, protocol=4)
         except:
             try:
                 logline("Using JSON instead")
