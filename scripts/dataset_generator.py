@@ -23,7 +23,7 @@ DATASET_ROWS = {
 }
 
 TRAINING_SET_PERCENTAGE = 70
-REPORT_SIZE = 1000
+REPORT_SIZE = 10000000
 BATCH_SIZE = 32
 MIN_GROUP_SIZE = 150
 MIN_GROUP_SIZE = max(MIN_GROUP_SIZE, (BATCH_SIZE * 2) + 2)
@@ -329,6 +329,23 @@ def group_pd_file(f: pd.DataFrame) -> pd.DataFrame:
     return grouped
 
 
+def filter_users(f: pd.DataFrame) -> pd.DataFrame:
+    logline('Generating anonymous users filter')
+    anonymous_users_filter = ~(f['source_user'].str.contains('ANONYMOUS') & f['source_user'].str.contains('LOGON'))
+
+    if io.get('users_only'):
+        debug('Skipping all computer users')
+        logline('Generating computer users filter')
+        computer_users_filter = ~(f['source_user'].str.startswith('C') & f['source_user'].str.endswith('$'))
+
+        full_filter = anonymous_users_filter & computer_users_filter
+    else:
+        full_filter = anonymous_users_filter
+
+    logline('Applying filters')
+    return f[full_filter]
+
+
 def split_dataframe(f: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # Try to get close to the target split
     training_set = list()
@@ -386,19 +403,13 @@ def gen_features_for_user(args: Tuple[str, Any]) -> Dict[str, Union[str, int, Di
     }
     if len(group.index) > MIN_GROUP_SIZE:
         # debug('Doing group with length', len(group))
-        user_name = name
-
-        if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
-            return empty_result
-        if io.get('users_only') and user_name.startswith('C') and user_name.endswith('$'):
-            return empty_result
 
         scales, normalized = normalize_all(convert_to_features(group))
         split_dataset_result = split_dataset(normalized)
         if split_dataset_result:
             training_set, test_set = split_dataset_result
             return {
-                "user_name": user_name,
+                "user_name": name,
                 "datasets": {
                     "training": training_set,
                     "test": test_set,
@@ -451,19 +462,22 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
 
     logline('Calculating amount of groups...')
     users = len(f)
-    logline('There are', users, 'users and', row_amount, 'rows')
+    logline('There are', users, 'users and', row_amount, 'rows matching your filter type',
+            'no computer users or anonymous users' if io.get('users_only') else 'no anonymous users')
     rows = 0
 
     max_users = users
-    if DO_ROWS_PERCENTAGE:
+    if not DO_ROWS_PERCENTAGE:
         max_users = int(math.ceil(users * 0.01 * io.get('dataset_percentage')))
-    logline('Max amount of usersis', max_users)
+    logline('Max amount of users is', max_users)
 
-    logline('Setting timer for', int(math.ceil(row_amount * 0.01 * io.get('dataset_percentage'))), 'users')
+    logline('Setting timer for', int(math.ceil(row_amount * 0.01 * io.get('dataset_percentage'))), 'rows')
     timer = Timer(int(math.ceil(row_amount * 0.01 * io.get('dataset_percentage'))))
 
     logline('Creating iterator')
     dataset_iterator = DFIterator(f)
+
+    next_report = REPORT_SIZE
 
     if not SKIP_MAIN:
         try:
@@ -471,20 +485,22 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
             if io.get('cpus') == 1:
                 logline('Only using a single CPU')
                 logline('Starting feature generation')
-                if io.get('users_only'):
-                    debug('Skipping all computer users')
                 for name, group in f:
                     completed_result, group_len = strip_group_length(gen_features_for_user((name, group)))
+
+                    debug('Adding', group_len, 'to timer')
                     timer.add_to_current(group_len)
                     rows += group_len
 
                     if completed_result is not None:
                         users_list.append(completed_result)
 
-                        if rows % REPORT_SIZE == 0:
+                        if rows > next_report == 0:
+                            next_report = next_report + REPORT_SIZE
+
                             logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta(),
                                     spaces_between=False)
-                            logline('At user', len(users_list), '/~', max_users, spaces_between=False)
+                            logline('At user ', len(users_list), '/~', max_users, spaces_between=False)
 
                     if len(users_list) >= max_users:
                         break
@@ -496,8 +512,6 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
                     if i == 0:
                         logline('Starting feature generation')
 
-                    if io.get('users_only'):
-                        debug('Skipping all computer users')
                     with multiprocessing.Pool(io.get('cpus')) as p:
                         for completed_result in p.imap_unordered(gen_features_for_user, dataset_iterator, chunksize=100):
 
@@ -508,7 +522,8 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
                             if completed_result is not None:
                                 users_list.append(completed_result)
 
-                                if rows % REPORT_SIZE == 0:
+                                if rows > next_report:
+                                    next_report = next_report + REPORT_SIZE
                                     logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta()
                                             , spaces_between=False)
                                     logline('At user', len(users_list), '/~', max_users, spaces_between=False)
@@ -537,7 +552,8 @@ def get_features() -> Union[Dict[str, List[Dict[str, Union[str, List[List[float]
                             List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]]:
     file = get_pd_file()
     row_amount = len(file)
-    f = group_pd_file(file)
+    f = filter_users(file)
+    f = group_pd_file(f)
     return gen_features(f, row_amount)
 
 
