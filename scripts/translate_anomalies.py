@@ -37,7 +37,10 @@ io = IO({
                  alias='state_file'),
     'p': IOInput(5.0, float, arg_name='dataset_percentage',
                  descr='The percentage of the dataset to use',
-                 alias='dataset_percentage')
+                 alias='dataset_percentage'),
+    'u': IOInput(False, bool, arg_name='users_only',
+                 descr='Only use actual users, not computer users',
+                 alias='users_only', has_input=False)
 })
 
 
@@ -74,6 +77,23 @@ def read_anomalies(input_file: str) -> AnomalySource:
 
 def group_df(df: pd.DataFrame) -> pd.DataFrame:
     return df.groupby(df['source_user'].map(lambda source_user: source_user.split('@')[0]), sort=False)
+
+
+def filter_users(f: pd.DataFrame) -> pd.DataFrame:
+    logline('Generating anonymous users filter')
+    anonymous_users_filter = ~(f['source_user'].str.contains('ANONYMOUS') & f['source_user'].str.contains('LOGON'))
+
+    if io.get('users_only'):
+        debug('Skipping all computer users')
+        logline('Generating computer users filter')
+        computer_users_filter = ~(f['source_user'].str.startswith('C') & f['source_user'].str.endswith('$'))
+
+        full_filter = anonymous_users_filter & computer_users_filter
+    else:
+        full_filter = anonymous_users_filter
+
+    logline('Applying filters')
+    return f[full_filter]
 
 
 def translate_feature_arr(feature_arr: List[float]) -> Dict[str, float]:
@@ -155,6 +175,8 @@ def main():
 
     logline('Loading dataset file...')
     f = pd.read_hdf(dataset_file, get_dataset_name(), start=0, stop=calc_rows_amount())
+    logline('Filtering users')
+    f = filter_users(f)
     logline('Grouping users')
     f = group_df(f)
 
