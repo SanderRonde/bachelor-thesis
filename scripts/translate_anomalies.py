@@ -201,8 +201,6 @@ def main():
 
     for name, group in f:
         user_name = group.iloc[0].get('source_user').split('@')[0]
-        if user_name == "ANONYMOUS LOGON" or user_name == "ANONYMOUS_LOGON":
-            continue
 
         anomaly_collection = anomalies.get(user_name)
         if anomaly_collection is not None:
