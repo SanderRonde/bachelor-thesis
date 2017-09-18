@@ -23,12 +23,13 @@ DATASET_ROWS = {
 }
 
 TRAINING_SET_PERCENTAGE = 70
-REPORT_SIZE = 10000000
+REPORT_SIZE = 1000000
 BATCH_SIZE = 32
 MIN_GROUP_SIZE = 150
 MIN_GROUP_SIZE = max(MIN_GROUP_SIZE, (BATCH_SIZE * 2) + 2)
 PROCESSING_GROUP_SIZE = 500
 SKIP_MAIN = False
+REPORT_EVERY_USER = True
 
 # True = take the first x% of the data regardless of users
 # False = take the first x% of users regardless of the amount of actions
@@ -336,11 +337,14 @@ def filter_users(f: pd.DataFrame) -> pd.DataFrame:
     if io.get('users_only'):
         debug('Skipping all computer users')
         logline('Generating computer users filter')
-        computer_users_filter = ~(f['source_user'].str.startswith('C') & f['source_user'].str.endswith('$'))
+        computer_users_filter = ~(f['source_user'].str.startswith('C') & f['source_user'].str.split('@')[0].endswith('$'))
 
+        logline('Filtering out', len(list(filter(lambda x: x, ~computer_users_filter))), 'computer users')
         full_filter = anonymous_users_filter & computer_users_filter
     else:
         full_filter = anonymous_users_filter
+    logline('Filtering out', len(list(filter(lambda x: x, ~anonymous_users_filter))), 'anonymous users')
+    logline('Filtering out a total of', len(list(filter(lambda x: x, ~full_filter))), 'rows')
 
     logline('Applying filters')
     return f[full_filter]
@@ -488,14 +492,13 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
                 for name, group in f:
                     completed_result, group_len = strip_group_length(gen_features_for_user((name, group)))
 
-                    debug('Adding', group_len, 'to timer')
                     timer.add_to_current(group_len)
                     rows += group_len
 
                     if completed_result is not None:
                         users_list.append(completed_result)
 
-                        if rows > next_report == 0:
+                        if rows > next_report == 0 or REPORT_EVERY_USER:
                             next_report = next_report + REPORT_SIZE
 
                             logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta(),
@@ -522,7 +525,7 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
                             if completed_result is not None:
                                 users_list.append(completed_result)
 
-                                if rows > next_report:
+                                if rows > next_report or REPORT_EVERY_USER:
                                     next_report = next_report + REPORT_SIZE
                                     logline('At row ', str(rows), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta()
                                             , spaces_between=False)
@@ -551,10 +554,12 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
 def get_features() -> Union[Dict[str, List[Dict[str, Union[str, List[List[float]]]]]],
                             List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]]:
     file = get_pd_file()
-    row_amount = len(file)
+    logline('Length before filtering is', len(file))
     f = filter_users(file)
+    logline('Length after filtering is', len(f))
+    rows = len(f)
     f = group_pd_file(f)
-    return gen_features(f, row_amount)
+    return gen_features(f, rows)
 
 
 def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]):
