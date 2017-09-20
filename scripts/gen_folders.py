@@ -40,5 +40,6 @@ def main():
 
 
 if __name__ == "__main__":
+    logline('Starting folder generation')
     main()
-    logline('Done')
+    logline('Done generating folders')
