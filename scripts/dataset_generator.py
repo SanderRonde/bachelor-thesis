@@ -337,7 +337,7 @@ def filter_users(f: pd.DataFrame) -> pd.DataFrame:
     if io.get('users_only'):
         debug('Skipping all computer users')
         logline('Generating computer users filter')
-        computer_users_filter = ~(f['source_user'].str.startswith('C') & f['source_user'].str.split('@')[0].endswith('$'))
+        computer_users_filter = ~(f['source_user'].str.startswith('C') & f['source_user'].str.contains('$'))
 
         logline('Filtering out', len(list(filter(lambda x: x, ~computer_users_filter))), 'computer users')
         full_filter = anonymous_users_filter & computer_users_filter
@@ -461,7 +461,7 @@ def strip_group_length(data) -> Tuple[Union[Dict[str, Any], None], int]:
     }, group_length
 
 
-def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]:
+def gen_features(f: pd.DataFrame, row_amount: int):
     users_list = list()
 
     logline('Calculating amount of groups...')
@@ -544,22 +544,21 @@ def gen_features(f: pd.DataFrame, row_amount: int) -> List[Dict[str, Union[str, 
             logline("Did a total of", len(users_list), "users")
             logline('Done gathering data')
             logline('Closing file...')
-            return users_list
+            output_data(users_list)
     else:
         debug('SKIPPING MAIN, DO NOT ENABLE IN PRODUCTION')
         logline('Closing file')
-        return []
+        output_data([])
 
 
-def get_features() -> Union[Dict[str, List[Dict[str, Union[str, List[List[float]]]]]],
-                            List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]]:
+def get_features():
     file = get_pd_file()
     logline('Length before filtering is', len(file))
     f = filter_users(file)
     logline('Length after filtering is', len(f))
     rows = len(f)
     f = group_pd_file(f)
-    return gen_features(f, rows)
+    gen_features(f, rows)
 
 
 def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]):
@@ -580,6 +579,7 @@ def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]
                 print(json.dumps(users_list))
                 raise
             raise
+        logline('Done outputting data to file')
 
 
 def main():
@@ -590,7 +590,7 @@ def main():
     logline("Gathering features for", str(io.get('dataset_percentage')) + "% of rows",
             "using a batch size of", BATCH_SIZE)
 
-    output_data(get_features())
+    get_features()
     logline('Total runtime is', Timer.stringify_time(Timer.format_time(time.time() - start_time)))
     sys.exit()
 
