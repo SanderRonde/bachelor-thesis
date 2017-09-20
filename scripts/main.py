@@ -716,7 +716,7 @@ def get_user_list(orig_list: List[T], start: int, end: int) -> List[T]:
 
 def open_users_list():
     with open(io.get('input_file'), 'rb') as in_file:
-        full_list = pickle.load(in_file, protocol=4)
+        full_list = pickle.load(in_file)
 
     total_users = len(full_list)
     logline('Found a total of', total_users, 'users')
@@ -786,12 +786,24 @@ def main():
 
     plot_location = io.get('plot_location')
 
+    logline('opening users list')
     users_list = open_users_list()
 
     try:
         logline("Setting up generic models...")
         train_model = TrainingSession(rnn_model())
         test_model = TestSession(rnn_model(batch_size=1))
+
+        debug('Training model summary is:')
+        train_model.model.summary()
+        debug('')
+        debug('')
+
+        debug('Test model summary is:')
+        test_model.model.summary()
+        debug('')
+        debug('')
+
 
         session = Session(train_model, test_model)
     except tf.errors.InternalError:
