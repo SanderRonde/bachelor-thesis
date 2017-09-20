@@ -11,6 +11,8 @@ import numpy as np
 from imports.log import logline_to_folder, enter_group, exit_group
 from imports.timer import Timer
 import traceback
+from tensorflow.python.client import device_lib
+
 
 plt.switch_backend('agg')
 
@@ -23,19 +25,28 @@ VERTICAL = 'v'
 HORIZONTAL = 'h'
 DEBUG = False
 LOG = False
+AMOUNT_OF_GPUS = 16
 REMOVE_INPUT_FILES = False
 EXIT_ON_PLOT_ERROR = False
 SKIP_JOINING = False
 SKIP_MAIN = False
 
 
-def get_command_template() -> Template:
-    if DEBUG:
-        return Template("echo \"cuda=$cuda_device, start=$start, end=$end\" && CUDA_VISIBLE_DEVICES=$cuda_device "
-                        "$command -s $start -d $end; sleep 10")
-    return Template("echo Activating source... && (conda info --envs | grep \"*\" | grep \"nn\" || source activate "
-                    "nn) > /dev/null ; "
-                    " echo \"Starting...\" && CUDA_VISIBLE_DEVICES=$cuda_device $command -s $start -d $end; sleep 10")
+def get_command_template(no_gpus: bool = False) -> Template:
+    if no_gpus:
+        if DEBUG:
+            return Template("echo \"cuda=$cuda_device, start=$start, end=$end\" && CUDA_VISIBLE_DEVICES=\"\" "
+                            "$command -s $start -d $end; sleep 10")
+        return Template("echo Activating source... && (conda info --envs | grep \"*\" | grep \"nn\" || source activate "
+                        "nn) > /dev/null ; "
+                        " echo \"Starting...\" && CUDA_VISIBLE_DEVICES=\"\" $command -s $start -d $end; sleep 10")
+    else:
+        if DEBUG:
+            return Template("echo \"cuda=$cuda_device, start=$start, end=$end\" && CUDA_VISIBLE_DEVICES=$cuda_device "
+                            "$command -s $start -d $end; sleep 10")
+        return Template("echo Activating source... && (conda info --envs | grep \"*\" | grep \"nn\" || source activate "
+                        "nn) > /dev/null ; "
+                        " echo \"Starting...\" && CUDA_VISIBLE_DEVICES=$cuda_device $command -s $start -d $end; sleep 10")
 
 
 def recalc_gpus(start: int, amount: int, available: List[int]) -> List[int]:
@@ -55,9 +66,11 @@ class GPUSource:
         self._length = len(gpus)
 
     def get(self):
-        item = self._gpus[0]
-        self._gpus = self._gpus[1:]
-        return item
+        if len(self._gpus) > 0:
+            item = self._gpus[0]
+            self._gpus = self._gpus[1:]
+            return item
+        return '""'
 
     @property
     def length(self):
@@ -67,21 +80,22 @@ class GPUSource:
 def get_io() -> Tuple[GPUSource, str, str, str]:
     argv = sys.argv[1:]
 
-    gpu_amount = 16
     command = 'python3 main.py'
     name = 'nn'
     logfile = None
-
-    available_gpus = [x for x in range(gpu_amount)]
-
-    gpu_offset = 0
-    to_use_gpus = recalc_gpus(gpu_offset, gpu_amount, available_gpus)
 
     try:
         opts, args = getopt.getopt(argv, 'g:c:n:s:l:a:hds')
     except getopt.GetoptError:
         error('Command line arguments invalid')
         sys.exit(2)
+
+    gpu_amount = AMOUNT_OF_GPUS
+
+    available_gpus = [x for x in range(gpu_amount)]
+
+    gpu_offset = 0
+    to_use_gpus = recalc_gpus(gpu_offset, gpu_amount, available_gpus)
 
     for opt, arg in opts:
         if opt == '-g':
@@ -119,11 +133,13 @@ def get_io() -> Tuple[GPUSource, str, str, str]:
     return GPUSource(to_use_gpus), command, name, logfile
 
 
-def gen_command_str(command: str, indexes: Tuple[int, int, int]) -> Union[None, str]:
+def gen_command_str(command: str, indexes: Tuple[int, int, Union[int, str]]) -> Union[None, str]:
     if indexes[0] == -1 and indexes[1] == -1:
         # Empty pane, no command
         return None
-    return ADD_QUOTES.substitute(str=get_command_template().substitute(cuda_device=indexes[2],
+    logline(indexes)
+
+    return ADD_QUOTES.substitute(str=get_command_template(no_gpus=type(indexes[2]) != int).substitute(cuda_device=indexes[2],
                                                                        command=command, start=indexes[0],
                                                                        end=indexes[1]))
 
@@ -140,10 +156,15 @@ def split_pane(command: str, indexes: Tuple[int, int, int], pane_index: int, ori
 
 def calc_distribution(gpus: GPUSource) -> Dict[int, Tuple[int, int, int]]:
     gpu_amount = gpus.length
+    no_gpus = False
+
+    logline("GPU amount is", gpu_amount)
+    if gpu_amount == 0:
+        return {}
 
     distribution = dict()
 
-    increment = 100.0 / float(gpu_amount)
+    increment = 100.0 / (float(gpu_amount) if not no_gpus else 16)
     current_index = increment
 
     distribution[0] = (0, round(current_index) - 1, gpus.get())
@@ -178,6 +199,7 @@ def join_output(out_file: str):
     files.sort(key=lambda name: int(name.split('.')[-3]))
 
     files_length = len(files)
+
     with open(out_file, 'w') as output:
         output.write('[')
         for i in range(files_length):
@@ -367,7 +389,15 @@ def handle_dataset(metadata: Dict[str, Union[str, bool]],
     logline("")
 
 
-def join_plots(plot_dir: str):
+def do_plots(plot_dataset: List[Dict[str, Union[Dict[str, Union[str, bool]], List[any]]]]):
+    for i in range(len(plot_dataset)):
+        metadata = plot_dataset[i]["metadata"]
+        data = plot_dataset[i]["data"]
+
+        handle_dataset(metadata, data, i)
+
+
+def join_plots(plot_dir: str, multiple_files: bool):
     os.chdir(plot_dir)
 
     enter_group()
@@ -376,14 +406,19 @@ def join_plots(plot_dir: str):
     plt.rc('xtick', labelsize=8)
     plt.rc('ytick', labelsize=8)
 
-    glob_pattern = '*.part.*.json'
+    if multiple_files:
+        glob_pattern = '*.part.*.json'
+    else:
+        glob_pattern = '*.json'
+
     files = glob.glob(glob_pattern)
     files.sort(key=lambda name: name.split('.')[-5])
 
-    figs = 1
     if len(files) == 0:
         error('No partial files were written')
         sys.exit(1)
+
+    plot_dataset = list()
 
     for plots_for_name in split_plots_by_name(files):
         plots_for_name.sort(key=lambda name: int(name.split('.')[-3]))
@@ -436,14 +471,17 @@ def join_plots(plot_dir: str):
                 else:
                     data_parts = data_parts + data_part['data']
 
-        handle_dataset(plotting_metadata, data_parts, figs)
-        figs = figs + 1
+        plot_dataset.append({
+            "metadata": plotting_metadata,
+            "data": data_parts
+        })
 
-    logline("Done with plots")
+    logline("Done joining plot data")
     exit_group()
+    return plot_dataset
 
 
-def join_files(cmd: str):
+def join_files(cmd: str, should_join: bool):
     # Get output file from command input
     parts = cmd.split(' ')
 
@@ -455,8 +493,14 @@ def join_files(cmd: str):
         if parts[i] == '-p':
             plot_dir = parts[i + 1]
 
-    join_output(out_file)
-    join_plots(plot_dir)
+    if should_join:
+        join_output(out_file)
+    else:
+        logline('Skipping joining of files as they\'re already joined')
+
+    plot_dataset = join_plots(plot_dir, should_join)
+    do_plots(plot_dataset)
+
 
 def pid_is_running(pid: int) -> bool:
     try:
@@ -468,11 +512,14 @@ def pid_is_running(pid: int) -> bool:
 
 def main(gpus: GPUSource, command: str, name: str):
     assert not SKIP_MAIN or not SKIP_JOINING, 'Script should do something'
+    should_join = gpus.length > 0
 
     if SKIP_MAIN:
         logline('Skipping main process')
     else:
         distribution = calc_distribution(gpus)
+        if DEBUG:
+            debug(distribution)
 
         pids = list()
 
@@ -506,7 +553,7 @@ def main(gpus: GPUSource, command: str, name: str):
                 if cmd is not None:
                     pid = os.spawnl(os.P_NOWAIT, cmd)
                     pids.append(pid)
-        else:
+        elif gpus.length > 0:
             # Do 8 only
             run_cmd('tmux new-session -d ' + gen_command_str(command,
                                                              get_indexes_at_new_position(0, distribution)))
@@ -518,6 +565,9 @@ def main(gpus: GPUSource, command: str, name: str):
             split_pane(command, get_indexes_at_new_position(5, distribution), 1, 'h')
             split_pane(command, get_indexes_at_new_position(3, distribution), 2, 'h')
             split_pane(command, get_indexes_at_new_position(7, distribution), 3, 'h')
+        else:
+            # No GPUs, just CPUs, split into a single process
+            run_cmd(gen_command_str(command, (0, 100, '""')))
 
         run_cmd('tmux new-window ' + ADD_QUOTES.substitute(str=name))
         get_eta_cmd = "tmux capture-pane -pS -150 | tac | grep -e 'ETA is' | head -1 |" \
@@ -551,7 +601,7 @@ def main(gpus: GPUSource, command: str, name: str):
                 time.sleep(20)
             logline('Joining files...')
             enter_group()
-            join_files(command)
+            join_files(command, should_join)
             exit_group()
             logline("Done joining all files")
         except KeyboardInterrupt as _:
