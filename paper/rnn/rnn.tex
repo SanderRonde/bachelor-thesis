@@ -8,7 +8,7 @@
 	\caption{A recurrent neural network. From~\cite{olah2015understanding}\label{fig:rnn_img}}
 \end{figure}
 
-A recurrent neural network (RNN) is a variation of artificial neural networks that continuously uses the output of its previous layer as the input of the current layer along with the input that was applied to this iteration (see figure~\ref{fig:rnn_img}). Due to this feature, RNNs have the ability to store and keep in memory previous input values as they can be passed along through the previous iteration's output. 
+A recurrent neural network is a variation of an artificial neural network that continuously uses the output of its previous cell as the input of the current cell along with the input that was applied to this cell (see figure~\ref{fig:rnn_img}). Due to this feature, RNNs have the ability to store processed information from the previous input in the hidden state as these can be passed along through the previous cell's output. 
 
 \begin{figure}
 	\begin{center}
@@ -17,12 +17,12 @@ A recurrent neural network (RNN) is a variation of artificial neural networks th
 	\caption{A single RNN cell. From~\cite{olah2015understanding}\label{fig:rnn_cell}}
 \end{figure}
 
-As can be seen in figure~\ref{fig:rnn_cell}, RNNs only have a single value that acts as both the output of the cell and the data passed through to the next iteration. This hidden layer value h\(_{\text{t}}\) at time step t is calculated by the following function where h\(_{\text{t}}\) is the value of the current hidden state and output and h\(_{\text{t-1}}\) the value of the previous hidden state, \(W\) is the weight matrix for the cell's input, \(U\) is the weight matrix for the hidden value, x\(_{\text{t}}\) is the input of this cell, and \(\sigma \) is a sigmoid function used to squash its inputs into the [-1, 1] range:
+As can be seen in figure~\ref{fig:rnn_cell}, RNNs only have a single vector that functions as the hidden state and the cell's output. The vector of values at the output of the hidden layer that are observed at time \(t\), h\(_{\text{t}}\) is calculated by the following function where h\(_{\text{t}}\) is the current hidden state vector and h\(_{\text{t-1}}\) the vector of the previous hidden state, \(W\) is the weight matrix for the cell's input, \(U\) is the weight matrix for the hidden value, x\(_{\text{t}}\) is the input of this cell, and \(\sigma \) is a sigmoid function used to squash its inputs into the [0, 1] range:
 
-$$ h_t = \sigma(Wx + Uh_\text{t-1}) $$
+$$ h_t = \sigma(Wx_t + Uh_\text{t-1}) $$
 
-%cSpell:words bengio hochreiter
-In theory the RNN has the ability to recall previous inputs. In practice, however, standard RNNs seem to be not that amazing at remembering the past for longer periods of time, often not remembering the data for more than about 5--6 iterations. This problem was investigated in~\cite{bengio1994learning} among others, finding problems with gradient based learning algorithms when applied to RNNs. This then prompted the development of the commonly used LSTM RNN, introduced by~\cite{hochreiter1997long}\@.
+%cSpell:words pascanu
+These standard RNN cells and any other RNN architectures could be stacked on top of each other. These are also known as deep recurrent neural networks. In~\ref{pascanu2013construct}, deep RNNs were shown to outperform conventional single-layer RNNs at polyphonic music prediction and language modeling. An RNN architecture that takes advantage of the stacking of layers in particular is the Depth Gated RNN, introduced in~\cite{yao2015depth}, which uses an additional depth gate to connect memory cells of adjacent layers.
 
 \section{LSTMs}
 
@@ -33,9 +33,9 @@ In theory the RNN has the ability to recall previous inputs. In practice, howeve
 	\caption{A single LSTM cell. From~\cite{olah2015understanding}\label{fig:lstm_cell}}
 \end{figure}
 
-Contrary to regular RNNs, LSTMs have an additional hidden state that is never directly outputted (see figure~\ref{fig:lstm_cell}). This additional hidden state can then be used by the network solely for remembering previous relevant information. Instead of having to share its \enquote{memory} with its output, these values are now separate. This has the advantage of the network never having to forget things, as remembering is its default state, seeing as the same state keeps going on to the next iteration.
+The LSTM architecture, contrary to regular RNNs, has an additional hidden state that is never directly outputted (see figure~\ref{fig:lstm_cell}). This additional hidden state can then be used by the network solely for remembering previous relevant information. Instead of having to share its \enquote{memory} with its output, these values are now separate. This has the advantage of the network never having to forget things, as remembering is its default state, seeing as the same state keeps going on to the next iteration.
 
-As can be seen in the figure, there are quite a few more parameters in this cell than a normal RNN cell. The output value and hidden value are composed of a number of different functions. First of all the network determines how much of the hidden state to forget, also called the forget gate. This is done by running both the previous iteration's output (\(c_{t-1}\)) and the forget gate vector (\(f_t\)) through a matrix multiplication. \(f_t\) can be obtained by using the following formula, where \(W\) contains the weights for the input and \(U\) contains the weights for the previous iteration's output vector, \(x_t\) refers to the input, \(h_{t-1}\) to the previous iteration's output vector and \(b\) to a set of bias vectors:
+As can be seen in the figure, there are quite a few more parameters in this cell than in a normal RNN cell. The calculation of the output vector and the hidden vector involve several operations, a full explanation of which can be found in~\cite{olah2015understanding}. First of all the network determines how much of the hidden state to forget, also called the forget gate. This is done by running both the previous iteration's output (\(c_{t-1}\)) and the forget gate vector (\(f_t\)) through a matrix multiplication. This allows the network to forget values at specific indices in the previous iteration's output vector. \(f_t\) can be obtained by using the following formula, where \(W\) contains the weights for the input and \(U\) contains the weights for the previous iteration's output vector, \(x_t\) refers to the input, \(h_{t-1}\) to the previous iteration's output vector and \(b\) to a set of bias vectors:
 
 $$ f_t = \sigma(W_f x_t + U_f h_{t-1} + b_f) $$
 
@@ -43,7 +43,7 @@ The network then determines what to remember from the input vector. This is comm
 
 $$ i_t = \sigma(W_i x_t + U_i h_{t-1} + b_i) $$
 
-The final hidden state vector (\(c_t\)) can then be found by using the previous two results as follows, where \(\circ \) is the Hadamard product (where each value at index \(ij\) is the product of the values at the indexes \(ij\) in the two input matrices): 
+The final hidden state vector (\(c_t\)) can then be found by using the previous two results as follows, where \(\circ \) denotes the Hadamard product (where each value at index \(ij\) is the product of the values at the indices \(ij\) in the two input matrices): 
 
 $$ c_t = f_t \circ c_{t-1} + i_t \circ \sigma(W_c x_t + U_c h_{t-1} + b_c) $$
 
@@ -64,4 +64,4 @@ $$ h_t = o_t \circ \sigma(c_t) $$
 \end{figure}
 
 %cSpell:words gers jozefowicz kingma
-This results in a version of an RNN that is able to remember more and is more liberal in choosing what it wants to remember and what it wants to discard. This allows them to be used a lot more effectively and has lead to the LSTM becoming the dominant RNN architecture. There have been numerous variations of the standard LSTM architecture that was just described, including but not limited to the Depth Gated RNN~\cite{yao2015depth}, which uses an additional depth gate to connect memory cells of adjacent layers, the Peephole LSTM~\cite{gers2002learning} that connects the hidden state with the gate activation functions, and the Gated Recurrent Unit (GRU)~\cite{cho2014learning} that combines the input and forget gates into a single so-called \enquote{update gate} (see figure~\ref{fig:gru_cell}). There has been some research into which architectures are the most efficient. In~\cite{jozefowicz2015empirical} , findings show that some architectures did work better than others, however, because this study did not include a variation of anomaly detection in its testing problems, we will be using the standard LSTM architecture. When training we will be using the \enquote{adam} optimizer, which was introduced in~\cite{kingma2014adam}. This is a method of gradient-based optimization of stochastic objective functions.
+This results in a version of an RNN that is able to remember more and is more liberal in choosing what information it wants to keep in the hidden state and what it wants to discard. This allows them to be better suited for tasks involving series of data. This has lead to the LSTM architecture becoming the dominant RNN architecture. There have been numerous variations of the standard LSTM architecture that was just described, including but not limited to the Peephole LSTM~\cite{gers2002learning} that connects the hidden state with the gate activation functions, and the Gated Recurrent Unit (GRU)~\cite{cho2014learning} that combines the input and forget gates into a single so-called \enquote{update gate} (see figure~\ref{fig:gru_cell}). There has been some research into which architectures are the most efficient. Some architectures are better than others at specific problems, as~\cite{jozefowicz2015empirical} demonstrates. However, because this study did not include a variation of anomaly detection in its testing problems, we will be using the standard LSTM architecture. When training we will be using the \enquote{adam} optimizer, which was introduced in~\cite{kingma2014adam}. This is a method of gradient-based optimization of stochastic objective functions.
