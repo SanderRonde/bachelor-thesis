@@ -61,20 +61,26 @@ The features have been chosen to fill the values that the network will probably 
 \section{Preprocessing}
 In order to have both a training and test set for every user, the data is split up. 70\% is used for training and 30\% is used for the test set. This is done separately for every user, making sure that each user has the same 70--30 split. The network expects only real-valued numbers from the range [0,1], however, because the features contain integer values larger than 1, these values have to be normalized to fit into this range. This is done by taking the maximum value for every column and dividing every value in that column by that maximum, linearly scaling every value down to the range [0,1]. This is done by applying the formula below to every column per user, where \(x\) is the input column and \(x'\) is the output column:
 
-$$ x' = x / \max (x) $$
+\begin{equation} \label{eq:normalize}
+x' = x / \max (x)
+\end{equation}
 
 This operation is performed for the training and test set before they are split up, ensuring that the scaling factor is the same for both sets. The data is kept in chronological order as it was read originally, ensuring that the input data closely resembles real input data and making maximum use of the LSTM's ability to make sense of sequences.
 
 Keep in mind that in a real-time scenario, scaling can not be done by using the same factor for both the training and test set as the eventual maximum value is unknown, leading to values that fall above the [0,1] range. This can be solved by taking the maximum possible or reasonable value as a scaling factor for both test sets (for example no user will ever access more computers than are available on the network and no user will have more seconds between their last action than there are in a human lifetime). One other method of solving this problem is by applying the following function to all (unscaled) feature values:
 
-$$ x' = \dfrac{1}{1+x} $$
+\begin{equation} \label{eq:normalize_2}
+x' = \dfrac{1}{1+x}
+\end{equation}
 
 Instead of continuously increasing, \(x'\) shrinks here, fixing the problem of features exceeding the range [0,1]. This also takes care of scaling the feature down to the range [0,1]. This would be a good solution to the problem, however, as we are not using real-time data in the experiments this method is not needed.
 
 \section{Experimental setup}
-This network consists of 3 layers, with the first two being stateful LSTMs (stateful meaning the state is preserved across batches), and the third layer being a dense layer which transforms the data to the correct vector length. All 3 layers use an internal representation vector (and layer output) size of \(feature\_size \), which is \enquote{between} the network's input and output sizes, both being \(feature\_size \) as well (as suggested in~\cite{heaton2008introduction}). This leads to a total amount of 4,888 trainable weights. The output vector then consists of real values representing each feature separately. The network uses a batch size of 32. Increasing the batch size tends to cause the network to converge slower, which can cause problems when dealing with users with few actions. On the other hand reducing the batch size quickly slows down the network by a lot. The network is trained first on the supplied training data, always trying to optimize for the lowest loss value using the mean squared error function (mse). This function measures the average of the squares of the differences between actual and predicted values, giving an approximation of the deviation from the expected value. The mean squared error function is calculated by using the following formula with \(n\) being the length of the input vector, \(x\) being the predicted vector and \(y\) being the actual vector:
+This network consists of 3 layers, with the first two being stateful LSTMs (stateful meaning the state is preserved across batches), and the third layer being a dense layer which transforms the data to the correct vector length. All 3 layers use an internal representation vector (and layer output) size of \(feature\_size \), which is \enquote{between} the network's input and output sizes, both being \(feature\_size \) as well (as suggested in~\cite{heaton2008introduction}). This leads to a total amount of 14,586 trainable weights. The output vector then consists of real values representing each feature separately. The network uses a batch size of 32. Increasing the batch size tends to cause the network to converge slower, which can cause problems when dealing with users with few actions. On the other hand reducing the batch size quickly slows down the network by a lot. The network is trained first on the supplied training data, always trying to optimize for the lowest loss value using the mean squared error function (mse). This function measures the average of the squares of the differences between actual and predicted values, giving an approximation of the deviation from the expected value. The mean squared error function is calculated by using the following formula with \(n\) being the length of the input vector, \(x\) being the predicted vector and \(y\) being the actual vector:
 
-$$ mse = (\sum\limits_{i=0}^{n - 1} {(x_i - y_i)}^2) / n $$
+\begin{equation} \label{eq:mse}
+mse = (\sum\limits_{i=0}^{n - 1} {(x_i - y_i)}^2) / n
+\end{equation}
 
 The \(mse\) function is then applied to the predicted feature vector and the actual feature vector. This is done by using the \enquote{adam} optimizer. The learning rate of this optimizer was set to 0.001. Training is repeated for 25 epochs. This value was chosen because increasing this value would introduce overfitting and reducing it would result in higher loss values overall. As another measure to prevent overfitting, a dropout factor of 0.5, and a recurrent dropout factor of 0.2 is used for both LSTM layers. A dropout factor, which randomly drops certain input vectors, and a recurrent dropout factor that randomly drops out vectors between states, were shown to prevent overfitting in~\cite{srivastava2014dropout}. Note that these parameters are not perfect and they are all chosen because they are either standard values in many projects (batch size and epochs) or because they are recommended (dropout). Because of the use of unsupervised learning, no measure of how good the network actually is at detecting attacks exists. Because of this no objective measure of how good the network exists, and the network's parameters can not be optimized by using this measure. If a parameter has not been mentioned here, the value of that parameter is keras' default value for that parameter.
 
@@ -87,9 +93,12 @@ After training, the network is applied to the test set. There is a limitation re
 
 The losses from all of the test data are then collected, after which the interquartile range (IQR) is calculated over the training set's error values. The IQR function attempts to find statistical outliers based on the median values of a distribution. This is done by calculating the medians of both the upper and lower half of a distribution, which are then called Q1 and Q3 respectively. The IQR is then equal to \(Q3 - Q1\). Any values that lay outside of the ranges of the following functions, where \(x\) is the input value, are then called outliers.
 
-$$ x < Q1 - 1.5 IQR $$
-
-$$ x > Q3 + 1.5 IQR $$
+\begin{subequations}
+\begin{align}
+	x < Q1 - 1.5 IQR \label{iqr_min} \\
+	x > Q3 + 1.5 IQR \label{iqr_max}
+\end{align}
+\end{subequations}
 
 In practice the first form of outlier will almost never be found, as that would mean an action so perfectly fits the user, it is an anomaly, which is very unlikely to point to actual anomalous behavior. Because the training set's error values should represent a regular sequence of actions by the user, any error values in the test set that fall outside of the range calculated with the above functions are classified as anomalies.
 
