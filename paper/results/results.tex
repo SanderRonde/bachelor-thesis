@@ -1,29 +1,27 @@
 \chapter{Results}\label{ch:results}
 
-During the execution of the network, a number of plots have been made in order to visualize any outliers, along with a list of any anomalies the network has found. Keep in mind that these plots and anomalies are all based on 5\% of the authentication data.
+During the training and testing stages, a number of plots have been made in order to visualize any outliers, along with a list of any anomalies the network has found. Keep in mind that these plots and anomalies are all based on 1\% of the users.
 
 \begin{figure}
 	\begin{center}
 		\includegraphics[scale=0.1]{results/all_deviations}
 	\end{center}
-	\caption{All deviations (\(y\)) from the IQR.~\label{fig:iqr_scale}}
+	\caption{The deviations \(y\)~\ref{eq:y} of the mean squared errors of all predicted test set feature vectors compared to the actual feature vectors. The IQR has been calculated over the training set using the same method of predicted vs actual mean squared error.~\label{fig:iqr_scale}}
 \end{figure}
 
-In order to get an idea of how much an action deviates relative to its containing distribution, a function has been created with which this can be calculated. In the function indicating the max value of \(x\) before \(x\) becomes an outlier, replacing 1.5 with \(y\) gives an indication of this deviation from its containing distribution. This gives the following function:
+In order to get an idea of how much the error between the predicted feature vector and the actual feature vector deviates from that user's mean error, a function has been created with which this can be calculated. When replacing 1.5 with \(y\) in~\ref{eq:iqr_max}, with \(x\) being the mean squared error (\ref{eq:mse}) between the predicted feature vector and the actual feature vector, solving for \(y\) gives the following function:
 
-$$ x > Q3 + y IQR $$
+\begin{equation} \label{eq:y}
+y = (x - Q3) / IQR
+\end{equation}
 
-In order to find \(y\) here, the following function is used:
-
-$$ y = (x - Q3) / IQR $$
-
-This \(y\) value is then plotted, the result of which can be seen in figure~\ref{fig:iqr_scale}. As can be seen in the figure, there are quite a number of outliers, some of which having outliers that fall far beyond the cutoff value of 1.5. From this, we can conclude that at least some anomalies are being found. 
+This \(y\) value is then plotted, the result of which can be seen in figure~\ref{fig:iqr_scale}. As can be seen in the figure, there are quite a number of outliers, some of which having IQR-scores that fall far beyond the cutoff value of 1.5. From this, we can conclude that at least some outliers are being found. 
 
 \begin{figure}
 	\begin{center}
 		\includegraphics[scale=1.6]{results/iqrs}
 	\end{center}
-	\caption{All IQR values.~\label{fig:iqrs}}
+	\caption{All IQR values calculated over the mean squared errors of all test set feature vectors and their predictions.~\label{fig:iqrs}}
 \end{figure}
 
 As can be seen in figure~\ref{fig:iqrs}, the IQRs tend to be fairly close to each other, meaning the mean losses are close to each other as well. This shows that the network is relatively successful at modeling user behavior, as the difference between the expected and actual action calculated by the loss function shows few big spikes. A network that is unsuccessful at this would have inconsistent IQRs as the losses would fluctuate more from user to user and would show higher values indicating bad predictions.
@@ -37,7 +35,7 @@ As can be seen in figure~\ref{fig:iqrs}, the IQRs tend to be fairly close to eac
 
 Focussing on the highest offending users allows us to see more clearly why the network thought certain users were deemed anomalies and whether the network may have been right.
 
-In figure~\ref{fig:time_since_last_access} we take a closer look at the time since the last network access for the top 10 highest offending users. This clearly shows some very big deviations from users' times since their last network access. For example, U4891 consistently has a very low time since last access, as can be seen from the box plot being very small and concentrated around that area. However, there are some small and bigger deviations from this average, probably causing the network to flag them as suspicious.
+In figure~\ref{fig:time_since_last_access} we take a closer look at the time since the last network access for the top 10 highest offending users. This clearly shows some very big deviations from users' times since their last network access. For example, U4891 consistently has a very low time since last access, as can be seen from the box plot being very small and concentrated around that area. However, there are some small and bigger deviations from this average, probably causing the network to flag them as deviations.
 
 \begin{table}[htbp]
 	\centering
@@ -85,7 +83,7 @@ In figure~\ref{fig:time_since_last_access} we take a closer look at the time sin
 	\caption{The highest offending user's previous logins before the anomaly}\label{tab:prev_logins}
 	\resizebox{\linewidth}{!}{
 		\begin{tabular}{lllllllll}
-			time & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
+			time (ms) & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
 			212020000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C2106 & Network & LogOn & Success \\
 			212020000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C2106 & Network & LogOn & Success \\
 			212020000 & C14012\$@DOM1 & C14012\$@DOM1 & C2106 & C2106 & Network & LogOff & Success \\
@@ -122,6 +120,6 @@ In figure~\ref{fig:time_since_last_access} we take a closer look at the time sin
 	}
 \end{table}
 
-The highest offending action's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual_top}. In this table (and following tables) features that are integers and not floats have been depicted as such, as all but the \(percentage\_failed\_logins\) features are integers. Any predictions made by the network are trimmed to 1 decimal point.
+The highest offending (highest mean squared error value) feature vector's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual_top}. In this table (and following tables) features that are integers and not floats have been depicted as such, as all but the \(percentage\_failed\_logins\) features are integers. Any predictions made by the network are trimmed to 1 decimal point.
 
-As can be seen, the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to \(logon\_type\_4\) (interactive logon) and a value of 0.0 to \(auth\_type\_0\) (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. The user often logs in after a really long time or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.
+As can be seen, the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to \(logon\_type\_4\) (interactive logon) and a value of 0.0 to \(auth\_type\_0\) (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. A user often logs in after a really long time relative to their other login times or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.

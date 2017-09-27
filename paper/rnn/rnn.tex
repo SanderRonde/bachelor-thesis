@@ -19,7 +19,9 @@ A recurrent neural network is a variation of an artificial neural network that c
 
 As can be seen in figure~\ref{fig:rnn_cell}, RNNs only have a single vector that functions as the hidden state and the cell's output. The vector of values at the output of the hidden layer that are observed at time \(t\), h\(_{\text{t}}\) is calculated by the following function where h\(_{\text{t}}\) is the current hidden state vector and h\(_{\text{t-1}}\) the vector of the previous hidden state, \(W\) is the weight matrix for the cell's input, \(U\) is the weight matrix for the hidden value, x\(_{\text{t}}\) is the input of this cell, and \(\sigma \) is a sigmoid function used to squash its inputs into the [0, 1] range:
 
-$$ h_t = \sigma(Wx_t + Uh_\text{t-1}) $$
+\begin{equation} \label{eq:something}
+h_t = \sigma(Wx_t + Uh_\text{t-1})
+\end{equation}
 
 %cSpell:words pascanu
 These standard RNN cells and any other RNN architectures could be stacked on top of each other. These are also known as deep recurrent neural networks. In~\ref{pascanu2013construct}, deep RNNs were shown to outperform conventional single-layer RNNs at polyphonic music prediction and language modeling. An RNN architecture that takes advantage of the stacking of layers in particular is the Depth Gated RNN, introduced in~\cite{yao2015depth}, which uses an additional depth gate to connect memory cells of adjacent layers.
@@ -37,23 +39,33 @@ The LSTM architecture, contrary to regular RNNs, has an additional hidden state 
 
 As can be seen in the figure, there are quite a few more parameters in this cell than in a normal RNN cell. The calculation of the output vector and the hidden vector involve several operations, a full explanation of which can be found in~\cite{olah2015understanding}. First of all the network determines how much of the hidden state to forget, also called the forget gate. This is done by running both the previous iteration's output (\(c_{t-1}\)) and the forget gate vector (\(f_t\)) through a matrix multiplication. This allows the network to forget values at specific indices in the previous iteration's output vector. \(f_t\) can be obtained by using the following formula, where \(W\) contains the weights for the input and \(U\) contains the weights for the previous iteration's output vector, \(x_t\) refers to the input, \(h_{t-1}\) to the previous iteration's output vector and \(b\) to a set of bias vectors:
 
-$$ f_t = \sigma(W_f x_t + U_f h_{t-1} + b_f) $$
+\begin{equation} \label{eq:something}
+f_t = \sigma(W_f x_t + U_f h_{t-1} + b_f)
+\end{equation}
 
 The network then determines what to remember from the input vector. This is commonly referred to as the input gate. This is done by running the previous forget gate's result as well as the input gate through a matrix addition function. The input gate (\(i_t\)) can be found by using the following formula:
 
-$$ i_t = \sigma(W_i x_t + U_i h_{t-1} + b_i) $$
+\begin{equation} \label{eq:something}
+i_t = \sigma(W_i x_t + U_i h_{t-1} + b_i)
+\end{equation}
 
 The final hidden state vector (\(c_t\)) can then be found by using the previous two results as follows, where \(\circ \) denotes the Hadamard product (where each value at index \(ij\) is the product of the values at the indices \(ij\) in the two input matrices): 
 
-$$ c_t = f_t \circ c_{t-1} + i_t \circ \sigma(W_c x_t + U_c h_{t-1} + b_c) $$
+\begin{equation} \label{eq:something}
+c_t = f_t \circ c_{t-1} + i_t \circ \sigma(W_c x_t + U_c h_{t-1} + b_c)
+\end{equation}
 
 This vector is then passed on to the next iteration. Now the output gate vector \(o_t\) is calculated:
 
-$$ o_t = \sigma(W_o x_t + U_o h_{t-1} + b_o) $$
+\begin{equation} \label{eq:something}
+o_t = \sigma(W_o x_t + U_o h_{t-1} + b_o)
+\end{equation}
 
 The output state \(h_t\) can then be obtained:
 
-$$ h_t = o_t \circ \sigma(c_t) $$
+\begin{equation} \label{eq:something}
+h_t = o_t \circ \sigma(c_t)
+\end{equation}
 
 %cSpell:words olah
 \begin{figure}
