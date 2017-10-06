@@ -29,7 +29,7 @@ AMOUNT_OF_GPUS = 16
 REMOVE_INPUT_FILES = False
 EXIT_ON_PLOT_ERROR = False
 SKIP_JOINING = False
-SKIP_MAIN = False
+SKIP_MAIN = True
 
 
 def get_command_template(no_gpus: bool = False) -> Template:
