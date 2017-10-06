@@ -15,7 +15,7 @@ In order to get an idea of how much the error between the predicted feature vect
 y = (x - Q3) / IQR
 \end{equation}
 
-This \(y\) value is then plotted, the result of which can be seen in figure~\ref{fig:iqr_scale}. As can be seen in the figure, there are quite a number of outliers, some of which having IQR-scores that fall far beyond the cutoff value of 1.5. From this, we can conclude that at least some outliers are being found. 
+This \(y\) value is then plotted, the result of which can be seen in figure~\ref{fig:iqr_scale}. As can be seen in the figure, there are quite a number of outliers, some of which having IQR-scores that fall far beyond the cutoff value of 1.5. From this, it can be concluded that at least some outliers are being found. 
 
 \begin{figure}
 	\begin{center}
@@ -35,7 +35,7 @@ As can be seen in figure~\ref{fig:iqrs}, the IQRs tend to be fairly close to eac
 
 Focussing on the highest offending users allows us to see more clearly why the network thought certain users were deemed anomalies and whether the network may have been right.
 
-In figure~\ref{fig:time_since_last_access} we take a closer look at the time since the last network access for the top 10 highest offending users. This clearly shows some very big deviations from users' times since their last network access. For example, U41 consistently has a very low time since last access, as can be seen from the box plot being very small and concentrated around that area. However, there is a significant deviation from this user's normal behavior, which the network has probably flagged as a deviation. The same goes for other users like U102 and U72, changing their behavior a lot, while \enquote{normal} users like U34, U107 and U119 keep their time since last access consistent. U41's pause only took 2 weeks, which can easily be explained by a vacation, a period of sickness or any other reason for taking a short break. However, this is something that is still worth investigating, as this could also be an abandoned account being picked up by a different (potentially malicious) user.
+In figure~\ref{fig:time_since_last_access} a closer look is taken at the time since the last network access for the top 10 highest offending users. This clearly shows some very big deviations from users' times since their last network access. For example, U41 consistently has a very low time since last access, as can be seen from the box plot being very small and concentrated around that area. However, there is a significant deviation from this user's normal behavior, which the network has probably flagged as a deviation. The same goes for other users like U102 and U72, changing their behavior a lot, while \enquote{normal} users like U34, U107 and U119 keep their time since last access consistent. U41's pause only took 2 weeks, which can easily be explained by a vacation, a period of sickness or any other reason for taking a short break. However, this is something that is still worth investigating, as this could also be an abandoned account being picked up by a different (potentially malicious) user.
 
 \begin{table}[htbp]
 	\centering
