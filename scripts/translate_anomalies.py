@@ -193,6 +193,7 @@ def main():
 
     anomaly_rows_list = dict()
 
+    users = len(f)
     max_users = users
     if DO_ROWS_PERCENTAGE:
         max_users = math.ceil(users * 0.01 * io.get('dataset_percentage'))

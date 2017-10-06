@@ -21,7 +21,7 @@ This \(y\) value is then plotted, the result of which can be seen in figure~\ref
 	\begin{center}
 		\includegraphics[scale=1.6]{results/iqrs}
 	\end{center}
-	\caption{All IQR values calculated over the mean squared errors of all test set feature vectors and their predictions.~\label{fig:iqrs}}
+	\caption{The IQR values calculated over the mean squared errors of all test set feature vectors and their predictions, by user. Note that for actual testing, the IQR is calculated over the training set, this is simply done to show the distribution of the losses of all users.~\label{fig:iqrs}}
 \end{figure}
 
 As can be seen in figure~\ref{fig:iqrs}, the IQRs tend to be fairly close to each other, meaning the mean losses are close to each other as well. This shows that the network is relatively successful at modeling user behavior, as the difference between the expected and actual action calculated by the loss function shows few big spikes. A network that is unsuccessful at this would have inconsistent IQRs as the losses would fluctuate more from user to user and would show higher values indicating bad predictions.
@@ -35,91 +35,91 @@ As can be seen in figure~\ref{fig:iqrs}, the IQRs tend to be fairly close to eac
 
 Focussing on the highest offending users allows us to see more clearly why the network thought certain users were deemed anomalies and whether the network may have been right.
 
-In figure~\ref{fig:time_since_last_access} we take a closer look at the time since the last network access for the top 10 highest offending users. This clearly shows some very big deviations from users' times since their last network access. For example, U4891 consistently has a very low time since last access, as can be seen from the box plot being very small and concentrated around that area. However, there are some small and bigger deviations from this average, probably causing the network to flag them as deviations.
+In figure~\ref{fig:time_since_last_access} we take a closer look at the time since the last network access for the top 10 highest offending users. This clearly shows some very big deviations from users' times since their last network access. For example, U41 consistently has a very low time since last access, as can be seen from the box plot being very small and concentrated around that area. However, there is a significant deviation from this user's normal behavior, which the network has probably flagged as a deviation. The same goes for other users like U102 and U72, changing their behavior a lot, while \enquote{normal} users like U34, U107 and U119 keep their time since last access consistent. U41's pause only took 2 weeks, which can easily be explained by a vacation, a period of sickness or any other reason for taking a short break. However, this is something that is still worth investigating, as this could also be an abandoned account being picked up by a different (potentially malicious) user.
 
 \begin{table}[htbp]
 	\centering
-	\caption{The predicted features vs the actual features of the top offender (precision set to 2 decimals)}\label{tab:predicted_vs_actual_top}
+	\caption{The predicted features vs the actual features of the top offending feature set by U399 (precise to 3 decimals)}\label{tab:predicted_vs_actual_top}
 	\begin{tabular}{lll}
 		Label & Actual & Predicted \\ \midrule
-		time\_since\_last\_access & 0 & 0.00 \\
-		domains\_delta & 0 & 0.00 \\
-		dest\_users\_delta & 0 & 0.00 \\
-		src\_computers\_delta & 0 & 0.00 \\
-		dest\_computers\_delta & 0 & 0.00 \\
-		percentage\_failed\_logins & 0.0 & 0.00 \\
-		success\_failure & 1 & 0.4 \\
-		auth\_type\_0 & 1 & 0.1 \\
-		auth\_type\_1 & 0 & 0.19 \\
-		auth\_type\_2 & 0 & 0.00 \\
-		auth\_type\_3 & 0 & 0.00 \\
-		auth\_type\_4 & 0 & 0.00 \\
-		auth\_type\_5 & 0 & 0.00 \\
-		auth\_type\_6 & 0 & 0.00 \\
-		auth\_type\_7 & 0 & 0.00 \\
-		auth\_type\_8 & 0 & 0.00 \\
-		auth\_type\_9 & 0 & 0.69 \\
-		auth\_type\_10 & 0 & 0.01 \\
-		logon\_type\_0 & 0 & 0.02 \\
-		logon\_type\_1 & 0 & 0.00 \\
-		logon\_type\_2 & 0 & 0.00 \\
-		logon\_type\_3 & 0 & 0.00 \\
-		logon\_type\_4 & 1 & 0.00 \\
-		logon\_type\_5 & 0 & 0.05 \\
-		logon\_type\_6 & 0 & 0.08 \\
-		logon\_type\_7 & 0 & 0.08 \\
-		logon\_type\_8 & 0 & 0.08 \\
-		auth\_orientation\_0 & 0 & 0.58 \\
-		auth\_orientation\_1 & 0 & 0.06 \\
-		auth\_orientation\_2 & 0 & 0.00 \\
-		auth\_orientation\_3 & 0 & 0.01 \\
-		auth\_orientation\_4 & 0 & 0.00 \\
-		auth\_orientation\_5 & 1 & 0.28
+		time\_since\_last\_access & 0.060 & 0.011 \\
+		domains\_delta & 0 & 0.000 \\
+		dest\_users\_delta & 1 & 0.000 \\
+		src\_computers\_delta & 1 & 0.000 \\
+		dest\_computers\_delta & 1 & 0.000 \\
+		percentage\_failed\_logins & 0.001 & 0.000 \\
+		success\_failure & 1 & 0.999 \\
+		auth\_type\_0 & 0 & 0.000 \\
+		auth\_type\_1 & 0 & 1.000 \\
+		auth\_type\_2 & 0 & 0.000 \\
+		auth\_type\_3 & 0 & 0.000 \\
+		auth\_type\_4 & 0 & 0.000 \\
+		auth\_type\_5 & 0 & 0.000 \\
+		auth\_type\_6 & 0 & 0.000 \\
+		auth\_type\_7 & 0 & 0.000 \\
+		auth\_type\_8 & 0 & 0.000 \\
+		auth\_type\_9 & 1 & 0.000 \\
+		auth\_type\_10 & 0 & 0.000 \\
+		logon\_type\_0 & 0 & 0.000 \\
+		logon\_type\_1 & 0 & 0.000 \\
+		logon\_type\_2 & 0 & 0.000 \\
+		logon\_type\_3 & 0 & 0.999 \\
+		logon\_type\_4 & 0 & 0.000 \\
+		logon\_type\_5 & 0 & 0.000 \\
+		logon\_type\_6 & 0 & 0.000 \\
+		logon\_type\_7 & 1 & 0.000 \\
+		logon\_type\_8 & 0 & 0.000 \\
+		auth\_orientation\_0 & 0 & 0.999 \\
+		auth\_orientation\_1 & 0 & 0.000 \\
+		auth\_orientation\_2 & 1 & 0.000 \\
+		auth\_orientation\_3 & 0 & 0.000 \\
+		auth\_orientation\_4 & 0 & 0.000 \\
+		auth\_orientation\_5 & 0 & 0.000
 	\end{tabular}
 \end{table}
 
 \begin{table}[htbp]
 	\centering
-	\caption{The highest offending user's previous logins before the anomaly}\label{tab:prev_logins}
+	\caption{The highest offending user's last 30 logins before the anomaly and the anomaly last}\label{tab:prev_logins}
 	\resizebox{\linewidth}{!}{
 		\begin{tabular}{lllllllll}
 			time (ms) & source user@domain & destination user@domain & source computer & destination computer & authentication type & logon type & authentication orientation & success/failure \\ \midrule
-			212020000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C2106 & Network & LogOn & Success \\
-			212020000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C2106 & Network & LogOn & Success \\
-			212020000 & C14012\$@DOM1 & C14012\$@DOM1 & C2106 & C2106 & Network & LogOff & Success \\
-			212023000 & C14012\$@DOM1 & C14012\$@DOM1 & C2106 & C2106 & Network & LogOff & Success \\
-			212029000 & C14012\$@DOM1 & C14012\$@DOM1 & C2106 & C2106 & Network & LogOff & Success \\
-			212043000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			212758000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			212772000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			212784000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			212797000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			213233000 & C14012\$@DOM1 & U6147@DOM1 & C14012 & C14012 & Unlock & LogOn & Success \\
-			213233000 & C14012\$@DOM1 & U6147@DOM1 & C1521 & C14012 & Unlock & LogOn & Success \\
-			213657000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			213671000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			213698000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			213707000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			214557000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			214571000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			214598000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			214608000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			215457000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			215471000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			215524000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			215533000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			216357000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			216371000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			216392000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			216405000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success \\
-			217145000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C2106 & Network & LogOn & Success \\
-			217149000 & C14012\$@DOM1 & C14012\$@DOM1 & C2106 & C2106 & Network & LogOff & Success \\
-			217257000 & C14012\$@DOM1 & C14012\$@DOM1 & C14012 & C457 & Network & LogOn & Success \\
-			217271000 & C14012\$@DOM1 & C14012\$@DOM1 & C457 & C457 & Network & LogOff & Success
+			3769690 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769706 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769720 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769728 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769732 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769734 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769750 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769753 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769754 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769755 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769769 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769811 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769849 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3769861 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770055 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770057 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770058 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770066 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770112 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770113 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770114 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770115 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770116 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770144 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770146 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770148 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770152 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770154 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770156 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770158 & U399@DOM5 & U400@C832 & C832 & C832 & Negotiate & Interactive & LogOn & Success \\
+			3770158 & U399@DOM5 & U400@C832 & C832 & C832 & MICROSOFT_AUTHENTICATION_PA & REMOTEINTERACTIVE & TGS & Success
 		\end{tabular}
 	}
 \end{table}
 
-The highest offending (highest mean squared error value) feature vector's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual_top}. In this table (and following tables) features that are integers and not floats have been depicted as such, as all but the \(percentage\_failed\_logins\) features are integers. Any predictions made by the network are trimmed to 1 decimal point.
+The highest offending (highest mean squared error value) feature vector's predicted vs actual action are shown in Table~\ref{tab:predicted_vs_actual_top}. In this table (and following tables) features that are integers and not floats have been depicted as integers, as all but the \(percentage\_failed\_logins\) and \(time\_since\_last\_access\) features are integers. Any predictions made by the network are trimmed to 3 decimal points.
 
-As can be seen, the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.0 to \(logon\_type\_4\) (interactive logon) and a value of 0.0 to \(auth\_type\_0\) (NTLM). When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. A user often logs in after a really long time relative to their other login times or significantly changes their behavior by logging in using methods rarely or never used before. This signals that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.
+%cSpell:words REMOTEINTERACTIVE
+As can be seen, the action itself isn't very weird, simply using a different method of authentication, a different method of logging in and a different authentication orientation. These methods themselves are not inherently anomalies, but the network learned that these actions are rarely made by the user, assigning a value of 0.000 to \(auth\_type\_0\) (NTLM), \(logon\_type\_7\) (REMOTEINTERACTIVE) and \(auth\_orientation\_2\) (TGS). The network also assigned values of 0.999 or higher to a single action in all of these enums, pointing to the user almost always logging in using these exact methods. When compared to the user's previous logins in Table~\ref{tab:prev_logins}, the last action really stands out as different. Many anomalies like this have been found. A user often logs in after a really long time relative to their other login times or significantly changes their behavior by logging in using methods rarely or never used before. This indicates that the network is doing a good job at recognizing the user's behavior and finding anything that deviates from it.

@@ -1,0 +1,8 @@
+\chapter{Experiments}\label{ch:experiments}
+
+\section{Batch Size}
+
+
+\section{Shared weights}
+%TODO: adapt to new location
+The possibility of using one network for all users was explored, but this introduced some problems like the total amount of actions for all users not being the same, and problems with performance. The network also gravitates towards learning the behavior of \enquote{average} users. It will try to find a middle ground in the behavior of different types of users (sysadmins vs users that rarely log in), never really learning a single user's behavior well enough to find slight deviations. It will then accept outliers such as sysadmins having a high error value as normal, which could be very dangerous if such an account gets compromised.
