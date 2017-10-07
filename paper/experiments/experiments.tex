@@ -10,7 +10,7 @@ Experiments regarding increasing or decreasing the batch size were done. Changin
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.1]{experiments/epochs/25-epochs.png}
+		\includegraphics[scale=0.7]{experiments/epochs/25-epochs.png}
 	\end{center}
 	\caption{The ratio between the highest loss event and the average loss of a batch, using 25 epochs.~\label{fig:25-epochs}}
 \end{figure}
@@ -18,7 +18,7 @@ Experiments regarding increasing or decreasing the batch size were done. Changin
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.1]{experiments/epochs/15-epochs}
+		\includegraphics[scale=0.7]{experiments/epochs/15-epochs}
 	\end{center}
 	\caption{The ratio between the highest loss event and the average loss of a batch, using 15 epochs.~\label{fig:15-epochs}}
 \end{figure}
@@ -26,7 +26,7 @@ Experiments regarding increasing or decreasing the batch size were done. Changin
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.1]{experiments/epochs/8-epochs}
+		\includegraphics[scale=0.7]{experiments/epochs/8-epochs}
 	\end{center}
 	\caption{The ratio between the highest loss event and the average loss of a batch, using 8 epochs.~\label{fig:8-epochs}}
 \end{figure}
@@ -39,33 +39,33 @@ The possibility of using one neural network for all users was explored. However,
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.1]{experiments/cell/deviations/gru}
+		\includegraphics[scale=6.0]{experiments/cell/deviations/gru}
 	\end{center}
-	\caption{The deviations \(y\)~\ref{eq:y} of the mean squared errors of all predicted test set feature vectors compared to the actual feature vectors. Using GRU cells.~\label{fig:gru_deviations}}
+	\caption{The deviations \(y\) (function ~\ref{eq:y}) of the mean squared errors of all predicted test set feature vectors compared to the actual feature vectors. Using GRU cells.~\label{fig:gru_deviations}}
 \end{figure}
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.1]{experiments/cell/deviations/lstm}
+		\includegraphics[scale=6.0]{experiments/cell/deviations/lstm}
 	\end{center}
-	\caption{The deviations \(y\)~\ref{eq:y} of the mean squared errors of all predicted test set feature vectors compared to the actual feature vectors. Using LSTM cells.~\label{fig:lstm_deviations}}
+	\caption{The deviations \(y\) (function ~\ref{eq:y}) of the mean squared errors of all predicted test set feature vectors compared to the actual feature vectors. Using LSTM cells.~\label{fig:lstm_deviations}}
 \end{figure}
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.1]{experiments/cell/losses/comparison}
+		\includegraphics[scale=6.0]{experiments/cell/losses/comparison}
 	\end{center}
-	\caption{The loss calculated over each batch using the mse~\ref{eq:mse}.~\label{fig:gru_rnn_losses}}
+	\caption{The loss calculated over each batch using the mse.~\label{fig:gru_rnn_losses}}
 \end{figure}
 
 \section{GRU cell}
-Using a different RNN cell has also been explored. One of these different RNN cells is the GRU cell, introduced in~\cite{cho2014learning}. The differences between an architecture using a LSTM cells and an architecture using GRU cells were slight. As~\ref{chung2014empirical} showed, the performance of GRU cells and LSTM cells are very similar when it came to the area of polyphonic music modeling and speech signal modeling. As such, it is likely that their performance on the area of cyber-security is also similar. Figures~\ref{fig:gru_deviations} and~\ref{fig:lstm_deviations} show that the architecture using LSTM cells has more events with a high deviation than the architecture using GRU cells. This can point to it detecting more actual anomalies, or it labeling non-anomalous actions as anomalies. Because the data set is unlabeled there is unfortunately no way to find out. Figures~\ref{fig:gru_rnn_losses} again shows that the architecture using LSTMs has a higher loss value for most batches, also peaking higher. The LSTM architecture also flagged 0.7\% more events as anomalies. Again conclusions can not be drawn regarding which result is more effective but it can be seen that they do differ somewhat.
+Using a different RNN cell has also been explored. One of these different RNN cells is the GRU cell, introduced in~\cite{cho2014learning}. The differences between an architecture using a LSTM cells and an architecture using GRU cells were slight. As~\cite{chung2014empirical} showed, the performance of GRU cells and LSTM cells are very similar when it came to the area of polyphonic music modeling and speech signal modeling. As such, it is likely that their performance on the area of cyber-security is also similar. Figures~\ref{fig:gru_deviations} and~\ref{fig:lstm_deviations} show that the architecture using LSTM cells has more events with a high deviation than the architecture using GRU cells. This can point to it detecting more actual anomalies, or it labeling non-anomalous actions as anomalies. Because the data set is unlabeled there is unfortunately no way to find out. Figures~\ref{fig:gru_rnn_losses} again shows that the architecture using LSTMs has a higher loss value for most batches, also peaking higher. The LSTM architecture also flagged 0.7\% more events as anomalies. Again conclusions can not be drawn regarding which result is more effective but it can be seen that they do differ somewhat.
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=0.1]{experiments/cell/deviations/rnn}
+		\includegraphics[scale=6.0]{experiments/cell/deviations/rnn}
 	\end{center}
-	\caption{The deviations \(y\)~\ref{eq:y} of the mean squared errors of all predicted test set feature vectors compared to the actual feature vectors. Using RNN cells.~\label{fig:rnn_deviations}}
+	\caption{The deviations \(y\) (function ~\ref{eq:y}) of the mean squared errors of all predicted test set feature vectors compared to the actual feature vectors. Using RNN cells.~\label{fig:rnn_deviations}}
 \end{figure}
 
 \section{RNN cell}

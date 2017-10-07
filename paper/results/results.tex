@@ -6,10 +6,10 @@ During the training and testing stages, a number of plots have been made in orde
 	\begin{center}
 		\includegraphics[scale=0.1]{results/all_deviations}
 	\end{center}
-	\caption{The deviations \(y\)~\ref{eq:y} of the mean squared errors of all predicted test set feature vectors compared to the actual feature vectors. The IQR has been calculated over the training set using the same method of predicted vs actual mean squared error.~\label{fig:iqr_scale}}
+	\caption{The deviations \(y\) (function ~\ref{eq:y}) of the mean squared errors of all predicted test set feature vectors compared to the actual feature vectors. The IQR has been calculated over the training set using the same method of predicted vs actual mean squared error.~\label{fig:iqr_scale}}
 \end{figure}
 
-In order to get an idea of how much the error between the predicted feature vector and the actual feature vector deviates from that user's mean error, a function has been created with which this can be calculated. When replacing 1.5 with \(y\) in~\ref{eq:iqr_max}, with \(x\) being the mean squared error (\ref{eq:mse}) between the predicted feature vector and the actual feature vector, solving for \(y\) gives the following function:
+In order to get an idea of how much the error between the predicted feature vector and the actual feature vector deviates from that user's mean error, a function has been created with which this can be calculated. When replacing 1.5 with \(y\) in equation~\ref{eq:iqr_max}, with \(x\) being the mean squared error (function~\ref{eq:mse}) between the predicted feature vector and the actual feature vector, solving for \(y\) gives the following function:
 
 \begin{equation} \label{eq:y}
 y = (x - Q3) / IQR
