@@ -1,10 +1,10 @@
 \chapter{Methods}\label{ch:methods}
 
-In the data set that is being used in this thesis, there is a lot of data that is very essential that still requires some processing to extract (such as whether the user connected to a computer they haven't visited before). This is the reason for so-called features being created based on the data. These features are then sent to the network to train on, after being split into a training set and a test set. Since users tend to have different behavioral patterns in this data set and every other big network, the decision was made to train one network per user. Another option was explored, as explained in~\ref{ch:experiments}. After training on the training set, the network then runs on the test set. A list is then composed for the training set and the test set, containing the differences between the expected and actual vectors. Any elements in the list of the test set deviating too much from the median of the training set's list (which should represent normal behavior), are then labeled as anomalies.
+In the original data set that is being used in this thesis, there is a lot of hidden information is essential, for example whether the user connected to a computer he/she hasn't visited before. This is the reason for so-called features being created based on the data. These features are then sent to the network to train on, after being split into a training set and a test set. Since individual users tend to have different behavioral patterns, the decision was made to train one network per user. Another option was explored, as explained in Chapter~\ref{ch:experiments}. After training on the training set, the network is then applied to the test set. A list is then composed for the training set and the test set, containing the differences between the expected and actual vectors. Any elements in the list of the test set deviating too much from the median of the training set's list (which should represent normal behavior), are then labeled as anomalies.
 
 %cSpell:words akent
 \section{Data}
-The data set from~\cite{akent-2015-enterprise-data} contains a number of different types of data, as described in Chapter~\ref{ch:introduction}. In this thesis, only the authentication data will be used since that is by far the largest data set with 1,051,430,459 events. The data set has a total of 17,684 computers and spans 58 consecutive days. There are 26,301 total users in the data set, 13,875 of which are computer users. These are not tied to specific persons and as such learning their behavior will not be very useful. As such these are not included in the testing/training sets. In addition to these users there is a single \enquote{anonymous user} that is also excluded from the testing/training sets. This leaves a total of 12,425 human users. A minimum amount of 150 actions per user has also been chosen in order for them to be included in the testing/training sets. The amount of users that do not meet this criterion is not known as the system has not been run on 100\% of the data set. The number 150 was chosen because, since weights are updated after every batch, with a batch size of in this case 32, the weights can only be updated a few times, leading to a bad approximation of the user's behavior. It could be argued that the minimum amount of actions should be even higher. However, it should be fairly easy to determine if a user's behavior was only flagged as anomalous because they have so few actions that the network hasn't learned their behavior yet, making this a small problem. The data was entirely anonymized in addition to the time frame at which it was captured not being disclosed. The authentication data format can be seen in table~\ref{tab:data}
+The data set from~\cite{akent-2015-enterprise-data} contains a number of different types of data, as described in Chapter~\ref{ch:introduction}. In this thesis, only the authentication data will be used since that is by far the largest data set with 1,051,430,459 events. The data set covers a total of 17,684 computers and spans 58 consecutive days. There are 26,301 total users in the data set, 13,875 of which are computer users. These are not tied to specific persons and as such learning their behavior will not be very useful. As such these are not included in the testing/training sets. In addition to these users there is a single \enquote{anonymous user} that is also excluded from the testing/training sets. This leaves a total of 12,425 human users. A minimum number of 150 actions per user has also been chosen in order for them to be included in the testing/training sets. The number of users that do not meet this criterion is not known as the system has not been run on 100\% of the data set. The number 150 was chosen because, since weights are updated after every batch, with a batch size of in this case 32, the weights can only be updated a few times, leading to a bad approximation of the user's behavior. It could be argued that the minimum number of actions should be even higher. However, it should be fairly easy to determine if a user's behavior was only flagged as anomalous because they have so few actions that the network hasn't learned their behavior yet, making this a small problem. The data was entirely anonymized. Also the true dates over which data were collected has not been disclosed. The authentication data format can be seen in table~\ref{tab:data}
 
 \begin{table}[htbp]
 	\centering
@@ -19,51 +19,51 @@ The data set from~\cite{akent-2015-enterprise-data} contains a number of differe
 	}
 \end{table}
 
-Due to the size of the data set and the limited amount of time, the decision was made to use only 1\% of the users for plots/results in this thesis. This means the first 1\% of valid users, meaning only non-anonymous, human users, as explained in the previous section. Users are chosen regardless of the amount of actions they have (as long as this amount is higher than 150), and are simply sorted alphabetically, after which the first 1\% are taken.
+Due to the size of the data set and the limited amount of time, the decision was made to experiment with data that covers a smaller percentage of the data set (either 1\% or 0.1\% of valid human users, as explained in the previous section). Users are chosen regardless of the number of actions they have (as long as this number is higher than 150 records), and are simply sorted alphabetically, after which the first 1\% or 0.1\% are taken.
 
 \begin{table}[htbp]
 	\centering
 	\caption{The features}\label{tab:features}
 	\resizebox{\linewidth}{!}{
 		\begin{tabular}{lll}
-			Index & Feature                & Description                                                                \\ \midrule
-			0     & domains delta          & 1 if a previously unvisited domain was accessed, 0 otherwise               \\
-			1     & dest users delta       & 1 if a previously unvisited destination user was accessed, 0 otherwise     \\
-			2     & src computers delta    & 1 if a previously unvisited source computer was accessed, 0 otherwise      \\
-			3     & dest computers delta   & 1 if a previously unvisited destination computer was accessed, 0 otherwise \\
-			4     & time since last access & The time (in seconds) since the last time any network activity occurred    \\
-			5     & auth type              & What type of authentication type was used (one of enum)                    \\
-			6     & logon type             & What type of logon type was used (one of enum)                             \\
-			7     & auth orientation       & What type of authentication orientation was used (one of enum)             \\
-			8    & success or failure     & 1 if the login succeeded, 0 if it didn't                                  
+			Index & Feature                		& Description                                                                \\ \midrule
+			0     & domains delta          		& 1 if a previously unvisited domain was accessed, 0 otherwise               \\
+			1     & dest users delta       		& 1 if a previously unvisited destination user was accessed, 0 otherwise     \\
+			2     & src computers delta    		& 1 if a previously unvisited source computer was accessed, 0 otherwise      \\
+			3     & dest computers delta   		& 1 if a previously unvisited destination computer was accessed, 0 otherwise \\
+			4     & time since last access 		& The time (in seconds) since the last time any network activity occurred    \\
+			5     & auth type              		& What type of authentication type was used (categorical data)                   \\
+			6     & logon type            		& What type of logon type was used (categorical data)                            \\
+			7     & auth orientation       		& What type of authentication orientation was used (categorical data)            \\
+			8     & percentage failed logins 	& The percentage of logins that were unsuccessful							 \\
+			9     & success or failure     		& 1 if the login succeeded, 0 if it didn't                                  
 		\end{tabular}
 	}
 \end{table}
 
-\begin{table}[htbp]
+\section{Features}
+Some variables like the computer's name can not be used as input for a neural network, instead they are used to define features. Since increasing the number of features has a big performance impact, keeping the number of features low, while still making sure the most important data is represented by them is essential. The features are created on a per-user basis, iterating through that user's events and generating features based on them. For an overview of the features see table~\ref{tab:features}. All categorical values (indices 5,6,7) have been encoded using 1-of-encoding (see table~\ref{tab:one_of_encoding} for an example), ensuring the values remain categorical. This gives each possible categorical value a single spot in a vector, setting it to 1 only if that value is true, and setting the rest to 0. This allows the network to make individual predictions for every possible categorical value, instead of having to output a single prediction for all values through one real-numbered output. This brings the total length of the feature vector up to 33 (11, 9 and 6 possible values for the categorical values respectively).
+
+%cSpell:words multicolumn
+\begin{table}[htbpH]
 	\centering
-	\caption{One of encoding}\label{tab:one_of_encoding}
+	\caption{1-of-encoding}\label{tab:one_of_encoding}
 	\begin{tabular}{llll}
-	Value & A & B & C \\ \midrule
-	1     & 1 & 0 & 0 \\
-	2     & 0 & 1 & 0 \\
-	3     & 0 & 0 & 1
+		& \(x_1\) & \(x_2\) & \(x_3\)                   \\ \cline{2-4} 
+\multicolumn{1}{l|}{A} & 1    & 0    & \multicolumn{1}{l|}{0} \\
+\multicolumn{1}{l|}{B} & 0    & 1    & \multicolumn{1}{l|}{0} \\
+\multicolumn{1}{l|}{C} & 0    & 0    & \multicolumn{1}{l|}{1}
 	\end{tabular}
+	\caption{The translation of three values (A, B and C) into a vector representing each one.}
 \end{table}
 
-\section{Features}
-As the raw data has some unneeded values that need to be transformed such as the domains and the time since the last access, features are constructed from the original rows. Since increasing the number of features has a big performance impact, keeping the number of features low, while still making sure the most important data is represented by them. The features are created on a per-user basis, iterating through that user's events and generating features based on them. For an overview of the features see table~\ref{tab:features}. All enum values (indexes 5,6,7) have been encoded using 1-of-encoding (see table~\ref{tab:one_of_encoding} for an example), ensuring the values remain nominal. This gives each possible enum value a single spot in a vector, setting it to 1 only if that value is true, and setting the rest to 0. This allows the network to make individual predictions for every possible enum value instead of possibly assigning them a real-numbered value. This brings the total length of the feature vector up to 33 (11, 9 and 6 possible values for the enums respectively).
 
-The features have been chosen to represent the values that the network will probably be using. For example, the network is unlikely to keep track of a list of every computer the user logged into, but would probably be interested in knowing whether the user logged in to a computer they haven't previously logged in to. Additionally, the network is unlikely to subtract the previous action's time stamp from the current action's time stamp, but will probably be interested in knowing the time since the last action. This can be helpful for determining whether the user is doing lots of operations at once, doing them at a normal human speed, or if they're barely doing anything at all.
+The features have been chosen in such a way to contain relevant information that ca be used for modeling user behavior. For example, the neural network is unlikely to keep track of every computer the user logged into, instead, the data might contain information about whether the user logged in to a computer they haven't previously logged in to. Additionally, the neural network is unlikely to subtract the previous action's time stamp from the current action's time stamp, but will probably be interested in knowing the time since the last action. This can be helpful for determining whether the user is doing lots of operations at once, doing them at a normal human speed, or if they're barely doing anything at all.
 
 \section{Preprocessing}
-In order to have both a training and test set for every user, the data is split up. 70\% is used for training and 30\% is used for the test set. This is done separately for every user, making sure that each user has the same 70--30 split. The network expects only real-valued numbers from the range [0,1], however, because the features contain integer values larger than 1, these values have to be normalized to fit into this range. This is done by taking the maximum value for every column and dividing every value in that column by that maximum, linearly scaling every value down to the range [0,1]. This is done by applying the formula below to every column per user, where \(x\) is the input column and \(x'\) is the output column:
+In order to have both a training and test set for every user, the data is chronologically split up. 70\% is used for training and 30\% is used for the test set. This is done separately for every user, making sure that each user has the same 70--30 split. As every feature except for time since last access falls in the range [0,1], this feature also needs to be fit into that range. This is done by taking the maximum value for the time since last access column and dividing every value in that column by the maximum value in the column, linearly scaling every value down to the range [0,1].
 
-\begin{equation} \label{eq:normalize}
-x' = x / \max (x)
-\end{equation}
-
-This operation is performed on each user's training and test set before they are split up, ensuring that the scaling factor is the same for both sets. The data is kept in chronological order, as it was read from the data set file, ensuring that the input data closely resembles the input data as it would appear in a real network, and making use of the LSTM's ability to make sense of sequences.
+The data is kept in chronological order, as it was read from the data set file, ensuring that the input data closely resembles the input data as it would appear in a real network, and making use of the LSTM's ability to make sense of sequences.
 
 Keep in mind that in a real-time scenario, scaling can not be done by using the same factor for both the training and test set, as the eventual maximum value is unknown, leading to values that fall above the [0,1] range. This can be solved by taking the maximum possible or reasonable value as a scaling factor for both test sets. For example no user will ever access more computers than are available on the network and no human user will have more seconds between their last action than there are in a human lifetime. Another method of solving this problem is to apply the following function to all (unscaled) feature values:
 
@@ -73,8 +73,48 @@ x' = \dfrac{1}{1+x}
 
 Instead of continuously increasing, \(x'\) shrinks here, fixing the problem of features exceeding the range [0,1]. This also takes care of scaling the feature down to the range [0,1]. As such this is a very good solution to this problem. However, because no real-time training/testing occurs in this thesis, the problem does not have to be dealt with.
 
+% FIRST LAYER
+
+% (forget = 33
+% input = 33
+% hidden state = 33
+% output = 33)
+
+% total = 33 * 4 = 132
+% * 1 = input dim = 132
+
+% recurrent_kernel = U = hidden state =
+% (forget = 33
+% input = 33
+% hidden state = 33
+% output = 33) * 33 = 4356
+
+% bias = (forget = 33
+% input = 33
+% hidden state = 33
+% output = 33) = 132
+
+% 132 + 4356 + 33
+
+
+
+% SECOND LAYER
+
+% First part is * 32, input_shape = (32, 33, 33) instead
+
+
+
+% THIRD LAYER
+
+% (33 * 33) = kernel
+% + 33 = bias
+% = 1122
+
+
+
+
 \section{Experimental setup}
-The system consists of 3 layers, with the first two being stateful LSTMs (stateful meaning the state is preserved across batches), and the third layer being a dense layer which transforms the data to the correct vector length. All 3 layers use an internal representation vector (and layer output) size of \(feature\_size \), which is \enquote{between} the network's input and output sizes, both being \(feature\_size \) as well (as suggested in~\cite{heaton2008introduction}). This leads to a total amount of 14,586 trainable weights. The output vector then consists of real values representing each feature separately. The network uses a batch size of 32. Increasing the batch size tends to cause the network to converge slower, which can cause problems when dealing with users with few actions. On the other hand reducing the batch size quickly slows down the network significantly. The network is first trained on the supplied training data, always trying to optimize for the lowest loss value, calculated by the mean squared error function (mse). This function measures the average of the squares of the differences between actual and predicted values, giving an approximation of the deviation from the expected value. The mean squared error function is calculated by using the following formula with \(n\) being the length of the input vector, \(x\) being the predicted vector and \(y\) being the actual vector:
+The system consists of 3 layers, with the first two being stateful LSTMs (stateful meaning the state is preserved across batches), and the third layer being a dense layer which transforms the data to the correct vector length. All 3 layers use an internal representation vector (and layer output) size of \(feature\_size \), which is \enquote{between} the network's input and output sizes, both being \(feature\_size \) as well (as suggested in~\cite{heaton2008introduction}). This leads to a total number of 14,586 trainable weights. The output vector then consists of real values representing each feature separately. The network uses a batch size of 32. Increasing the batch size tends to cause the network to converge slower, which can cause problems when dealing with users with few actions. On the other hand reducing the batch size quickly slows down the network significantly. The network is first trained on the supplied training data, always trying to optimize for the lowest loss value, calculated by the mean squared error function (mse). This function measures the average of the squares of the differences between actual and predicted values, giving an approximation of the deviation from the expected value. The mean squared error function is calculated by using the following formula with \(n\) being the length of the input vector, \(x\) being the predicted vector and \(y\) being the actual vector:
 
 \begin{equation} \label{eq:mse}
 mse = (\sum\limits_{i=0}^{n - 1} {(x_i - y_i)}^2) / n
@@ -100,8 +140,8 @@ The losses from all of the test data are then collected, after which the interqu
 
 In practice the first form of outlier (lower than IQR) will almost never be found, as that would mean an action so perfectly fits the user, it is an anomaly, which is very unlikely to point to an intrusion attempt. Because the training set's error values should represent a regular sequence of actions by the user, any error values in the test set that fall outside of the range calculated with the above functions are classified as anomalies.
 
-After finding anomalies, they have to be translated into actual rows. This issue occurs because when inputting solely features, the events they are based on are discarded. As network administrators will want to see the name of the user that is behind a found anomaly and may want to have the events investigated by a cyber-security expert, these anomalies are translated back into source events. This is done by storing the index of an anomaly as well as the user associated with the anomaly. The indexes have a 1--to--1 correspondence to the source events, allowing for easy translation. This step can be skipped if, for example, no anomalies were found or only previously known anomalies were found.
+After finding anomalies, they have to be translated into actual rows. This issue occurs because when inputting solely features, the events they are based on are discarded. As network administrators will want to see the name of the user that is behind a found anomaly and may want to have the events investigated by a cyber-security expert, these anomalies are translated back into source events. This is done by storing the index of an anomaly as well as the user associated with the anomaly. The indices have a 1--to--1 correspondence to the source events, allowing for easy translation. This step can be skipped if, for example, no anomalies were found or only previously known anomalies were found.
 
 %cSpell:words chollet tensorflow whitepaper
 \section{Code}
-All the code was written in Python, using the~\cite{chollet2015keras} Keras deep learning wrapper's LSTM as the neural network. Default settings were used if not mentioned otherwise. TensorFlow~\cite{tensorflow2015-whitepaper} was used as the underlying library for Keras. Due to both the preprocessing/feature generation and the training/testing stages being very slow (as will be explained later in the evaluation section), especially when using big datasets, both of these operations have been parallelized. The first stage (preprocessing/feature generation) is a very CPU-dependent task, this task can be split over any amount of CPU's, handling a single user per CPU at a time until all users have been processed. The second stage (training/testing) can be either run on the CPU (s) or GPU (s). Depending on the hardware of the computer the experiments are executed on, one of these will be faster, as will be discussed in Chapter~\ref{ch:evaluation}. When using the CPU, Keras itself will use all CPUs available to it, however when using the GPU, a problem arises. Because Keras only uses a single GPU per neural network, only a single GPU can be used per model, which in this case is the template model. This can be solved by splitting the work into multiple independent processes in order to parallelize the operations. This is done by having one root process splitting the to-do jobs between \(n\) processes. The total amount of users is split over the sub-processes. These \(n\) processes all produce partial outputs (both anomalies and plots), that have to then be stitched together by the host process. The host process then produces the final output.
+All the code was written in Python, using the~\cite{chollet2015keras} Keras deep learning wrapper's LSTM as the neural network. Default settings were used if not mentioned otherwise. TensorFlow~\cite{tensorflow2015-whitepaper} was used as the underlying library for Keras. Due to both the preprocessing/feature generation and the training/testing stages being very slow (as will be explained later in the evaluation section), especially when using big datasets, both of these operations have been parallelized. The first stage (preprocessing/feature generation) is a very CPU-dependent task, this task can be split over any number of CPU's, handling a single user per CPU at a time until all users have been processed. The second stage (training/testing) can be either run on the CPU (s) or GPU (s). Depending on the hardware of the computer the experiments are executed on, one of these will be faster, as will be discussed in Chapter~\ref{ch:evaluation}. When using the CPU, Keras itself will use all CPUs available to it, however when using the GPU, a problem arises. Because Keras only uses a single GPU per neural network, only a single GPU can be used per model, which in this case is the template model. This can be solved by splitting the work into multiple independent processes in order to parallelize the operations. This is done by having one root process splitting the to-do jobs between \(n\) processes. The total number of users is split over the sub-processes. These \(n\) processes all produce partial outputs (both anomalies and plots), that have to then be stitched together by the host process. The host process then produces the final output.
