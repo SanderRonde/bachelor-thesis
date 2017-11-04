@@ -287,7 +287,7 @@ def rnn_model(batch_size=BATCH_SIZE):
         model.add(layer(LAYERS[2], batch_size=batch_size,
                         return_sequences=False, stateful=True, dropout=DROPOUT,
                         recurrent_dropout=RECURRENT_DROPOUT))
-    model.add(Dense(LAYERS[3]))
+    model.add(Dense(LAYERS[3], activation="relu"))
 
     if "different_optimizer" in EXPERIMENTS_MAP:
         optimizer = optimizers.adam(lr=LEARNING_RATE)
