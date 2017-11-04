@@ -316,7 +316,7 @@ def get_pd_file() -> pd.DataFrame:
     logline('Opening file')
     dataset_name = get_dataset_name()
 
-    return pd.read_hdf(io.get('input_file'), dataset_name, start=0, stop=calc_rows_amount())
+    return pd.read_hdf(io.get('input_file'), dataset_name, start=0, stop=calc_rows_amount(), chunksize=1000)
 
 
 def group_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -460,6 +460,60 @@ def strip_group_length(data) -> Tuple[Union[Dict[str, Any], None], int]:
         "datasets": data['datasets']
     }, group_length
 
+def get_dict_inner_length(d):
+    length = 0
+    for key, value in d.items():
+        length = length + len(value)
+    return length
+
+
+def extract_features(rows):
+    users_list = list()
+    users = len(rows)
+    rows_amount = 0
+
+    logline('There are', users, 'users and', len(rows), 'rows matching your filter type',
+            'no computer users or anonymous users' if io.get('users_only') else 'no anonymous users')
+
+    rows_max = get_dict_inner_length(rows)
+    logline('Setting timer for', rows_max, 'rows')
+    timer = Timer(rows_max)
+
+    try:
+        for name, group in rows.items():
+            completed_result, group_len = strip_group_length(gen_features_for_user((name, group)))
+
+            timer.add_to_current(group_len)
+            rows_amount += group_len
+
+            if completed_result is not None:
+                users_list.append(completed_result)
+
+                if rows_amount > next_report == 0 or REPORT_EVERY_USER:
+                    next_report = next_report + REPORT_SIZE
+
+                    logline('At row ', str(rows_amount), '/~', str(row_amount), ' - ETA is: ' + timer.get_eta(),
+                            spaces_between=False)
+                    logline('At user ', len(users_list), '/~', max_users, spaces_between=False)
+
+            if len(users_list) >= max_users:
+                break
+    except KeyboardInterrupt:
+        logline('User cancelled execution, wrapping up')
+        debug('Cancelled early at', len(users_list), 'instead of', users)
+        debug('You skipped a total of', users - len(users_list), 'users, or',
+                100 - ((len(users_list) / users) * 100), '%')
+    except Exception:
+        error('An error occurred during execution', traceback.format_exc())
+        debug('Salvaging all remaining users')
+    finally:
+        debug('Runtime is', timer.report_total_time())
+
+        logline("Did a total of", len(users_list), "users")
+        logline('Done gathering data')
+        logline('Closing file...')
+        output_data(users_list)
+
 
 def gen_features(f: pd.DataFrame, row_amount: int):
     users_list = list()
@@ -561,6 +615,73 @@ def get_features():
     gen_features(f, rows)
 
 
+def is_valid_user(user):
+    if 'ANONYMOUS' in user and 'LOGON' in user:
+        return False
+    if user.startswith('C') and '$' in user:
+        return False
+    return True
+
+
+def iter_users(f):
+    users_dict = dict()
+    users = list()
+
+    dfs = 0
+    for df in f:
+        dfs = dfs + 1
+        print('Read df', dfs, 'so at row', dfs * 1000)
+        for index, row in df.iterrows():
+            user = row[1].split("@")[0]
+            if is_valid_user(user) and not user in users_dict:
+                users.append(user)
+                users_dict[user] = True
+
+    return users
+
+
+def cut_users(users):
+    max_amount = int(math.ceil(len(users) * 0.01 * io.get('dataset_percentage')))
+    new_users = users[:max_amount]
+    return new_users
+    
+
+def get_valid_rows(f, users):
+    rows = dict()
+
+    dfs = 0
+    for df in f:
+        dfs = dfs + 1
+        print('Read df', dfs, 'so at row', dfs * 1000)
+        for index, row in df.iterrows():
+            user = row[1].split("@")[0]
+            if user in users:
+                if user in rows:
+                    rows[user].append(row)
+                else:
+                    rows[user] = [row]
+    
+    return rows
+
+    
+def l_to_s(l):
+    s = set()
+    for i in range(len(l)):
+        s.add(l[i])
+    
+    return s
+
+
+def get_features_iter():
+    file = get_pd_file()
+    #logline('Length before filtering is', len(file))
+    
+    users = iter_users(file)
+    users = l_to_s(cut_users(users))
+    valid_rows = get_valid_rows(file, users)
+    extract_features(valid_rows)
+
+
 def output_data(users_list: List[Dict[str, Union[str, Dict[str, List[List[float]]]]]]):
     if io.get('output_file') == 'stdout':
         logline('Outputting to stdout')
@@ -591,6 +712,7 @@ def main():
             "using a batch size of", BATCH_SIZE)
 
     get_features()
+    # get_features_iter()
     logline('Total runtime is', Timer.stringify_time(Timer.format_time(time.time() - start_time)))
     sys.exit()
 
