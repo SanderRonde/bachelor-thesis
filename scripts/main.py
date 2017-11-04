@@ -586,6 +586,28 @@ def data_points_for_users(highest_offenders: List[Dict[str, Union[str, float, Di
     return match_dict
 
 
+def filter_deviations(deviations):
+    by_user = dict()
+    for i in range(len(deviations)):
+        data = deviations[i]
+        user = data["key"]
+        val = data["val"]
+        if key in by_user:
+            by_user[user].append(val)
+        else:
+            by_user[user] = [val]
+    
+    filtered_deviations = list()
+    for user, datapoints in by_user.items():
+        last_five = datapoints[-5:]
+        for i in range(len(last_five)):
+            filtered_deviations.append({
+                "key": user,
+                "val": last_five[i]
+            })
+    return filter_deviations
+
+
 def save_plot_data(plot_location: str):
     """Plots everything"""
 
@@ -612,6 +634,11 @@ def save_plot_data(plot_location: str):
     save_plot(plot_location, 'deviations', list(map(lambda x: x["val"], PLOTS["DEVIATIONS"])),
               'Action index', 'Deviation from IQR (y)',
               is_log=True, is_sorted=True)
+    save_plot(plot_location, 'filtered_deviations', list(map(lambda x: x["val"], filter_deviations(PLOTS["DEVIATIONS"]))),
+              'Action index', 'Deviation from IQR (y)',
+              is_log=True, is_sorted=True)
+    with open(plot_location + 'deviations_original.json', 'w') as deviations_out:
+        json.dump(deviations_out)
     save_plot(plot_location, 'highest_offender_deviations', highest_offenders_with_mean_dict,
               'User Name', 'Relative deviation (from mean)',
               is_dict=True, multidimensional=True, is_highest_offenders=True, is_log=True)
