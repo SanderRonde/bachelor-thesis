@@ -530,6 +530,8 @@ def save_plot(plot_location: str, name: str,
 
     if USES_DIFFERENT_INDEXES:
         plot_location = plot_location + name + '.part.' + str(io.get('start')) + '.' + str(io.get('end')) + '.json'
+    else:
+        plot_location = plot_location + name + '.json'
     logline("Outputting plot data to", plot_location)
     with open(plot_location, 'w') as out_file:
         out_file.write(json.dumps(plot_data))
