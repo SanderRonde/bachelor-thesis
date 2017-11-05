@@ -21,6 +21,10 @@ The data set from~\cite{akent-2015-enterprise-data} contains a number of differe
 
 Only human users having more than 150 records are used in this thesis. Since anonymous users and computer users do not represent a single person, and the persons that use a given computer may change at any time, attempting to model the behavior of these users is not effective.
 
+\section{Features}
+Some variables like the computer's name can not be used as input for a neural network, instead they are used to define features. Since increasing the number of features has a big performance impact, keeping the number of features low, while still making sure the most important data is represented by them is essential. The features are created on a per-user basis, iterating through that user's events and generating features based on them. For an overview of the features see table~\ref{tab:features}. All categorical values (indices 5,6,7) have been encoded using 1-of-encoding (see table~\ref{tab:one_of_encoding} for an example), ensuring the values remain categorical. This gives each possible categorical value a single spot in a vector, setting it to 1 only if that value is true, and setting the rest to 0. This allows the network to make individual predictions for every possible categorical value, instead of having to output a single prediction for all values through one real-numbered output. This brings the total length of the feature vector up to 33 (11, 9 and 6 possible values for the categorical values respectively).
+
+
 \begin{table}[htbp]
 	\centering
 	\caption{The features}\label{tab:features}
@@ -40,9 +44,6 @@ Only human users having more than 150 records are used in this thesis. Since ano
 		\end{tabular}
 	}
 \end{table}
-
-\section{Features}
-Some variables like the computer's name can not be used as input for a neural network, instead they are used to define features. Since increasing the number of features has a big performance impact, keeping the number of features low, while still making sure the most important data is represented by them is essential. The features are created on a per-user basis, iterating through that user's events and generating features based on them. For an overview of the features see table~\ref{tab:features}. All categorical values (indices 5,6,7) have been encoded using 1-of-encoding (see table~\ref{tab:one_of_encoding} for an example), ensuring the values remain categorical. This gives each possible categorical value a single spot in a vector, setting it to 1 only if that value is true, and setting the rest to 0. This allows the network to make individual predictions for every possible categorical value, instead of having to output a single prediction for all values through one real-numbered output. This brings the total length of the feature vector up to 33 (11, 9 and 6 possible values for the categorical values respectively).
 
 %cSpell:words multicolumn
 \begin{table}[htbpH]
