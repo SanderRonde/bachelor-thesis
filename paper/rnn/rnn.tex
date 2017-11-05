@@ -19,7 +19,7 @@ A recurrent neural network is a variation of an artificial neural network that c
 
 As can be seen in figure~\ref{fig:rnn_cell}, RNNs only have a single vector that functions as the hidden state and the cell's output. The vector of values at the output of the hidden layer that are observed at time \(t\), h\(_{\text{t}}\) is calculated by the following function where h\(_{\text{t}}\) is the current hidden state vector and h\(_{\text{t-1}}\) the vector of the previous hidden state, \(W\) is the weight matrix for the cell's input, \(U\) is the weight matrix for the hidden value, x\(_{\text{t}}\) is the input of this cell, and \(\sigma \) is a sigmoid function used to squash its inputs into the [0, 1] range:
 
-\begin{equation} \label{eq:something}
+\begin{equation} \label{eq:hidden_gate_lstm}
 h_t = \sigma(Wx_t + Uh_\text{t-1})
 \end{equation}
 
@@ -57,18 +57,26 @@ c_t = f_t \circ c_{t-1} + i_t \circ \sigma(W_c x_t + U_c h_{t-1} + b_c)
 
 This vector is then passed on to the next iteration. Now the output gate vector \(o_t\) is calculated:
 
-\begin{equation} \label{eq:something}
+\begin{equation} \label{eq:output_gate_lstm}
 o_t = \sigma(W_o x_t + U_o h_{t-1} + b_o)
 \end{equation}
 
 The output state \(h_t\) can then be obtained:
 
-\begin{equation} \label{eq:something}
+\begin{equation} \label{eq:hidden_output_gate_lstm}
 h_t = o_t \circ \sigma(c_t)
 \end{equation}
 
 %cSpell:words gers jozefowicz kingma
 This results in a version of an RNN that is able to remember more and is more liberal in choosing what information it wants to keep in the hidden state and what it wants to discard. This makes LSTM networks better suited for tasks involving series of data. This has lead to the LSTM architecture becoming the dominant RNN architecture. 
+
+The total number of trainable weights in an LSTM layer can be calculated as follows, where \(input\_dim \) is the last dimension of the input vector and \(units\) is the amount of LSTM cells in this layer:
+
+\begin{equation} \label{eq:lstm_weights}
+weights = (4 * units * input\_dim ) + (4 * units * units) + (4 * units)
+\end{equation}
+
+In this formula, the number 4 comes from there being 4 different weights for calculating the gates (forget, input, hidden state and output). The first term (also known as the kernel weights) then represents the \(W\) matrix in the above functions, the second term (also called the recurrent kernel) represents the \(U\) matrix and the third term is a matrix containing biases \(b\).
 
 \section{GRUs}
 Another RNN architecture is the Gated Recurrent Unit (GRU), introduced in~\cite{cho2014learning}. This architecture combines the input and forget gates into a single so-called \enquote{update gate} and also merges the cell state and hidden state (see figure~\ref{fig:gru_cell}). The calculation of the merged output vector once again consists of several operations. The network first computes the \enquote{reset gate} \(r_t\) using the following function, where \(W_r\) are the weights for the reset gate and \([h_{t-1}, x_t]\) signifies the concatenation of \(h_{t-1}\) and \(x_t\):
@@ -107,4 +115,4 @@ Where \(\tilde{h_t}\) is computed by:
 
 There have been numerous variations of the standard LSTM architecture that was just described, including but not limited to the Peephole LSTM~\cite{gers2002learning} that connects the hidden state with the gate activation functions, and the Neural Turing Machine~\cite{graves2014neural}, which extends the capabilities of the neural network by coupling it to an external memory resource.
 
-There has been some research into which architectures are the most efficient. Some architectures are better than others at specific problems, as~\cite{jozefowicz2015empirical} demonstrates. However, this study did not include a variation of anomaly detection in its testing problems. This means that experiments regarding what architecture is the most promising for anomaly detection still have to be done. Experiments regarding the architecture of the system are done in Chapter~\ref{ch:experiments}. The base architecture that will be used in this thesis will be the standard LSTM architecture. Since it is the dominant architecture and has seen a lot of use, testing other architectures against this baseline seems like a good choice. For training the \enquote{adam} optimizer will be used, which was introduced in~\cite{kingma2014adam}. This is a method of gradient-based optimization of stochastic objective functions.
+There has been some research into which architectures are the most efficient. Some architectures are better than others at specific problems, as~\cite{jozefowicz2015empirical} demonstrates. However, this study did not include a variation of anomaly detection in its testing problems. This means that experiments regarding what architecture is the most promising for anomaly detection still have to be done. Experiments regarding the architecture of the system are done in Chapter~\ref{ch:experiments}. The base architecture that will be used in this thesis will be the standard LSTM architecture. Since it is the dominant architecture and has seen a lot of use, testing other architectures against this baseline seems like a good choice. For training the~\enquote{adam} optimizer will be used, which was introduced in~\cite{kingma2014adam}. This is a method of gradient-based optimization of stochastic objective functions.

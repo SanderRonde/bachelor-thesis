@@ -19,7 +19,7 @@ The data set from~\cite{akent-2015-enterprise-data} contains a number of differe
 	}
 \end{table}
 
-Due to the size of the data set and the limited amount of time, the decision was made to experiment with data that covers a smaller percentage of the data set (either 1\% or 0.1\% of valid human users, as explained in the previous section). Users are chosen regardless of the number of actions they have (as long as this number is higher than 150 records), and are simply sorted alphabetically, after which the first 1\% or 0.1\% are taken.
+Only human users having more than 150 records are used in this thesis. Since anonymous users and computer users do not represent a single person, and the persons that use a given computer may change at any time, attempting to model the behavior of these users is not effective.
 
 \begin{table}[htbp]
 	\centering
@@ -75,61 +75,80 @@ Instead of continuously increasing, \(x'\) shrinks here, fixing the problem of f
 
 % FIRST LAYER
 
-% (forget = 33
-% input = 33
-% hidden state = 33
-% output = 33)
+% KERNEL = W
+% (forget = units
+% input = units
+% hidden state = units
+% output = units)
+% total = units * 4 * input_dim
 
-% total = 33 * 4 = 132
-% * 1 = input dim = 132
+% RECURRENT_KERNEL = U = hidden state =
+% (forget = units
+% input = units
+% hidden state = units
+% output = units) * units
+% total = units * units * 4
 
-% recurrent_kernel = U = hidden state =
-% (forget = 33
-% input = 33
-% hidden state = 33
-% output = 33) * 33 = 4356
+% bias = (forget = units
+% input = units
+% hidden state = units
+% output = units)
+% total = units * 4
 
-% bias = (forget = 33
-% input = 33
-% hidden state = 33
-% output = 33) = 132
-
-% 132 + 4356 + 33
-
+% total total = (units * 4 * input_dim) + (units * units * 4) + (units * 4) = (input_dim + 2) * units * 4
 
 
 % SECOND LAYER
 
-% First part is * 32, input_shape = (32, 33, 33) instead
-
+% input_dim is 33 instead, input_shape = (32, 33, 33)
 
 
 % THIRD LAYER
 
-% (33 * 33) = kernel
-% + 33 = bias
-% = 1122
+% (units * input_dim) = kernel
+% + units = bias
+% total = (units * input_dim) + units
 
-
-
-
+%cSpell:words glorot hahnloser
 \section{Experimental setup}
-The system consists of 3 layers, with the first two being stateful LSTMs (stateful meaning the state is preserved across batches), and the third layer being a dense layer which transforms the data to the correct vector length. All 3 layers use an internal representation vector (and layer output) size of \(feature\_size \), which is \enquote{between} the network's input and output sizes, both being \(feature\_size \) as well (as suggested in~\cite{heaton2008introduction}). This leads to a total number of 14,586 trainable weights. The output vector then consists of real values representing each feature separately. The network uses a batch size of 32. Increasing the batch size tends to cause the network to converge slower, which can cause problems when dealing with users with few actions. On the other hand reducing the batch size quickly slows down the network significantly. The network is first trained on the supplied training data, always trying to optimize for the lowest loss value, calculated by the mean squared error function (mse). This function measures the average of the squares of the differences between actual and predicted values, giving an approximation of the deviation from the expected value. The mean squared error function is calculated by using the following formula with \(n\) being the length of the input vector, \(x\) being the predicted vector and \(y\) being the actual vector:
+The system consists of 3 layers, with the first two being stateful LSTMs (stateful meaning the state is preserved across batches), and the third layer being a dense layer using the ReLU activation function which was introduced in~\ref{hahnloser2000digital}. The 3 layers contain \(feature\_size\) (33) cells each, which is \enquote{between} the network's input and output sizes, both being \(feature\_size\) as well (as suggested in~\cite{heaton2008introduction}). This means that each layer's output vector is also of size \(feature\_size\). The dense layer transforms the data to the desired output dimensions of (\(feature\_size\), 1) where. All three layers have biases enabled and use the default keras initializer \enquote{glorot\_uniform}, introduced in~\cite{glorot2010understanding}, which draws its values from a uniform distribution in the range of [-limit, limit]. Limit is calculated as follows, with fan\_in being the weight's input dimension and fan\_out being the weight's output dimension (both always equal to \(feature\_size\) except for the first layer's kernel weights, where fan\_in is 1):
+
+\begin{equation}
+limit = sqrt(6 / (fan\_in + fan\_out))
+\end{equation}
+
+The first LSTM layer also returns its sequences instead of only last output, allowing the second LSTM to be stateful. The total number of weights for the LSTM layers can be calculated by using formula~\ref{eq:lstm_weights}. The number of units for both LSTM layers is \(feature\_size\) and the input shape for the first layer is (33, 1), leading to a total of 4620 trainable weights for the first layer. Due to the first layer returning its sequences, the second layer's input shape is (33, 33) leading to a total of 8844 for the second layer. The third layer is a dense layer, whose weights consist of a kernel of size \((input_dim * units)\) and a set of weights of size \(units\), making the number of weights for the dense layer 1122. This leads to a total number of trainable weights. The output vector of shape (\(feature\_size\), 1) then holds the predicted features, where every value in this vector represents one feature. The network uses a batch size of 32. Increasing the batch size tends to cause the network to converge slower, which can cause problems when dealing with users with few actions. On the other hand reducing the batch size quickly slows down the network significantly. The network is first trained on the supplied training data, always trying to optimize for the lowest loss value, calculated by the mean squared error function (mse). This function measures the average of the squares of the differences between actual and predicted values, giving an approximation of the deviation from the expected value. The mean squared error is calculated by using the following formula with \(n\) being the length of the vector that was used as its input, \(x\) being the predicted vector and \(y\) being the actual vector:
 
 \begin{equation} \label{eq:mse}
 mse = (\sum\limits_{i=0}^{n - 1} {(x_i - y_i)}^2) / n
 \end{equation}
 
-The \(mse\) function is then applied to the predicted feature vector and the actual feature vector. This is done by using the \enquote{adam} optimizer. The learning rate of this optimizer was set to 0.001. Training is repeated for 25 epochs. This value was chosen because increasing this value would introduce overfitting and reducing it would result in higher loss values overall. As another measure to prevent overfitting, a dropout factor of 0.5, and a recurrent dropout factor of 0.2 is used for both LSTM layers. A dropout factor, which randomly drops certain input vectors, and a recurrent dropout factor that randomly drops out vectors between states, were shown to prevent overfitting in~\cite{srivastava2014dropout}. Note that these parameters are not perfect and they are all chosen because they are either standard values in many projects (batch size and epochs) or because they are recommended (dropout). Because of the use of unsupervised learning, no measure of how good the system actually is at detecting attacks exists. Because of this no objective measure of how good the system functions exists, and the system's parameters can not be optimized by using this measure. If a parameter has not been mentioned here, the value of that parameter is keras' default value for that parameter.
+The weights are adjusted during the training process to minimize the \(mse\) over the training set, one batch (of size 32) at a time. This is done by using the \enquote{adam} optimizer. The learning rate of this optimizer was set to 0.001. Training is repeated for 25 epochs. Because too many iterations of the optimizer might lead to overfitting, the training process was stopped at 25 epochs. Too little iterations, however, results in higher error values. This is also the number of epochs that is commonly used, making it a good choice when no other number of epochs was proven to work better. In Chapter~\ref{ch:experiments} some experiments regarding changing the epoch size are done. As another measure to prevent overfitting, a dropout factor of 0.5, and a recurrent dropout factor of 0.2 is used for both LSTM layers. A dropout factor, which randomly drops certain nodes in the network, and a recurrent dropout factor that randomly drops out vectors between states, were shown to prevent overfitting in~\cite{srivastava2014dropout}. Note that these parameters are not perfect and they are all chosen because they are either standard values in many projects (batch size and epochs) or because they are recommended (dropout). If a parameter has not been mentioned here, the value of that parameter is Keras' default value for that parameter. The system's goal is to identify outliers, which are then labeled as possible cyber-security attacks. Unfortunately, because the data set is unlabeled, no objective measure of how good the system is at finding actual cyber-security attacks exists, disallowing the optimization of the system's parameters based on this performance measure.
+
+Because training LSTM networks requires many experiments with different setups and architectures, the decisions was made to use only 0.1\% of the users in the data set for Chapter~\ref{ch:experiments}. However, in order to get a clear idea of the system's performance and to measure the effectiveness of the system, 1\% of the users in the data set were used in Chapters~\ref{ch:ch:evaluation} and~\ref{ch:results}. The users are sorted alphabetically before taking the first x\% of human users.
 
 %cSpell:words srivastava
 \section{Training}
-After preprocessing, the training data is used as input for the networks. For performance reasons, a single network is created, which is then used as the template for every other network. Instead of creating a new network for every user, new weights are created that are then applied to the base network. The network is trained by inputting the a feature vector in the training set sequence and having it predict the next feature vector, after which the \(mse\) over these two vectors is calculated. This is done for every feature vector in the training set in batches of 32. After every batch the weights are updated based on the error value. This is repeated for all batches in the training set.
+After preprocessing, the training data is used as input for the networks. For performance reasons, a single network is created, which is then used as a template for every user. New weights are created for every user, which are then applied to the base network. The network is trained by inputting a feature vector in the training set sequence and having it predict the next feature vector (see Table~\ref{tab:training_set_shift}), after which the \(mse\) over these two vectors is calculated. This is done for every feature vector in the training set in batches of 32. After every batch the weights are updated based on the errors observed over that batch. This is repeated for all batches in the training set.
+
+\begin{table}[]
+	\centering
+	\caption{The network's input vector and the vector it's supposed to predict}\label{tab:training_set_shift}
+	\begin{tabular}{ll}
+		Input & Target Prediction \\ \hline
+		x_0    & x_1                \\
+		x_1    & x_2                \\
+		x_2    & x_3                \\
+		\dots   & \dots               \\
+		x_{n-2}  & x_{n-1}              \\
+		x_{n-1}  & x_n               
+	\end{tabular}
+\end{table}
 
 \section{Testing}\label{sec:methods:testing}
-After training, the network is applied to the test set. There is a limitation requiring the use of the same batch size for both training and testing, which would downplay the significance of single anomalies. For example, in a set of \(batch\_size\) losses, one big anomaly is not as significant as 10 small anomalies. As such a method needs to be devised to test using batch size of 1 instead. This is done by creating another network, identical in structure but having a batch size of 1, and transferring the weights and states when tests occur. This has the same effect as changing the original network's batch size to 1 (for this application), but without all the performance losses.
+After training, the network is applied to the test set. In Keras the batch size of the training set and the batch size of the test set have to be the same, this downplays the significance of single anomalies. For example, in a set of \(batch\_size\) errors, one big anomaly is not as significant as 10 small anomalies. As such a method needs to be devised to test using batch size of 1 instead. This is done by creating another network, identical in structure but having a batch size of 1, and transferring the weights and states when tests occur. This has the same effect as changing the original network's batch size to 1 (for this application), but without all the performance losses.
 
-The losses from all of the test data are then collected, after which the interquartile range (IQR) is calculated over the training set's error values. The IQR function attempts to find statistical outliers based on the median values of a distribution. This is done by calculating the medians of both the upper and lower half of a distribution, which are then called Q1 and Q3 respectively. The IQR is then equal to \(Q3 - Q1\). Any values that lay outside of the ranges of the following functions, where \(x\) is the input value, are then called outliers.
+First of all, the interquartile range (IQR) is calculated over the training set's errors in order to get a baseline for the test set. The IQR function attempts to find statistical outliers based on the median values of a distribution. This is done by calculating the medians of both the upper and lower half of a distribution, which are then called Q1 and Q3 respectively. The IQR is then equal to \(Q3 - Q1\). Any values that lay outside of the ranges of the following functions, where \(x\) is the input value, are then called outliers.
 
 \begin{subequations}
 \begin{align}
@@ -138,10 +157,10 @@ The losses from all of the test data are then collected, after which the interqu
 \end{align}
 \end{subequations}
 
-In practice the first form of outlier (lower than IQR) will almost never be found, as that would mean an action so perfectly fits the user, it is an anomaly, which is very unlikely to point to an intrusion attempt. Because the training set's error values should represent a regular sequence of actions by the user, any error values in the test set that fall outside of the range calculated with the above functions are classified as anomalies.
+The error represents the difference between the predicted vector and the actual vector. Because of this, the higher the error, the bigger this difference. This also means that the first form of outlier (\ref{eq:iqr_min}) is not interesting, as the model simply predicted the behavior very well, not pointing to anomalous behavior. Because the training set's errors should represent a regular sequence of actions by the user, any errors calculated over the test set that fall outside of the range calculated with the above functions are classified as anomalies.
 
-After finding anomalies, they have to be translated into actual rows. This issue occurs because when inputting solely features, the events they are based on are discarded. As network administrators will want to see the name of the user that is behind a found anomaly and may want to have the events investigated by a cyber-security expert, these anomalies are translated back into source events. This is done by storing the index of an anomaly as well as the user associated with the anomaly. The indices have a 1--to--1 correspondence to the source events, allowing for easy translation. This step can be skipped if, for example, no anomalies were found or only previously known anomalies were found.
+After finding anomalies, the corresponding fragments of the original data should be investigated to find out if they represent cyber-security events. This issue occurs because when inputting solely features, the events they are based on are discarded. As network administrators will want to see the name of the user that is behind a found anomaly and may want to have the events investigated by a cyber-security expert, these anomalies are translated back into source events. This is done by storing the index of an anomaly as well as the user associated with the anomaly. The indices have a 1--to--1 correspondence to the source events, allowing for easy translation. This step can be skipped if, for example, no anomalies were found or only previously known anomalies were found.
 
 %cSpell:words chollet tensorflow whitepaper
 \section{Code}
-All the code was written in Python, using the~\cite{chollet2015keras} Keras deep learning wrapper's LSTM as the neural network. Default settings were used if not mentioned otherwise. TensorFlow~\cite{tensorflow2015-whitepaper} was used as the underlying library for Keras. Due to both the preprocessing/feature generation and the training/testing stages being very slow (as will be explained later in the evaluation section), especially when using big datasets, both of these operations have been parallelized. The first stage (preprocessing/feature generation) is a very CPU-dependent task, this task can be split over any number of CPU's, handling a single user per CPU at a time until all users have been processed. The second stage (training/testing) can be either run on the CPU (s) or GPU (s). Depending on the hardware of the computer the experiments are executed on, one of these will be faster, as will be discussed in Chapter~\ref{ch:evaluation}. When using the CPU, Keras itself will use all CPUs available to it, however when using the GPU, a problem arises. Because Keras only uses a single GPU per neural network, only a single GPU can be used per model, which in this case is the template model. This can be solved by splitting the work into multiple independent processes in order to parallelize the operations. This is done by having one root process splitting the to-do jobs between \(n\) processes. The total number of users is split over the sub-processes. These \(n\) processes all produce partial outputs (both anomalies and plots), that have to then be stitched together by the host process. The host process then produces the final output.
+All the code was written in Python, using the~\cite{chollet2015keras} Keras deep learning wrapper's LSTM as the neural network. Default settings were used if not mentioned otherwise. TensorFlow~\cite{tensorflow2015-whitepaper} was used as the underlying library for Keras. Due to both the preprocessing/feature generation and the training/testing stages being very slow (as will be explained later in the evaluation section), especially when using big datasets, both of these operations have been parallelized. The first stage (preprocessing/feature generation) is a very CPU-dependent task, this work can be split over any number of CPU's, handling a single user per CPU at a time until all users have been processed. The second stage (training/testing) can be either run on the CPU (s) or GPU (s). Depending on the hardware of the computer the experiments are executed on, one of these will be faster, as will be discussed in Chapter~\ref{ch:evaluation}. When using the CPU, TensorFlow itself will use all CPUs available to it, however when using the GPU, a problem arises. Because TensorFlow only requires a single GPU per neural network per process, and increasing the amount of GPUs per network does not speed up training or testing, there is no point in using multiple GPUs for the same network. Because of this, only a single GPU will be used per model in this thesis, which in this case is the template model. In order to make use of the other GPUs and to speed up computation, a method of splitting the work over all GPUs must be found. This can be done by splitting the work into multiple independent processes in order to parallelize the operations. This is done by having one root process splitting the to-do jobs between \(n\) processes. The total number of users is split over the sub-processes. These \(n\) processes all produce partial outputs (both anomalies and plots), that have to then be stitched together by the host process. The host process then produces the final output.
