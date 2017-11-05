@@ -8,7 +8,7 @@
 	\caption{A recurrent neural network. From~\cite{olah2015understanding}\label{fig:rnn_img}}
 \end{figure}
 
-A recurrent neural network is a variation of an artificial neural network that continuously uses the output of its previous cell as the input of the current cell along with the input that was applied to this cell (see figure~\ref{fig:rnn_img}). Due to this feature, RNNs have the ability to store processed information from the previous input in the hidden state as these can be passed along through the previous cell's output. 
+A recurrent neural network is a variation of an artificial neural network that continuously uses the output of its previous cell as the input of the current cell along with the input that was applied to this cell (see Figure~\ref{fig:rnn_img}). Due to this feature, RNNs have the ability to store processed information from the previous input in the hidden state as these can be passed along through the previous cell's output. 
 
 \begin{figure}
 	\begin{center}
@@ -17,7 +17,7 @@ A recurrent neural network is a variation of an artificial neural network that c
 	\caption{A single RNN cell. From~\cite{olah2015understanding}\label{fig:rnn_cell}}
 \end{figure}
 
-As can be seen in figure~\ref{fig:rnn_cell}, RNNs only have a single vector that functions as the hidden state and the cell's output. The vector of values at the output of the hidden layer that are observed at time \(t\), h\(_{\text{t}}\) is calculated by the following function where h\(_{\text{t}}\) is the current hidden state vector and h\(_{\text{t-1}}\) the vector of the previous hidden state, \(W\) is the weight matrix for the cell's input, \(U\) is the weight matrix for the hidden value, x\(_{\text{t}}\) is the input of this cell, and \(\sigma \) is a sigmoid function used to squash its inputs into the [0, 1] range:
+As can be seen in Figure~\ref{fig:rnn_cell}, RNNs only have a single vector that functions as the hidden state and the cell's output. The vector of values at the output of the hidden layer that are observed at time \(t\), h\(_{\text{t}}\) is calculated by the following function where h\(_{\text{t}}\) is the current hidden state vector and h\(_{\text{t-1}}\) the vector of the previous hidden state, \(W\) is the weight matrix for the cell's input, \(U\) is the weight matrix for the hidden value, x\(_{\text{t}}\) is the input of this cell, and \(\sigma \) is a sigmoid function used to squash its inputs into the [0, 1] range:
 
 \begin{equation} \label{eq:hidden_gate_lstm}
 h_t = \sigma(Wx_t + Uh_\text{t-1})
@@ -28,7 +28,7 @@ These standard RNN cells and any other RNN architectures could be stacked on top
 
 \section{LSTMs}
 
-The LSTM architecture, contrary to regular RNNs, has an additional hidden state that is never directly outputted (see figure~\ref{fig:lstm_cell}). This additional hidden state can then be used by the network solely for remembering previous relevant information. Instead of having to share its \enquote{memory} with its output, these values are now separate. During the training process, an LSTM learns what should be remembered for the future and what should be forgotten, which is achieved by using its internal weights.
+The LSTM architecture, contrary to regular RNNs, has an additional hidden state that is never directly outputted (see Figure~\ref{fig:lstm_cell}). This additional hidden state can then be used by the network solely for remembering previous relevant information. Instead of having to share its \enquote{memory} with its output, these values are now separate. During the training process, an LSTM learns what should be remembered for the future and what should be forgotten, which is achieved by using its internal weights.
 
 \begin{figure}[H]
 	\begin{center}
@@ -79,7 +79,7 @@ weights = (4 * units * input\_dim ) + (4 * units * units) + (4 * units)
 In this formula, the number 4 comes from there being 4 different weights for calculating the gates (forget, input, hidden state and output). The first term (also known as the kernel weights) then represents the \(W\) matrix in the above functions, the second term (also called the recurrent kernel) represents the \(U\) matrix and the third term is a matrix containing biases \(b\).
 
 \section{GRUs}
-Another RNN architecture is the Gated Recurrent Unit (GRU), introduced in~\cite{cho2014learning}. This architecture combines the input and forget gates into a single so-called \enquote{update gate} and also merges the cell state and hidden state (see figure~\ref{fig:gru_cell}). The calculation of the merged output vector once again consists of several operations. The network first computes the \enquote{reset gate} \(r_t\) using the following function, where \(W_r\) are the weights for the reset gate and \([h_{t-1}, x_t]\) signifies the concatenation of \(h_{t-1}\) and \(x_t\):
+Another RNN architecture is the Gated Recurrent Unit (GRU), introduced in~\cite{cho2014learning}. This architecture combines the input and forget gates into a single so-called \enquote{update gate} and also merges the cell state and hidden state (see Figure~\ref{fig:gru_cell}). The calculation of the merged output vector once again consists of several operations. The network first computes the \enquote{reset gate} \(r_t\) using the following function, where \(W_r\) are the weights for the reset gate and \([h_{t-1}, x_t]\) signifies the concatenation of \(h_{t-1}\) and \(x_t\):
 
 %cSpell:words olah
 \begin{figure}
