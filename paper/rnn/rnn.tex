@@ -82,7 +82,7 @@ In this formula, the number 4 comes from there being 4 different weights for cal
 Another RNN architecture is the Gated Recurrent Unit (GRU), introduced in~\cite{cho2014learning}. This architecture combines the input and forget gates into a single so-called \enquote{update gate} and also merges the cell state and hidden state (see Figure~\ref{fig:gru_cell}). The calculation of the merged output vector once again consists of several operations. The network first computes the \enquote{reset gate} \(r_t\) using the following function, where \(W_r\) are the weights for the reset gate and \([h_{t-1}, x_t]\) signifies the concatenation of \(h_{t-1}\) and \(x_t\):
 
 %cSpell:words olah
-\begin{figure}
+\begin{figure}[H]
 	\begin{center}
 		\includegraphics[scale=0.5]{rnn/gru_cell}
 	\end{center}
