@@ -10,7 +10,7 @@ Experiments regarding increasing or decreasing the batch size were done. Changin
 \section{Epochs}
 Changing the number of epochs to 15 and 40 has also shown little difference in the results with the current setup. However, some experiments with changing the number of epochs have been done on a larger set of users (100) with a very low number of actions (~1500 per user). The architecture was also different, having no dropout rate on the LSTM layers. This showed some significant differences in the results. Figures~\ref{fig:25-epochs},~\ref{fig:15-epochs} and~\ref{fig:8-epochs} show significant differences between the highest error value and the average error value of a batch. This is likely because epoch sizes that low tend to have a big effect when given little training data. The effect of a high epoch size is to essentially train multiple times on the same data. When there is a lot of data available, this is not necessary, instead causing the network to overfit on the input data it has. The differences between these two test scenarios can likely be explained by the first scenario having a dropout rate, significantly reducing the amount of overfitting a higher epoch size brings, and also having a lot more input data, making a lower epoch size have less effect as well.
 
-\begin{figure}
+\begin{figure}[H]
 	\begin{center}
 		\includegraphics[scale=0.7]{experiments/epochs/25-epochs.png}
 	\end{center}
