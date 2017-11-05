@@ -469,7 +469,7 @@ class UserNetwork:
         anomalies = list()
 
         # Interquartile range
-        inter_quartile_range, q3 = get_training_set_iqr(train_x, train_y)
+        inter_quartile_range, q3 = self.get_training_set_iqr(train_x, train_y)
 
         PLOTS["LOSSES"][self.user_name] = list(map(lambda x: x.loss, test_losses))
         PLOTS["IQRS"][self.user_name] = inter_quartile_range
