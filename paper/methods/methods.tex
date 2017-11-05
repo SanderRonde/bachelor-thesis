@@ -29,7 +29,7 @@ Some variables like the computer's name can not be used as input for a neural ne
 	\centering
 	\caption{The features}\label{tab:features}
 	\resizebox{\linewidth}{!}{
-		\begin{tabular}{lll}
+		\begin{tabular}{l|ll}
 			Index & Feature                		& Description                                                                \\ \midrule
 			0     & domains delta          		& 1 if a previously unvisited domain was accessed, 0 otherwise               \\
 			1     & dest users delta       		& 1 if a previously unvisited destination user was accessed, 0 otherwise     \\
@@ -50,7 +50,7 @@ Some variables like the computer's name can not be used as input for a neural ne
 \centering
 \caption{1-of-encoding}\label{tab:one_of_encoding}
 \begin{tabular}{l|lll}
-  & \(x_1\) & \(x_2\) & \(x_3\) \\ \hline
+  & \(x_1\) & \(x_2\) & \(x_3\) \\ \midrule
 A & 1  & 0  & 0  \\
 B & 0  & 1  & 0  \\
 C & 0  & 0  & 1 
