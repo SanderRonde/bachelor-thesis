@@ -594,7 +594,7 @@ def filter_deviations(deviations):
         data = deviations[i]
         user = data["key"]
         val = data["val"]
-        if key in by_user:
+        if user in by_user:
             by_user[user].append(val)
         else:
             by_user[user] = [val]
@@ -607,7 +607,7 @@ def filter_deviations(deviations):
                 "key": user,
                 "val": last_five[i]
             })
-    return filter_deviations
+    return filtered_deviations
 
 
 def save_plot_data(plot_location: str):
@@ -851,7 +851,21 @@ def main():
             error("Error", exception)
 
         logline("Plotting various things in", plot_location)
-        save_plot_data(plot_location)
+        try:
+            save_plot_data(plot_location)
+        except Exception as e:
+            error('Something went wrong creating plots, dumping to file')
+            try:
+                with open(plot_location + 'plot_data.json', 'w') as out_file:
+                    json.dump(PLOTS, out_file)
+            except Exception as e:
+                error('Something went even more wrong when outputting to file, dumping to stdout')
+                try:
+                    data = json.dumps(PLOTS)
+                    debug(data)
+                except Exception as e:
+                    error('Something went wrong JSON stringifying the data, dumping obj')
+                    debug(PLOTS)
 
     output_file = io.get('output_file')
     if output_file == 'stdout':
