@@ -45,20 +45,13 @@ In order to get an idea of how much the error between the predicted feature vect
 y = (x - Q3) / IQR
 \end{equation}
 
-This \(y\) value is plotted for the different architectures (GRU and LSTM with the parameters described above), which can be seen in Figures~\ref{fig:gru_deviations} and~\ref{fig:lstm_deviations}. These figures show that the architecture using LSTM cells has more events with a high deviation than the architecture using GRU cells. This can point to it detecting more actual anomalies, or it labeling non-anomalous actions as anomalies. Because the data set is unlabeled there is unfortunately no way to find out. Figures~\ref{fig:gru_rnn_losses} again shows that the architecture using LSTMs has a higher error value for most batches, also peaking higher. The LSTM architecture also flagged 0.7\% more events as anomalies. Again conclusions can not be drawn regarding which result is more effective but it can be seen that they do differ somewhat.
+This \(y\) value is plotted for the different architectures (GRU and LSTM with the parameters described above), which can be seen in Figure~\ref{fig:lstm_deviations}. This figure shows the GRU and LSTM deviations being fairly close. In the lowest group (from 0 to 18) the LSTM seems to be consistently higher than the GRU, however, at this scale the difference isn't that big. If you draw lines through these points, the lines run parallel (when viewing the plot non-logarithmically), showing that the architectures find similar anomalies. In later groups, the GRU has consistently higher \(y\) scores than the LSTM. This can point to it flagging actual anomalies as more anomalous (pointing to it being better at recognizing them), or it labeling non-anomalous actions as more likely to be anomalies. Because the data set is unlabeled there is unfortunately no way to find out. Figure~\ref{fig:gru_rnn_losses} again shows that the architecture using LSTMs has a higher error value for most batches, also peaking higher. The LSTM architecture also flagged 0.7\% more events as anomalies. Again conclusions can not be drawn regarding which result is more effective but it can be seen that they do differ somewhat.
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=6.0]{experiments/cell/deviations/gru}
+		\includegraphics[scale=0.8]{experiments/cell/deviations/gru_vs_lstm}
 	\end{center}
-	\caption{The deviations \(y\) (function~\ref{eq:y}). Where the IQR is being calculated over the training set and \(x\) is the mean squared error between a predicted feature vector and the actual feature vector. Plotted over the combined actions of 0.1\% of all users (sorted). Using GRU cells.~\label{fig:gru_deviations}}
-\end{figure}
-
-\begin{figure}
-	\begin{center}
-		\includegraphics[scale=6.0]{experiments/cell/deviations/lstm}
-	\end{center}
-	\caption{The deviations \(y\) (function~\ref{eq:y}). Where the IQR is being calculated over the training set and \(x\) is the mean squared error between a predicted feature vector and the actual feature vector. Plotted over the combined actions of 0.1\% of all users (sorted). Using LSTM cells.~\label{fig:lstm_deviations}}
+	\caption{The deviations \(y\) (function~\ref{eq:y}). Where the IQR is being calculated over the training set and \(x\) is the mean squared error between a predicted feature vector and the actual feature vector. Combining the last 5 actions for each user, over 0.1\% of all users (sorted). Comparing GRU and LSTM.~\label{fig:gru_vs_lstm}}
 \end{figure}
 
 \begin{figure}
@@ -68,14 +61,12 @@ This \(y\) value is plotted for the different architectures (GRU and LSTM with t
 	\caption{The error of all users' actions combined, calculated using the mse (sorted).~\label{fig:gru_rnn_losses}}
 \end{figure}
 
-%TODO: only last 5?
-
 \section{RNN cell}
-Using standard RNN cells instead of LSTM cells showed a significant difference. The parameters to the RNN were the same as those to the LSTM network. Just as with the GRU cells, the RNN cells have significantly lower errors, as can be seen when comparing figures~\ref{fig:lstm_deviations} and~\ref{fig:rnn_deviations}. The RNN cells also flagged less events as anomalous, flagging 21\% less as such. Once again no clear conclusion can be drawn from which one is more effective, however, LSTMs have been shown to be superior to regular RNNs in many fields, suggesting that this may also be a case of the LSTM cells outperforming the RNN cells at finding anomalies.
+Using standard RNN cells instead of LSTM cells showed a significant difference. The parameters to the RNN were the same as those to the LSTM network. The RNN cells seem to have significantly higher errors in the middle group (18 to 35), while having significantly lower errors in the last group, as can be seen in Figure~\ref{fig:rnn_vs_lstm}. The RNN cells also flagged less events as anomalous, flagging 21\% less as such. Once again no clear conclusion can be drawn as to which one is more effective, however, LSTMs have been shown to be superior to regular RNNs in many fields, suggesting that this may also be a case of the LSTM cells outperforming the RNN cells at flagging anomalies.
 
 \begin{figure}
 	\begin{center}
-		\includegraphics[scale=6.0]{experiments/cell/deviations/rnn}
+		\includegraphics[scale=0.8]{experiments/cell/deviations/rnn_vs_lstm}
 	\end{center}
-	\caption{The deviations \(y\) (function~\ref{eq:y}). Where the IQR is being calculated over the training set and \(x\) is the mean squared error between a predicted feature vector and the actual feature vector. Plotted over the combined actions of 0.1\% of all users (sorted). Using RNN cells.~\label{fig:rnn_deviations}}
+	\caption{The deviations \(y\) (function~\ref{eq:y}). Where the IQR is being calculated over the training set and \(x\) is the mean squared error between a predicted feature vector and the actual feature vector. Combining the last 5 actions for each user, over 0.1\% of all users (sorted). Comparing plain RNN and LSTM.~\label{fig:rnn_vs_lstm}}
 \end{figure}
