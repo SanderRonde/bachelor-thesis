@@ -1,8 +1,0 @@
-{
-	"python.linting.pylintEnabled": false,
-	"python.pythonPath": "C:/Python34/python.exe",
-	"python.autoComplete.extraPaths": [
-		"${env.SPARK_HOME}\\python",
-		"${env.SPARK_HOME}\\python\\pyspark"
-	]
-}
