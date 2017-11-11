@@ -854,8 +854,9 @@ def main():
         try:
             save_plot_data(plot_location)
         except Exception as e:
-            error('Something went wrong creating plots, dumping to file')
+            error('Something went wrong creating plots,', e, 'dumping to file')
             try:
+                debug('Trying to output to', plot_location + 'plot_data.json')
                 with open(plot_location + 'plot_data.json', 'w') as out_file:
                     json.dump(PLOTS, out_file)
             except Exception as e:
