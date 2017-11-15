@@ -105,5 +105,5 @@ thesis.pdf
 *.blg
 
 scripts/send_notification.sh
-!docs/thesis.pdf
+!docs/assets/thesis.pdf
 dslab/
