@@ -1,1 +1,1 @@
-copy "thesis.pdf" "../docs/thesis.pdf"
+copy "thesis.pdf" "../docs/assets/thesis.pdf"
