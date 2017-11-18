@@ -1,4 +1,8 @@
 # Detecting anomalies with recurrent neural networks
-Computer Science Bachelor thesis exploring the effectiveness of using recurrent neural networks for anomaly detection in the Los Alamos cyber-security data set.
 
-Check it out [over here](https://sanderronde.github.io/bachelor-thesis/thesis.pdf)
+Computer Science Bachelor thesis exploring the effectiveness of using recurrent neural networks for anomaly detection in the [Los Alamos cyber-security data set](https://csr.lanl.gov/data).
+
+## Abstract
+Due to the widespread usage of computer networks and numerous attacks on them, a fast and accurate method to detect these attacks is an ever growing need. In this thesis, a system using a Recurrent Neural Network (RNN) is explored as a method to detect intrusions. This system is applied to an unlabeled cyber-security data set in order to determine its effectiveness. The goal is to train the system on every individual user in this data set in order to learn their behavior and to find any deviations in their behavior. It should be stressed that deviations in behavior (also known as anomalies) cannot be labeled as \enquote{intrusions} without the involvement of domain experts. Nevertheless, they can be used for identifying potential attacks and presenting them to cyber-security experts for further evaluation. Several architectures for this system are explored in order to find the optimal one. However, results show that using an unlabeled data set for the training of this network leaves no good measure of the accuracy of the system. This makes finding the optimal architecture a hard task. The system used in this thesis has been shown to find likely anomalies, leading to the conclusion that RNNs are an effective method for flagging anomalous behavior.
+
+[Read the PDF here](https://sanderronde.github.io/bachelor-thesis/thesis.pdf)
